@@ -5,6 +5,7 @@
     <version-tag></version-tag>
     <platformVersion>3.84.0</platformVersion>
     <dependencies>
+        <dependency id="VirtoCommerce.ExperienceApi" version="1.48.0" />
     </dependencies>
 
     <title>VirtoCommerce ProfileExperienceApiModule extension module</title>
