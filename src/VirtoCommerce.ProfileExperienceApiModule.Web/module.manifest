@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<module>
+    <id>VirtoCommerce.ProfileExperienceApiModule</id>
+    <version>1.0.0</version>
+    <version-tag></version-tag>
+    <platformVersion>3.84.0</platformVersion>
+    <dependencies>
+    </dependencies>
+
+    <title>VirtoCommerce ProfileExperienceApiModule extension module</title>
+    <description>VirtoCommerce ProfileExperienceApiModule extension module</description>
+
+    <authors>
+        <author>Konstantin Savosteev</author>
+    </authors>
+    <owners>
+        <owner>VirtoCommerce</owner>
+    </owners>
+
+    <assemblyFile>VirtoCommerce.ProfileExperienceApiModule.Web.dll</assemblyFile>
+    <moduleType>VirtoCommerce.ProfileExperienceApiModule.Web.Module, VirtoCommerce.ProfileExperienceApiModule.Web</moduleType>
+
+    <releaseNotes>First version.</releaseNotes>
+    <copyright>Copyright © 2021 VirtoCommerce. All rights reserved</copyright>
+    <tags>extension module</tags>
+
+</module>
+
+
