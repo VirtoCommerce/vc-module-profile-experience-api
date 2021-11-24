@@ -23,7 +23,6 @@
     <PackageReference Include="coverlet.collector" Version="1.0.1" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\VirtoCommerce.ProfileExperienceApiModule.Core\VirtoCommerce.ProfileExperienceApiModule.Core.csproj" />
     <ProjectReference Include="..\..\src\VirtoCommerce.ProfileExperienceApiModule.Data\VirtoCommerce.ProfileExperienceApiModule.Data.csproj" />
     <ProjectReference Include="..\..\src\VirtoCommerce.ProfileExperienceApiModule.Web\VirtoCommerce.ProfileExperienceApiModule.Web.csproj" />
   </ItemGroup>
