@@ -45,6 +45,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field(x => x.Contact.Status, true).Description("Contact status");
             Field<ListGraphType<StringGraphType>>("emails", resolve: x => x.Source.Contact.Emails, description: "List of contact`s emails");
 
+            Field<MemberAddressType>("defaultBillingAddress", description: "Default billing address",
+                resolve: context => context.Source.Contact.Addresses.FirstOrDefault(address => address.AddressType == CoreModule.Core.Common.AddressType.Billing && address.IsDefault));
+
+            Field<MemberAddressType>("defaultShippingAddress", description: "Default shipping address",
+                resolve: context => context.Source.Contact.Addresses.FirstOrDefault(address => address.AddressType == CoreModule.Core.Common.AddressType.Shipping && address.IsDefault));
+
             ExtendableField<NonNullGraphType<ListGraphType<DynamicPropertyValueType>>>(
                 "dynamicProperties",
                 "Contact's dynamic property values",

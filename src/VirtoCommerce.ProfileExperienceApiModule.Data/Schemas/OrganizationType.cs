@@ -40,6 +40,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field(x => x.Organization.Groups, true);
             Field(x => x.Organization.SeoObjectType).Description("SEO object type");
             Field(x => x.Organization.Status, true).Description("Organization status");
+
+            Field<MemberAddressType>("defaultBillingAddress", description: "Default billing address",
+                resolve: context => context.Source.Organization.Addresses.FirstOrDefault(address => address.AddressType == CoreModule.Core.Common.AddressType.Billing && address.IsDefault));
+
+            Field<MemberAddressType>("defaultShippingAddress", description: "Default shipping address",
+                resolve: context => context.Source.Organization.Addresses.FirstOrDefault(address => address.AddressType == CoreModule.Core.Common.AddressType.Shipping && address.IsDefault));
+
             ExtendableField<NonNullGraphType<ListGraphType<DynamicPropertyValueType>>>(
                "dynamicProperties",
                "Organization's dynamic property values",
