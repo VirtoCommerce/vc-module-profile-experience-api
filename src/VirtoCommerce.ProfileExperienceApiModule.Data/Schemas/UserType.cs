@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading.Tasks;
 using GraphQL.Resolvers;
 using GraphQL.Types;
 using VirtoCommerce.ExperienceApiModule.Core.Helpers;
@@ -49,7 +50,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                     // Platfrom system users (frontend, admin, etc) usually don't have a contact.
                     if (context.Source.MemberId == null)
                     {
-                        return null;
+                        return Task.FromResult<ContactAggregate>(null);
                     }
 
                     return contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(context.Source.MemberId);
