@@ -22,17 +22,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
     public class ContactType : ExtendableGraphType<ContactAggregate>
     {
-        [Obsolete("Remove after 1.38.0 version")]
-        private readonly IOrganizationAggregateRepository _organizationAggregateRepository;
-
         public ContactType(
-            IOrganizationAggregateRepository organizationAggregateRepository,
             IDynamicPropertyResolverService dynamicPropertyResolverService,
             IMediator mediator,
             IMemberAggregateFactory memberAggregateFactory)
         {
-            _organizationAggregateRepository = organizationAggregateRepository;
-
             Field(x => x.Contact.FirstName);
             Field(x => x.Contact.LastName);
             Field<DateGraphType>("birthDate", resolve: context => context.Source.Contact.BirthDate.HasValue ? context.Source.Contact.BirthDate.Value.Date : (DateTime?)null);
