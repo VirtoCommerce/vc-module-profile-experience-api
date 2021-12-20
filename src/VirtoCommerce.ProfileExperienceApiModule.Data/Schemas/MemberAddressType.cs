@@ -9,6 +9,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
         {
             Field<StringGraphType>("id", resolve: context => context.Source.Key, description: "Id");
             Field(x => x.Key, true).Description("Id");
+            Field(x => x.IsDefault, nullable: false).Description("Is default address or not");
             Field(x => x.City, nullable: true).Description("City");
             Field(x => x.CountryCode, nullable: true).Description("Country code");
             Field(x => x.CountryName, nullable: true).Description("Country name");
