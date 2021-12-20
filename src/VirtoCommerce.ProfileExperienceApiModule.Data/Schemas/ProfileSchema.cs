@@ -77,7 +77,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             //Queries
 
             #region organization query
-
+#pragma warning disable S125 // Sections of code should not be commented out
             /* organization query with contacts connection filtering:
             {
               organization(id: "689a72757c754bef97cde51afc663430"){
@@ -87,7 +87,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
               }
             }
              */
-
+#pragma warning restore S125 // Sections of code should not be commented out
             #endregion
             schema.Query.AddField(new FieldType
             {

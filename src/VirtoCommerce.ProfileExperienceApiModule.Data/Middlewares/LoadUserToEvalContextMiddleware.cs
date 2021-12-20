@@ -46,7 +46,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Middlewares
             if (!string.IsNullOrEmpty(parameter.CustomerId))
             {
                 var member = await _memberIdResolver.ResolveMemberByIdAsync(parameter.CustomerId);
-                if (member != null && member is Contact contact)
+                if (member is Contact contact)
                 {
                     parameter.Customer = _mapper.Map<Customer>(contact);
                 }
@@ -57,7 +57,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Middlewares
         private async Task InnerSetShopperDataFromMember(EvaluationContextBase evalContextBase, string customerId)
         {
             var member = await _memberIdResolver.ResolveMemberByIdAsync(customerId);
-            if (member != null && member is Contact contact)
+            if (member is Contact contact)
             {
                 evalContextBase.ShopperGender = contact.GetDynamicPropertyValue("gender", string.Empty);
                 if (contact.BirthDate != null)

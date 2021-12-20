@@ -25,7 +25,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
         {
             Name = "Organization";
             Description = "Organization info";
-            //this.AuthorizeWith(CustomerModule.Core.ModuleConstants.Security.Permissions.Read);
 
             Field(x => x.Organization.Id);
             Field(x => x.Organization.Description, true).Description("Description");
