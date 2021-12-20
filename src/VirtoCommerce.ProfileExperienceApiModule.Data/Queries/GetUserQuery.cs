@@ -17,7 +17,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries
 
         }
 
-        public GetUserQuery(string id = null, string email = null, string userName = null, string loginProvider = null, string providerKey = null)
+        public GetUserQuery(string id, string email, string userName, string loginProvider, string providerKey)
         {
             Id = id;
             Email = email;

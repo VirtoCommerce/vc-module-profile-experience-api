@@ -464,8 +464,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 {
                     var user = await _mediator.Send(new GetUserQuery(
                         id: context.GetArgument<string>("id"),
-                        userName: context.GetArgument<string>("userName"),
                         email: context.GetArgument<string>("email"),
+                        userName: context.GetArgument<string>("userName"),
                         loginProvider: context.GetArgument<string>("loginProvider"),
                         providerKey: context.GetArgument<string>("providerKey")));
 
