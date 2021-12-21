@@ -24,7 +24,7 @@
     <assemblyFile>VirtoCommerce.ProfileExperienceApiModule.Web.dll</assemblyFile>
     <moduleType>VirtoCommerce.ProfileExperienceApiModule.Web.Module, VirtoCommerce.ProfileExperienceApiModule.Web</moduleType>
 
-    <releaseNotes>First version.</releaseNotes>
+    <releaseNotes />
     <copyright>Copyright © 2021 VirtoCommerce. All rights reserved</copyright>
     <tags>extension module</tags>
 
