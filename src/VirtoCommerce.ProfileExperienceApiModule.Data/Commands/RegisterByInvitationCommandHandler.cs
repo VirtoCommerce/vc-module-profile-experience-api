@@ -45,6 +45,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             var user = await userManager.FindByIdAsync(request.UserId);
 
+            // PT-6083: reduce complexity
             if (user == null)
             {
                 var errors = _environment.IsDevelopment() ? new[] { new IdentityError { Code = "UserNotFound", Description = "User not found" } } : null;

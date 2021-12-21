@@ -41,6 +41,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             var currentUserId = GetUserId(context);
             var currentContact = await GetCustomerAsync(currentUserId) as Contact;
 
+            // PT-6083: reduce complexity
             if (context.Resource is ContactAggregate contactAggregate && currentContact != null)
             {
                 result = currentContact.Id == contactAggregate.Contact.Id;

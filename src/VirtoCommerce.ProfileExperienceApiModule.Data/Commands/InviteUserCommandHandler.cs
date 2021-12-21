@@ -55,6 +55,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 Succeeded = true,
             };
 
+            // PT-6083: reduce complexity
             foreach (var email in request.Emails)
             {
                 var contact = new Contact { FirstName = string.Empty, LastName = string.Empty, FullName = string.Empty, Organizations = new List<string> { request.OrganizationId } };

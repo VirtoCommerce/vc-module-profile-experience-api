@@ -28,6 +28,9 @@
     <copyright>Copyright © 2021 VirtoCommerce. All rights reserved</copyright>
     <tags>extension module</tags>
 
+    <groups>
+        <group>commerce</group>
+    </groups>
 </module>
 
 
