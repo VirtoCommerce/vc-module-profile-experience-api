@@ -32,7 +32,15 @@ With this query, you can get the organization by its ID:
     parentId
     businessCategory
     addresses {
+      name
       addressType
+      isDefault
+    }
+    defaultBillingAddress {
+      name
+    }
+    defaultShippingAddress {
+      name
     }
   }
 }
@@ -49,6 +57,17 @@ With this query, you can get the contact by its ID:
     organizationId
     emails
     organizations {
+      name
+    }
+    addresses {
+      name
+      addressType
+      isDefault
+    }
+    defaultBillingAddress {
+      name
+    }
+    defaultShippingAddress {
       name
     }
   }
