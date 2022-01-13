@@ -17,10 +17,5 @@
   <ItemGroup>
     <ProjectReference Include="..\VirtoCommerce.ProfileExperienceApiModule.Data\VirtoCommerce.ProfileExperienceApiModule.Data.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <None Update="module.manifest">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
 
 </Project>
