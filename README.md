@@ -3,6 +3,7 @@
 X-Profile module provides high performance search queries for customer and organization data.
 
 ## Key features
+
 Through X-Profile, you can perform create, read, update, and delete (CRUD) operations with **users**, **organizations**, and **contacts**.
 All such operations can be completed with various queries, which are listed and detailed in the sections below.
 
