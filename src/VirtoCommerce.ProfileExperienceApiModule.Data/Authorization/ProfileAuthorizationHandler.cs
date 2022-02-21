@@ -39,7 +39,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             }
 
             var currentUserId = GetUserId(context);
-            var currentMember = await GetCustomerAsync(currentUserId) as Contact;
+            var currentMember = await GetCustomerAsync(currentUserId);
             var currentContact = currentMember as Contact;
 
             // PT-6083: reduce complexity
