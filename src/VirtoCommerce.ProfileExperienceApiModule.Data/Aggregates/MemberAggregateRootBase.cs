@@ -10,6 +10,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
 
         public virtual MemberAggregateRootBase UpdateAddresses(IList<Address> addresses)
         {
+            // remove not present addresses 
+            foreach (var removedItem in Member.Addresses.Except(addresses, EqualityComparer<Address>.Default).ToArray())
+            {
+                Member.Addresses.Remove(removedItem);
+            }
+
             foreach (var address in addresses)
             {
                 var addressForReplacement = Member.Addresses.FirstOrDefault(x => x.Key == address.Key);
