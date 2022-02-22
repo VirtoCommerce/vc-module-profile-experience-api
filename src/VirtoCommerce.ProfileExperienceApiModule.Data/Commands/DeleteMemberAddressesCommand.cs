@@ -5,9 +5,9 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
-    public class UpdateMemberAddressesCommand : MemberCommand, ICommand<MemberAggregateRootBase>
+    public class DeleteMemberAddressesCommand : MemberCommand, ICommand<MemberAggregateRootBase>
     {
-        public UpdateMemberAddressesCommand(string memberId, IList<Address> addresses)
+        public DeleteMemberAddressesCommand(string memberId, IList<Address> addresses)
         {
             MemberId = memberId;
             Addresses = addresses;
