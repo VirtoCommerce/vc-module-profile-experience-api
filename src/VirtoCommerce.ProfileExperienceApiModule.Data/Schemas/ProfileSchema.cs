@@ -318,6 +318,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             })
                             .FieldType);
 
+            _ = schema.Mutation.AddField(FieldBuilder.Create<object, MemberAggregateRootBase>(GraphTypeExtenstionHelper.GetActualType<MemberType>())
+                            .Name("deleteMemberAddresses")
+                            .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputDeleteMemberAddressType>>(), _commandName)
+                            .ResolveAsync(async context =>
+                            {
+                                var type = GenericTypeHelper.GetActualType<DeleteMemberAddressesCommand>();
+                                var command = (DeleteMemberAddressesCommand)context.GetArgument(type, _commandName);
+                                await CheckAuthAsync(context.GetCurrentUserId(), command);
+                                return await _mediator.Send(command);
+                            })
+                            .FieldType);
+
             _ = schema.Mutation.AddField(FieldBuilder.Create<OrganizationAggregate, OrganizationAggregate>(GraphTypeExtenstionHelper.GetActualType<OrganizationType>())
                             .Name("updateOrganization")
                             .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputUpdateOrganizationType>>(), _commandName)

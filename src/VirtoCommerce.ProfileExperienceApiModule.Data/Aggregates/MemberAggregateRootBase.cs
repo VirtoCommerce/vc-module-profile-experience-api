@@ -29,5 +29,15 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
 
             return this;
         }
+
+        public virtual MemberAggregateRootBase DeleteAddresses(IList<Address> addresses)
+        {
+            foreach (var removedItem in Member.Addresses.Except(addresses).ToArray())
+            {
+                Member.Addresses.Remove(removedItem);
+            }
+
+            return this;
+        }
     }
 }

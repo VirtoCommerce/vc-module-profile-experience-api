@@ -106,12 +106,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
 
                 result = allowDelete;
             }
-            else if (context.Resource is UpdateMemberAddressesCommand updateMemberAddressesCommand)
+            else if (context.Resource is MemberCommand memberCommand)
             {
-                result = updateMemberAddressesCommand.MemberId == currentUserId;
+                result = memberCommand.MemberId == currentUserId;
                 if (!result && currentContact != null)
                 {
-                    var memberId = updateMemberAddressesCommand.MemberId;
+                    var memberId = memberCommand.MemberId;
                     var member = await _memberService.GetByIdAsync(memberId);
 
                     if (member.MemberType.EqualsInvariant("Organization") && currentContact.Organizations.Any(x => x.EqualsInvariant(member.Id)))
