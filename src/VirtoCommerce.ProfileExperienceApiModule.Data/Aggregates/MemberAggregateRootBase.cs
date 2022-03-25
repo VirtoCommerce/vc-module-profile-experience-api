@@ -32,7 +32,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
 
         public virtual MemberAggregateRootBase DeleteAddresses(IList<Address> addresses)
         {
-            foreach (var removedItem in Member.Addresses.Except(addresses).ToArray())
+            foreach (var removedItem in Member.Addresses.Intersect(addresses).ToArray())
             {
                 Member.Addresses.Remove(removedItem);
             }
