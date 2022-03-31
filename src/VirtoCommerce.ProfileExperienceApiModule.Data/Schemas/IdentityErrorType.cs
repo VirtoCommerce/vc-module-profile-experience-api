@@ -8,7 +8,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
         public IdentityErrorType()
         {
             Field(x => x.Code, true);
-            Field(x => x.Description);
+            Field(x => x.Description, true);
         }
     }
 }
