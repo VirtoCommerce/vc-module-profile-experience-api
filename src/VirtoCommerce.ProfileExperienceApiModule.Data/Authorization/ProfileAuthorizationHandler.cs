@@ -39,7 +39,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             }
 
             var currentUserId = GetUserId(context);
-            var currentContact = await GetCustomerAsync(currentUserId) as Contact;
+            var currentMember = await GetCustomerAsync(currentUserId);
+            var currentContact = currentMember as Contact;
 
             // PT-6083: reduce complexity
             if (context.Resource is ContactAggregate contactAggregate && currentContact != null)
@@ -108,7 +109,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             }
             else if (context.Resource is MemberCommand memberCommand)
             {
-                result = memberCommand.MemberId == currentUserId;
+                result = memberCommand.MemberId == currentMember?.Id;
                 if (!result && currentContact != null)
                 {
                     var memberId = memberCommand.MemberId;
