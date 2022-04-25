@@ -8,6 +8,7 @@ using GraphQL.Types;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ExperienceApiModule.Core.Extensions;
@@ -38,19 +39,22 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
         private readonly Func<SignInManager<ApplicationUser>> _signInManagerFactory;
         private readonly IMemberAggregateFactory _factory;
         private readonly IMemberService _memberService;
+        private readonly ILogger<ProfileSchema> _logger;
 
         public ProfileSchema(
             IMediator mediator,
             IAuthorizationService authorizationService,
             Func<SignInManager<ApplicationUser>> signInManagerFactory,
             IMemberAggregateFactory factory,
-            IMemberService memberService)
+            IMemberService memberService,
+            ILogger<ProfileSchema> logger)
         {
             _mediator = mediator;
             _authorizationService = authorizationService;
             _signInManagerFactory = signInManagerFactory;
             _factory = factory;
             _memberService = memberService;
+            _logger = logger;
         }
 
         public void Build(ISchema schema)
@@ -716,8 +720,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             {
                 var user = await signInManager.UserManager.FindByIdAsync(userId) ?? new ApplicationUser
                 {
-                    Id = userId,
-                    UserName = ExperienceApiModule.Core.AnonymousUser.UserName,
+                    Id = userId, UserName = ExperienceApiModule.Core.AnonymousUser.UserName,
                 };
 
                 var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
@@ -726,19 +729,29 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 {
                     foreach (var permission in permissions)
                     {
-                        var permissionAuthorizationResult = await _authorizationService.AuthorizeAsync(userPrincipal, null, new PermissionAuthorizationRequirement(permission));
+                        var permissionAuthorizationResult = await _authorizationService.AuthorizeAsync(userPrincipal,
+                            null, new PermissionAuthorizationRequirement(permission));
                         if (!permissionAuthorizationResult.Succeeded)
                         {
                             throw new AuthorizationError($"User doesn't have the required permission '{permission}'.");
                         }
                     }
                 }
-                var authorizationResult = await _authorizationService.AuthorizeAsync(userPrincipal, resource, new ProfileAuthorizationRequirement());
+
+                var authorizationResult = await _authorizationService.AuthorizeAsync(userPrincipal, resource,
+                    new ProfileAuthorizationRequirement());
 
                 if (!authorizationResult.Succeeded)
                 {
                     throw new AuthorizationError($"Access denied");
                 }
+            }
+            catch (AuthorizationError ex)
+            {
+                _logger.Log(LogLevel.Error,
+                    "message: {message}, userId: {userId}, resource: {resource}, permissions: {permissions}",
+                    ex.Message, userId, resource, permissions);
+                throw;
             }
             finally
             {
