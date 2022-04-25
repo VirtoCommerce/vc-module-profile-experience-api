@@ -712,30 +712,37 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
         {
             var signInManager = _signInManagerFactory();
 
-            var user = await signInManager.UserManager.FindByIdAsync(userId) ?? new ApplicationUser
+            try
             {
-                Id = userId,
-                UserName = ExperienceApiModule.Core.AnonymousUser.UserName,
-            };
-
-            var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
-
-            if (!await CanExecuteWithoutPermissionAsync(user, resource) && !permissions.IsNullOrEmpty())
-            {
-                foreach (var permission in permissions)
+                var user = await signInManager.UserManager.FindByIdAsync(userId) ?? new ApplicationUser
                 {
-                    var permissionAuthorizationResult = await _authorizationService.AuthorizeAsync(userPrincipal, null, new PermissionAuthorizationRequirement(permission));
-                    if (!permissionAuthorizationResult.Succeeded)
+                    Id = userId,
+                    UserName = ExperienceApiModule.Core.AnonymousUser.UserName,
+                };
+
+                var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
+
+                if (!await CanExecuteWithoutPermissionAsync(user, resource) && !permissions.IsNullOrEmpty())
+                {
+                    foreach (var permission in permissions)
                     {
-                        throw new AuthorizationError($"User doesn't have the required permission '{permission}'.");
+                        var permissionAuthorizationResult = await _authorizationService.AuthorizeAsync(userPrincipal, null, new PermissionAuthorizationRequirement(permission));
+                        if (!permissionAuthorizationResult.Succeeded)
+                        {
+                            throw new AuthorizationError($"User doesn't have the required permission '{permission}'.");
+                        }
                     }
                 }
-            }
-            var authorizationResult = await _authorizationService.AuthorizeAsync(userPrincipal, resource, new ProfileAuthorizationRequirement());
+                var authorizationResult = await _authorizationService.AuthorizeAsync(userPrincipal, resource, new ProfileAuthorizationRequirement());
 
-            if (!authorizationResult.Succeeded)
+                if (!authorizationResult.Succeeded)
+                {
+                    throw new AuthorizationError($"Access denied");
+                }
+            }
+            finally
             {
-                throw new AuthorizationError($"Access denied");
+                signInManager.UserManager.Dispose();
             }
         }
 
