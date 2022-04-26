@@ -18,13 +18,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
     public class ProfileAuthorizationHandler : AuthorizationHandler<ProfileAuthorizationRequirement>
     {
         private readonly IMemberService _memberService;
-        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
 
 
-        public ProfileAuthorizationHandler(IMemberService memberService, Func<UserManager<ApplicationUser>> userManager)
+        public ProfileAuthorizationHandler(IMemberService memberService, Func<UserManager<ApplicationUser>> userManagerFactory)
         {
             _memberService = memberService;
-            _userManager = userManager();
+            _userManagerFactory = userManagerFactory;
         }
 
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, ProfileAuthorizationRequirement requirement)
@@ -38,8 +38,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                 return;
             }
 
+            using var userManager = _userManagerFactory();
+
             var currentUserId = GetUserId(context);
-            var currentContact = await GetCustomerAsync(currentUserId) as Contact;
+            var currentContact = await GetCustomerAsync(currentUserId, userManager) as Contact;
 
             // PT-6083: reduce complexity
             if (context.Resource is ContactAggregate contactAggregate && currentContact != null)
@@ -47,7 +49,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                 result = currentContact.Id == contactAggregate.Contact.Id;
                 if (!result)
                 {
-                    result = await HasSameOrganizationAsync(currentContact, contactAggregate.Contact.Id);
+                    result = await HasSameOrganizationAsync(currentContact, contactAggregate.Contact.Id, userManager);
                 }
             }
             else if (context.Resource is ApplicationUser applicationUser)
@@ -55,7 +57,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                 result = currentUserId == applicationUser.Id;
                 if (!result)
                 {
-                    result = await HasSameOrganizationAsync(currentContact, applicationUser.Id);
+                    result = await HasSameOrganizationAsync(currentContact, applicationUser.Id, userManager);
                 }
             }
             else if (context.Resource is OrganizationAggregate organizationAggregate && currentContact != null)
@@ -90,7 +92,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             }
             else if (context.Resource is DeleteContactCommand deleteContactCommand && currentContact != null)
             {
-                result = await HasSameOrganizationAsync(currentContact, deleteContactCommand.ContactId);
+                result = await HasSameOrganizationAsync(currentContact, deleteContactCommand.ContactId, userManager);
             }
             else if (context.Resource is DeleteUserCommand deleteUserCommand && currentContact != null)
             {
@@ -99,8 +101,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                 {
                     if (allowDelete)
                     {
-                        var user = await _userManager.FindByNameAsync(userName);
-                        allowDelete = await HasSameOrganizationAsync(currentContact, user.MemberId);
+                        var user = await userManager.FindByNameAsync(userName);
+                        allowDelete = await HasSameOrganizationAsync(currentContact, user.MemberId, userManager);
                     }
                 }
 
@@ -120,7 +122,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     }
                     else
                     {
-                        result = await HasSameOrganizationAsync(currentContact, memberId);
+                        result = await HasSameOrganizationAsync(currentContact, memberId, userManager);
                     }
                 }
             }
@@ -129,7 +131,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                 result = updateContactCommand.Id == currentContact.Id;
                 if (!result)
                 {
-                    result = await HasSameOrganizationAsync(currentContact, updateContactCommand.Id);
+                    result = await HasSameOrganizationAsync(currentContact, updateContactCommand.Id, userManager);
                 }
             }
             else if (context.Resource is UpdateOrganizationCommand updateOrganizationCommand && currentContact != null)
@@ -151,7 +153,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                 result = updateUserCommand.ApplicationUser.Id == currentContact.Id;
                 if (!result)
                 {
-                    result = await HasSameOrganizationAsync(currentContact, updateUserCommand.ApplicationUser.Id);
+                    result = await HasSameOrganizationAsync(currentContact, updateUserCommand.ApplicationUser.Id, userManager);
                 }
             }
             else if (context.Resource is UpdatePersonalDataCommand updatePersonalDataCommand)
@@ -161,7 +163,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             }
             else if (context.Resource is InviteUserCommand inviteUserCommand && currentContact != null)
             {
-                var currentUser = await _userManager.FindByIdAsync(currentUserId);
+                var currentUser = await userManager.FindByIdAsync(currentUserId);
                 result = currentContact.Organizations.Contains(inviteUserCommand.OrganizationId) && currentUser.StoreId.EqualsInvariant(inviteUserCommand.StoreId);
             }
             if (result)
@@ -180,16 +182,16 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             return context.User.FindFirstValue("name");
         }
 
-        private async Task<bool> HasSameOrganizationAsync(Contact currentContact, string contactId)
+        private async Task<bool> HasSameOrganizationAsync(Contact currentContact, string contactId, UserManager<ApplicationUser> userManager)
         {
             if (currentContact is null)
                 return false;
 
-            var contact = await GetCustomerAsync(contactId) as Contact;
+            var contact = await GetCustomerAsync(contactId, userManager) as Contact;
             return currentContact.Organizations.Intersect(contact?.Organizations ?? Array.Empty<string>()).Any();
         }
 
-        protected virtual async Task<Member> GetCustomerAsync(string customerId)
+        protected virtual async Task<Member> GetCustomerAsync(string customerId, UserManager<ApplicationUser> userManager)
         {
             if (string.IsNullOrWhiteSpace(customerId))
             {
@@ -200,7 +202,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
 
             if (result == null)
             {
-                var user = await _userManager.FindByIdAsync(customerId);
+                var user = await userManager.FindByIdAsync(customerId);
 
                 if (user?.MemberId != null)
                 {
