@@ -25,81 +25,117 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly IMemberService _memberService;
         private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
         private readonly IStoreNotificationSender _storeNotificationSender;
+        private readonly RoleManager<Role> _roleManager;
 
         private const string Creator = "frontend";
+        private const string MaintainerRoleId = "org-maintainer";
 
         public RegisterCompanyCommandHandler(IMapper mapper,
             IDynamicPropertyUpdaterService dynamicPropertyUpdater,
             IMemberService memberService,
             Func<UserManager<ApplicationUser>> userManagerFactory,
-            IStoreNotificationSender storeNotificationSender)
+            IStoreNotificationSender storeNotificationSender,
+            RoleManager<Role> roleManager)
         {
             _mapper = mapper;
             _dynamicPropertyUpdater = dynamicPropertyUpdater;
             _memberService = memberService;
             _userManagerFactory = userManagerFactory;
             _storeNotificationSender = storeNotificationSender;
+            _roleManager = roleManager;
         }
 
         public virtual async Task<RegisterCompanyAggregate> Handle(RegisterCompanyCommand request, CancellationToken cancellationToken)
         {
             var aggregate = new RegisterCompanyAggregate();
 
-            var company = _mapper.Map<Organization>(request.Company);
-            var owner = _mapper.Map<Contact>(request.Owner);
-            var account = request.Account;
-
-            await SetDynamicProperties(request.Company.DynamicProperties, company);
-            await SetDynamicProperties(request.Owner.DynamicProperties, owner);
-
-            company.CreatedBy = Creator;
-            company.Status = "New"; //take from settings
-            owner.Status = "New";
-            account.StoreId = request.StoreId;
-            account.Status = "New";
-            account.UserType = "Manager";
-
-            await _memberService.SaveChangesAsync(new Member[] { company });
-
-            owner.Organizations = new List<string> { company.Id };
-            
-            await _memberService.SaveChangesAsync(new Member[] { owner });
-
-            account.MemberId =owner.Id;
-
-            using (var userManager = _userManagerFactory())
+            try
             {
-                var result = default(IdentityResult);
+                var company = _mapper.Map<Organization>(request.Company);
+                var owner = _mapper.Map<Contact>(request.Owner);
+                var account = request.Account;
 
-                if (account.Password.IsNullOrEmpty())
+                await SetDynamicPropertiesAsync(request.Company.DynamicProperties, company);
+                await SetDynamicPropertiesAsync(request.Owner.DynamicProperties, owner);
+
+                company.CreatedBy = Creator;
+                company.Status = "New"; //take from settings
+                owner.Status = "New";
+                account.StoreId = request.StoreId;
+                account.Status = "New";
+                account.UserType = "Manager";
+
+                await _memberService.SaveChangesAsync(new Member[] { company });
+                aggregate.Company = company;
+
+                owner.Organizations = new List<string> { company.Id };
+                await _memberService.SaveChangesAsync(new Member[] { owner });
+                aggregate.Owner = owner;
+
+                var maintainerRole = await _roleManager.FindByIdAsync(MaintainerRoleId);
+
+                if (maintainerRole == null)
                 {
-                    result = await userManager.CreateAsync(account);
+                    throw new Exception($"Organization maintainer role with id {MaintainerRoleId} not found");
                 }
-                else
+
+                account.MemberId = owner.Id;
+                account.Roles = new List<Role> { maintainerRole };
+                aggregate.AccountCreationResult = await CreateAccountAsync(account);
+
+                if (!aggregate.AccountCreationResult.Succeeded)
                 {
-                    result = await userManager.CreateAsync(account, account.Password);
+                    await RollBackMembersCreationAsync(aggregate);
+                    return aggregate;
                 }
 
-                if (result.Succeeded)
-                {
-                    var user = await userManager.FindByNameAsync(account.UserName);
-
-                    await _storeNotificationSender.SendUserEmailVerificationAsync(user);
-
-                    aggregate.Account = user;
-                }
-
-                aggregate.AccountCreationResult = result;
-            }
-
-            aggregate.Company = company;
-            aggregate.Owner = owner;
+                aggregate.Account = account;
             
-            return aggregate;
+                return aggregate;
+            }
+            catch (Exception)
+            {
+                await RollBackMembersCreationAsync(aggregate);
+                throw;
+            }
         }
 
-        private async Task SetDynamicProperties(IList<DynamicPropertyValue> dynamicProperties,
-            IHasDynamicProperties entity)
+        private async Task RollBackMembersCreationAsync(RegisterCompanyAggregate aggregate)
+        {
+            var ids = new[] { aggregate.Company?.Id, aggregate.Owner?.Id }
+                .Where(x => x != null)
+                .ToArray();
+            await _memberService.DeleteAsync(ids);
+
+            aggregate.Company = null;
+            aggregate.Owner = null;
+        }
+
+        private async Task<IdentityResult> CreateAccountAsync(ApplicationUser account)
+        {
+            var result = default(IdentityResult);
+
+            using var userManager = _userManagerFactory();
+            if (account.Password.IsNullOrEmpty())
+            {
+                result = await userManager.CreateAsync(account);
+            }
+            else
+            {
+                result = await userManager.CreateAsync(account, account.Password);
+            }
+
+            if (result.Succeeded)
+            {
+                var user = await userManager.FindByNameAsync(account.UserName);
+
+                await _storeNotificationSender.SendUserEmailVerificationAsync(user);
+            }
+
+            return result;
+        }
+
+        private async Task SetDynamicPropertiesAsync(IList<DynamicPropertyValue> dynamicProperties, IHasDynamicProperties entity)
         {
             if (dynamicProperties?.Any() ?? false)
             {
