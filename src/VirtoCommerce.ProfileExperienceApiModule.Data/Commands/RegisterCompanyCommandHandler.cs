@@ -6,14 +6,18 @@ using System.Threading.Tasks;
 using AutoMapper;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using VirtoCommerce.CustomerModule.Core;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ExperienceApiModule.Core.Models;
 using VirtoCommerce.ExperienceApiModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.DynamicProperties;
+using VirtoCommerce.Platform.Core.GenericCrud;
 using VirtoCommerce.Platform.Core.Security;
+using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
+using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
@@ -26,8 +30,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
         private readonly IStoreNotificationSender _storeNotificationSender;
         private readonly RoleManager<Role> _roleManager;
+        private readonly ICrudService<Store> _storeService;
 
         private const string Creator = "frontend";
+        private const string UserType = "Manager";
         private const string MaintainerRoleId = "org-maintainer";
 
         public RegisterCompanyCommandHandler(IMapper mapper,
@@ -35,7 +41,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             IMemberService memberService,
             Func<UserManager<ApplicationUser>> userManagerFactory,
             IStoreNotificationSender storeNotificationSender,
-            RoleManager<Role> roleManager)
+            RoleManager<Role> roleManager,
+            ICrudService<Store> storeService)
         {
             _mapper = mapper;
             _dynamicPropertyUpdater = dynamicPropertyUpdater;
@@ -43,9 +50,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _userManagerFactory = userManagerFactory;
             _storeNotificationSender = storeNotificationSender;
             _roleManager = roleManager;
+            _storeService = storeService;
         }
 
-        public virtual async Task<RegisterCompanyAggregate> Handle(RegisterCompanyCommand request, CancellationToken cancellationToken)
+        public virtual async Task<RegisterCompanyAggregate> Handle(RegisterCompanyCommand request,
+            CancellationToken cancellationToken)
         {
             var aggregate = new RegisterCompanyAggregate();
 
@@ -58,27 +67,37 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 await SetDynamicPropertiesAsync(request.Company.DynamicProperties, company);
                 await SetDynamicPropertiesAsync(request.Owner.DynamicProperties, owner);
 
-                company.CreatedBy = Creator;
-                company.Status = "New"; //take from settings
-                owner.Status = "New";
-                account.StoreId = request.StoreId;
-                account.Status = "New";
-                account.UserType = "Manager";
+                var store = await _storeService.GetByIdAsync(request.StoreId);
 
+                if (store == null)
+                {
+                    throw new ArgumentException($"Store {request.StoreId} not found");
+                }
+
+                var organizationStatus = store.Settings
+                    .GetSettingValue<string>(ModuleConstants.Settings.General.OrganizationDefaultStatus.Name, null);
+                var contactStatus = store.Settings
+                    .GetSettingValue<string>(ModuleConstants.Settings.General.ContactDefaultStatus.Name, null);
+
+                company.CreatedBy = Creator;
+                company.Status = organizationStatus;
                 await _memberService.SaveChangesAsync(new Member[] { company });
                 aggregate.Company = company;
 
+                owner.Status = contactStatus;
                 owner.Organizations = new List<string> { company.Id };
                 await _memberService.SaveChangesAsync(new Member[] { owner });
                 aggregate.Owner = owner;
 
                 var maintainerRole = await _roleManager.FindByIdAsync(MaintainerRoleId);
-
                 if (maintainerRole == null)
                 {
                     throw new Exception($"Organization maintainer role with id {MaintainerRoleId} not found");
                 }
 
+                account.StoreId = request.StoreId;
+                account.Status = contactStatus;
+                account.UserType = UserType;
                 account.MemberId = owner.Id;
                 account.Roles = new List<Role> { maintainerRole };
                 aggregate.AccountCreationResult = await CreateAccountAsync(account);
@@ -90,7 +109,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 }
 
                 aggregate.Account = account;
-            
+
                 return aggregate;
             }
             catch (Exception)
