@@ -19,6 +19,9 @@ using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
+using VirtoCommerce.NotificationsModule.Core.Extensions;
+using VirtoCommerce.NotificationsModule.Core.Services;
+using VirtoCommerce.CustomerModule.Core.Notifications;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -31,6 +34,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly IStoreNotificationSender _storeNotificationSender;
         private readonly RoleManager<Role> _roleManager;
         private readonly ICrudService<Store> _storeService;
+        private readonly INotificationSearchService _notificationSearchService;
+        private readonly INotificationSender _notificationSender;
 
         private const string Creator = "frontend";
         private const string UserType = "Manager";
@@ -42,7 +47,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             Func<UserManager<ApplicationUser>> userManagerFactory,
             IStoreNotificationSender storeNotificationSender,
             RoleManager<Role> roleManager,
-            ICrudService<Store> storeService)
+            ICrudService<Store> storeService,
+            INotificationSearchService notificationSearchService,
+            INotificationSender notificationSender)
         {
             _mapper = mapper;
             _dynamicPropertyUpdater = dynamicPropertyUpdater;
@@ -51,6 +58,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _storeNotificationSender = storeNotificationSender;
             _roleManager = roleManager;
             _storeService = storeService;
+            _notificationSearchService = notificationSearchService;
+            _notificationSender = notificationSender;
         }
 
         public virtual async Task<RegisterCompanyAggregate> Handle(RegisterCompanyCommand request,
@@ -115,6 +124,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
                 aggregate.Account = account;
 
+                await SendNotificationAsync(account.Email, store.Email, company.Name);
+
                 return aggregate;
             }
             catch (Exception)
@@ -165,6 +176,16 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             {
                 await _dynamicPropertyUpdater.UpdateDynamicPropertyValues(entity, dynamicProperties);
             }
+        }
+
+        protected virtual async Task SendNotificationAsync(string recipientEmail, string senderEmail, string companyName)
+        {
+            var notification = await _notificationSearchService.GetNotificationAsync<RegisterCompanyEmailNotification>();
+            notification.To = recipientEmail;
+            notification.From = senderEmail;
+            notification.CompanyName = companyName;
+
+            await _notificationSender.ScheduleSendNotificationAsync(notification);
         }
     }
 }
