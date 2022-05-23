@@ -106,7 +106,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 var maintainerRole = await _roleManager.FindByIdAsync(MaintainerRoleId);
                 if (maintainerRole == null)
                 {
-                    throw new Exception($"Organization maintainer role with id {MaintainerRoleId} not found");
+                    throw new ArgumentException($"Organization maintainer role with id {MaintainerRoleId} not found");
                 }
 
                 account.StoreId = request.StoreId;
