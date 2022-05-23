@@ -63,8 +63,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 var company = _mapper.Map<Organization>(request.Company);
                 var owner = _mapper.Map<Contact>(request.Owner);
                 var account = request.Account;
-
-                await SetDynamicPropertiesAsync(request.Company.DynamicProperties, company);
+                
                 await SetDynamicPropertiesAsync(request.Owner.DynamicProperties, owner);
 
                 var store = await _storeService.GetByIdAsync(request.StoreId);
@@ -73,19 +72,25 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 {
                     throw new ArgumentException($"Store {request.StoreId} not found");
                 }
-
-                var organizationStatus = store.Settings
-                    .GetSettingValue<string>(ModuleConstants.Settings.General.OrganizationDefaultStatus.Name, null);
+                
                 var contactStatus = store.Settings
                     .GetSettingValue<string>(ModuleConstants.Settings.General.ContactDefaultStatus.Name, null);
 
-                company.CreatedBy = Creator;
-                company.Status = organizationStatus;
-                await _memberService.SaveChangesAsync(new Member[] { company });
-                aggregate.Company = company;
+                if (company != null)
+                {
+                    await SetDynamicPropertiesAsync(request.Company.DynamicProperties, company);
+                    var organizationStatus = store
+                        .Settings
+                        .GetSettingValue<string>(ModuleConstants.Settings.General.OrganizationDefaultStatus.Name, null);
+                    company.CreatedBy = Creator;
+                    company.Status = organizationStatus;
 
+                    await _memberService.SaveChangesAsync(new Member[] { company });
+                    aggregate.Company = company;
+                }
+                
                 owner.Status = contactStatus;
-                owner.Organizations = new List<string> { company.Id };
+                owner.Organizations = company != null ? new List<string> { company.Id } : null;
                 await _memberService.SaveChangesAsync(new Member[] { owner });
                 aggregate.Owner = owner;
 
