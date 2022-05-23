@@ -124,7 +124,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
                 aggregate.Account = account;
 
-                await SendNotificationAsync(account.Email, store.Email, company.Name);
+                if (company != null)
+                {
+                    await SendNotificationAsync(account.Email, store.Email, company.Name);
+                }
 
                 return aggregate;
             }
