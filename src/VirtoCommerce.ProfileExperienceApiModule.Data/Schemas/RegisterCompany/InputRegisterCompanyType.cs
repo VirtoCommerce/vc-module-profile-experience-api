@@ -8,8 +8,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
         {
             Field<NonNullGraphType<StringGraphType>>("storeId", "Store ID");
             Field<InputCompanyType>("company", "company type");
-            Field<NonNullGraphType<InputOwnerType>>("owner", "company owner");
-            Field<NonNullGraphType<InputAccountType>>("account", "company owner account");
+            Field<NonNullGraphType<InputContactType>>("contact", "Creating contact");
+            Field<NonNullGraphType<InputAccountType>>("account", "Creating contact's account");
         }
     }
 }

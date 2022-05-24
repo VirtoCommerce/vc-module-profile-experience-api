@@ -17,6 +17,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Authorization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Middlewares;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.TaxModule.Core.Model;
 
@@ -39,6 +40,7 @@ namespace VirtoCommerce.CusomersExperienceApi.Web
             serviceCollection.AddTransient<IMemberAggregateRootRepository, MemberAggregateRootRepository>();
             serviceCollection.AddTransient<IOrganizationAggregateRepository, OrganizationAggregateRepository>();
             serviceCollection.AddTransient<IContactAggregateRepository, ContactAggregateRepository>();
+            serviceCollection.AddTransient<IAccountService, AccountsService>();
             serviceCollection.AddSingleton<IAuthorizationHandler, ProfileAuthorizationHandler>();
 
             serviceCollection.AddAutoMapper(typeof(XProfileAnchor));

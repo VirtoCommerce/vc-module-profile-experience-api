@@ -1,0 +1,14 @@
+using GraphQL.Types;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterCompany;
+
+namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
+{
+    public class AccountCreationResultType: ObjectGraphType<AccountCreationResult>
+    {
+        public AccountCreationResultType()
+        {
+            Field(x => x.Succeeded);
+            Field<ListGraphType<StringGraphType>>("errors", "The errors that occurred during the operation.", resolve: context => context.Source.Errors);
+        }
+    }
+}

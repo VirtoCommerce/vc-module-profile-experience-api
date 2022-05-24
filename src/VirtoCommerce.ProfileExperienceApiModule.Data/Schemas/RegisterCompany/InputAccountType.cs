@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using GraphQL.Types;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
@@ -13,7 +8,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
         {
             Field<NonNullGraphType<StringGraphType>>("username");
             Field<NonNullGraphType<StringGraphType>>("email");
-            Field<NonNullGraphType<StringGraphType>>("password");
+            Field<StringGraphType>("password");
         }
     }
 }

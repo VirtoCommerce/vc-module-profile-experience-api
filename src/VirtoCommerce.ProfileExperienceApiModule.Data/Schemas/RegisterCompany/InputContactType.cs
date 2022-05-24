@@ -4,9 +4,9 @@ using VirtoCommerce.ExperienceApiModule.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
 {
-    public class InputOwnerType : InputObjectGraphType
+    public class InputContactType : InputObjectGraphType
     {
-        public InputOwnerType()
+        public InputContactType()
         {
             Field<NonNullGraphType<StringGraphType>>("firstName");
             Field<NonNullGraphType<StringGraphType>>("lastName");
