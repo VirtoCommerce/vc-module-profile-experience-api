@@ -15,7 +15,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
             Field<NonNullGraphType<StringGraphType>>("phoneNumber");
             Field<DateGraphType>("birthdate");
             Field<ListGraphType<DynamicPropertyValueType>>(nameof(Member.DynamicProperties));
-            Field<NonNullGraphType<StringGraphType>>("status");
+            Field<StringGraphType>("status");
         }
     }
 }
