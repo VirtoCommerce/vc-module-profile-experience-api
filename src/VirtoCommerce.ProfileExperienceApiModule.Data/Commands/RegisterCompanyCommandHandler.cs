@@ -19,6 +19,7 @@ using VirtoCommerce.NotificationsModule.Core.Services;
 using VirtoCommerce.CustomerModule.Core.Notifications;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterCompany;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -31,6 +32,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly INotificationSearchService _notificationSearchService;
         private readonly INotificationSender _notificationSender;
         private readonly IAccountService _accountService;
+        private readonly NewContactValidator _contactValidator;
 
         private const string Creator = "frontend";
         private const string UserType = "Manager";
@@ -42,7 +44,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             ICrudService<Store> storeService,
             INotificationSearchService notificationSearchService,
             INotificationSender notificationSender,
-            IAccountService accountService)
+            IAccountService accountService,
+            NewContactValidator contactValidator)
         {
             _mapper = mapper;
             _dynamicPropertyUpdater = dynamicPropertyUpdater;
@@ -51,6 +54,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _notificationSearchService = notificationSearchService;
             _notificationSender = notificationSender;
             _accountService = accountService;
+            _contactValidator = contactValidator;
         }
 
         public virtual async Task<RegisterCompanyResult> Handle(RegisterCompanyCommand request, CancellationToken cancellationToken)
@@ -76,6 +80,19 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             var company = _mapper.Map<Organization>(request.Company);
             var contact = _mapper.Map<Contact>(request.Contact);
             var account = GetApplicationUser(request.Account);
+
+            FillContactFields(contact);
+            var contactValidation = await _contactValidator.ValidateAsync(contact);
+            if (!contactValidation.IsValid)
+            {
+                SetErrorResult(result, contactValidation
+                    .Errors
+                    .Select(x => $"{x.ErrorCode}: {x.ErrorMessage}")
+                    .ToList());
+                tokenSource.Cancel();
+
+                return result;
+            }
 
             await SetDynamicPropertiesAsync(request.Contact.DynamicProperties, contact);
 
@@ -150,6 +167,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return result;
         }
 
+        private void FillContactFields(Contact contact)
+        {
+            contact.FullName = contact.FirstName + " " + contact.LastName;
+            contact.Name = contact.FullName;
+        }
+
         private async Task RollBackMembersCreationAsync(RegisterCompanyResult result)
         {
             var ids = new[] { result.Company?.Id, result.Contact?.Id }
@@ -173,9 +196,15 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         private static void SetErrorResult(RegisterCompanyResult result, string errorMessage)
         {
+            SetErrorResult(result, new List<string>{errorMessage});
+        }
+
+        private static void SetErrorResult(RegisterCompanyResult result, List<string> errors)
+        {
             result.AccountCreationResult = new AccountCreationResult
             {
-                Succeeded = false, Errors = new List<string> { errorMessage }
+                Succeeded = false,
+                Errors = errors
             };
         }
 
