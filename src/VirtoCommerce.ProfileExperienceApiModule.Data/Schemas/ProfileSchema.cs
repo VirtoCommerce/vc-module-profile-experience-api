@@ -362,13 +362,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
             _ = schema.Mutation.AddField(FieldBuilder
                 .Create<RegisterCompanyResult, RegisterCompanyResult>(GraphTypeExtenstionHelper.GetActualType<RegisterCompanyType>())
-                .Name("registerCompany")
+                .Name("registrationRequest")
                 .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRegisterCompanyType>>(), _commandName)
                 .ResolveAsync(async context =>
                 {
                     var type = GenericTypeHelper.GetActualType<RegisterCompanyCommand>();
                     var command = (RegisterCompanyCommand)context.GetArgument(type, _commandName);
-                    //check auth
                     return await _mediator.Send(command);
                 })
                 .FieldType);
