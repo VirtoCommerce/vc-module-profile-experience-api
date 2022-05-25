@@ -9,7 +9,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
         public RegisterCompanyType(IAccountService accountService)
         {
             Field<CompanyType>("company", "Created company", resolve: context => context.Source.Company);
-            Field<OwnerType>("contact", "Created contact", resolve: context => context.Source.Owner);
+            Field<OwnerType>("contact", "Created contact", resolve: context => context.Source.Contact);
             Field<AccountType>("account", "Contact's account",
                resolve: context => context.Source.AccountCreationResult.Succeeded ?
                    accountService.GetAccountAsync(context.Source.AccountCreationResult.AccountName) : null);

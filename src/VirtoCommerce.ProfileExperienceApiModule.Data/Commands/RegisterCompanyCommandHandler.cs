@@ -124,7 +124,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             contact.Status = contactStatus;
             contact.Organizations = company != null ? new List<string> { company.Id } : null;
             await _memberService.SaveChangesAsync(new Member[] { contact });
-            result.Owner = contact;
+            result.Contact = contact;
 
             account.StoreId = request.StoreId;
             account.Status = contactStatus;
@@ -156,13 +156,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         private async Task RollBackMembersCreationAsync(RegisterCompanyResult result)
         {
-            var ids = new[] { result.Company?.Id, result.Owner?.Id }
+            var ids = new[] { result.Company?.Id, result.Contact?.Id }
                 .Where(x => x != null)
                 .ToArray();
             await _memberService.DeleteAsync(ids);
 
             result.Company = null;
-            result.Owner = null;
+            result.Contact = null;
         }
         
         private Task SetDynamicPropertiesAsync(IList<DynamicPropertyValue> dynamicProperties, IHasDynamicProperties entity)
