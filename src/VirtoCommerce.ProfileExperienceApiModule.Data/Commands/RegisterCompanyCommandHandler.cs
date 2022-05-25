@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using MediatR;
-using Microsoft.AspNetCore.Identity;
 using VirtoCommerce.CustomerModule.Core;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
@@ -28,7 +27,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly IMapper _mapper;
         private readonly IDynamicPropertyUpdaterService _dynamicPropertyUpdater;
         private readonly IMemberService _memberService;
-        private readonly RoleManager<Role> _roleManager;
         private readonly ICrudService<Store> _storeService;
         private readonly INotificationSearchService _notificationSearchService;
         private readonly INotificationSender _notificationSender;
@@ -41,7 +39,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         public RegisterCompanyCommandHandler(IMapper mapper,
             IDynamicPropertyUpdaterService dynamicPropertyUpdater,
             IMemberService memberService,
-            RoleManager<Role> roleManager,
             ICrudService<Store> storeService,
             INotificationSearchService notificationSearchService,
             INotificationSender notificationSender,
@@ -50,7 +47,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _mapper = mapper;
             _dynamicPropertyUpdater = dynamicPropertyUpdater;
             _memberService = memberService;
-            _roleManager = roleManager;
             _storeService = storeService;
             _notificationSearchService = notificationSearchService;
             _notificationSender = notificationSender;
@@ -95,7 +91,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             if (company != null)
             {
-                var maintainerRole = await _roleManager.FindByIdAsync(MaintainerRoleId);
+                var maintainerRole = await _accountService.FindRoleById(MaintainerRoleId);
                 if (maintainerRole == null)
                 {
                     SetErrorResult(result, $"Organization maintainer role with id {MaintainerRoleId} not found");

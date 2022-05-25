@@ -8,5 +8,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services
     {
         public Task<IdentityResult> CreateAccountAsync(ApplicationUser account);
         public Task<ApplicationUser> GetAccountAsync(string userName);
+        public Task<Role> FindRoleById(string roleId);
     }
 }
