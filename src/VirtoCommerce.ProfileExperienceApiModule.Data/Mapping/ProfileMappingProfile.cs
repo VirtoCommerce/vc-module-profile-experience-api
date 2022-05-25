@@ -1,9 +1,7 @@
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterCompany;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany;
 using VirtoCommerce.TaxModule.Core.Model;
 using Address = VirtoCommerce.CustomerModule.Core.Model.Address;
 

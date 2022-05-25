@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Mime;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -79,7 +80,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             var company = _mapper.Map<Organization>(request.Company);
             var contact = _mapper.Map<Contact>(request.Contact);
-            var account = request.Account;
+            var account = GetApplicationUser(request.Account);
 
             await SetDynamicPropertiesAsync(request.Contact.DynamicProperties, contact);
 
@@ -193,5 +194,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             await _notificationSender.ScheduleSendNotificationAsync(notification);
         }
+
+        protected virtual ApplicationUser GetApplicationUser(Account account) => new()
+        {
+            UserName = account.UserName, Email = account.Email, Password = account.Password
+        };
     }
 }
