@@ -145,6 +145,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 .GetSettingValue<string>(ModuleConstants.Settings.General.ContactDefaultStatus.Name, null);
 
             contact.Status = contactStatus;
+            contact.CreatedBy = Creator;
             contact.Organizations = company != null ? new List<string> { company.Id } : null;
             await _memberService.SaveChangesAsync(new Member[] { contact });
             result.Contact = contact;
@@ -177,7 +178,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return result;
         }
 
-        private void FillContactFields(Contact contact)
+        private static void FillContactFields(Contact contact)
         {
             contact.FullName = contact.FirstName + " " + contact.LastName;
             contact.Name = contact.FullName;
