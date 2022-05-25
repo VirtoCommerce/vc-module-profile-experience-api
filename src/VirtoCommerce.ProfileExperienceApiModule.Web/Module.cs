@@ -37,6 +37,7 @@ namespace VirtoCommerce.CusomersExperienceApi.Web
             serviceCollection.AddMediatR(typeof(XProfileAnchor));
             serviceCollection.AddSingleton<IMemberAggregateFactory, MemberAggregateFactory>();
             serviceCollection.AddTransient<NewContactValidator>();
+            serviceCollection.AddTransient<AccountValidator>();
             serviceCollection.AddTransient<IMemberAggregateRootRepository, MemberAggregateRootRepository>();
             serviceCollection.AddTransient<IOrganizationAggregateRepository, OrganizationAggregateRepository>();
             serviceCollection.AddTransient<IContactAggregateRepository, ContactAggregateRepository>();

@@ -33,6 +33,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly INotificationSender _notificationSender;
         private readonly IAccountService _accountService;
         private readonly NewContactValidator _contactValidator;
+        private readonly AccountValidator _accountValidator;
 
         private const string Creator = "frontend";
         private const string UserType = "Manager";
@@ -45,7 +46,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             INotificationSearchService notificationSearchService,
             INotificationSender notificationSender,
             IAccountService accountService,
-            NewContactValidator contactValidator)
+            NewContactValidator contactValidator,
+            AccountValidator accountValidator)
         {
             _mapper = mapper;
             _dynamicPropertyUpdater = dynamicPropertyUpdater;
@@ -55,6 +57,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _notificationSender = notificationSender;
             _accountService = accountService;
             _contactValidator = contactValidator;
+            _accountValidator = accountValidator;
         }
 
         public virtual async Task<RegisterCompanyResult> Handle(RegisterCompanyCommand request, CancellationToken cancellationToken)
@@ -82,13 +85,20 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             var account = GetApplicationUser(request.Account);
 
             FillContactFields(contact);
+            
             var contactValidation = await _contactValidator.ValidateAsync(contact);
-            if (!contactValidation.IsValid)
+            var accountValidation = await _accountValidator.ValidateAsync(request.Account);
+
+            var validationResults = new[] { contactValidation, accountValidation };
+            
+            if (validationResults.Any(x => !x.IsValid))
             {
-                SetErrorResult(result, contactValidation
-                    .Errors
+                var errors = validationResults
+                    .SelectMany(x => x.Errors)
                     .Select(x => $"{x.ErrorCode}: {x.ErrorMessage}")
-                    .ToList());
+                    .ToList();
+
+                SetErrorResult(result, errors);
                 tokenSource.Cancel();
 
                 return result;
