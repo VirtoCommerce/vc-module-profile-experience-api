@@ -148,7 +148,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             if (company != null)
             {
-                await SendNotificationAsync(account.Email, store.Email, company.Name);
+                await SendNotificationAsync(account.Email, company.Name, store);
             }
 
             return result;
@@ -183,12 +183,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             };
         }
 
-        protected virtual async Task SendNotificationAsync(string recipientEmail, string senderEmail, string companyName)
+        protected virtual async Task SendNotificationAsync(string recipientEmail, string companyName, Store store)
         {
             var notification = await _notificationSearchService.GetNotificationAsync<RegisterCompanyEmailNotification>();
             notification.To = recipientEmail;
-            notification.From = senderEmail;
+            notification.From = store.Email;
             notification.CompanyName = companyName;
+            notification.LanguageCode = store.DefaultLanguage;
 
             await _notificationSender.ScheduleSendNotificationAsync(notification);
         }
