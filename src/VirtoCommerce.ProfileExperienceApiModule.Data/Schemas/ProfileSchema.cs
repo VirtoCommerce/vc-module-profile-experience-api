@@ -26,7 +26,9 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Authorization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterCompany;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
@@ -357,6 +359,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                                 return await _mediator.Send(command);
                             })
                             .FieldType);
+
+            _ = schema.Mutation.AddField(FieldBuilder
+                .Create<RegisterCompanyResult, RegisterCompanyResult>(GraphTypeExtenstionHelper.GetActualType<RegisterCompanyType>())
+                .Name("registrationRequest")
+                .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRegisterCompanyType>>(), _commandName)
+                .ResolveAsync(async context =>
+                {
+                    var type = GenericTypeHelper.GetActualType<RegisterCompanyCommand>();
+                    var command = (RegisterCompanyCommand)context.GetArgument(type, _commandName);
+                    return await _mediator.Send(command);
+                })
+                .FieldType);
 
             _ = schema.Mutation.AddField(FieldBuilder.Create<ContactAggregate, ContactAggregate>(GraphTypeExtenstionHelper.GetActualType<ContactType>())
                             .Name("createContact")

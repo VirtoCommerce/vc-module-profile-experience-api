@@ -8,9 +8,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
     {
         public NewContactValidator()
         {
-            RuleFor(x => x.FirstName).NotNull();
+            RuleFor(x => x.FirstName).NotNull().NotEmpty();
             RuleFor(x => x.FullName).NotNull();
-            RuleFor(x => x.LastName).NotNull();
+            RuleFor(x => x.LastName).NotNull().NotEmpty();
             RuleFor(x => x.Name).NotNull();
 
             RuleSet("strict", () =>

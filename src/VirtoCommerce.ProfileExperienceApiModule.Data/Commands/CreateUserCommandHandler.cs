@@ -1,49 +1,23 @@
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
-using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.Platform.Core.Security;
-using VirtoCommerce.StoreModule.Core.Services;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
     public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, IdentityResult>
     {
-        private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
-        private readonly IStoreNotificationSender _storeNotificationSender;
+        private readonly IAccountService _accountService;
 
-        public CreateUserCommandHandler(Func<UserManager<ApplicationUser>> userManager, IStoreNotificationSender storeNotificationSender)
+        public CreateUserCommandHandler(IAccountService accountService)
         {
-            _userManagerFactory = userManager;
-            _storeNotificationSender = storeNotificationSender;
+            _accountService = accountService;
         }
 
-        public virtual async Task<IdentityResult> Handle(CreateUserCommand request, CancellationToken cancellationToken)
+        public virtual Task<IdentityResult> Handle(CreateUserCommand request, CancellationToken cancellationToken)
         {
-            using (var userManager = _userManagerFactory())
-            {
-                var result = default(IdentityResult);
-
-                if (request.ApplicationUser.Password.IsNullOrEmpty())
-                {
-                    result = await userManager.CreateAsync(request.ApplicationUser);
-                }
-                else
-                {
-                    result = await userManager.CreateAsync(request.ApplicationUser, request.ApplicationUser.Password);
-                }
-
-                if (result.Succeeded)
-                {
-                    var user = await userManager.FindByNameAsync(request.ApplicationUser.UserName);
-
-                    await _storeNotificationSender.SendUserEmailVerificationAsync(user);
-                }
-
-                return result;
-            }
+            return _accountService.CreateAccountAsync(request.ApplicationUser);
         }
     }
 }
