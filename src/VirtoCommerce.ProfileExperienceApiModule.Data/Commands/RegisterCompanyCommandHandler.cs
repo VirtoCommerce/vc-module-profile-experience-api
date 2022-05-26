@@ -38,7 +38,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private const string Creator = "frontend";
         private const string UserType = "Manager";
         private const string MaintainerRoleId = "org-maintainer";
-
+#pragma warning disable S107
         public RegisterCompanyCommandHandler(IMapper mapper,
             IDynamicPropertyUpdaterService dynamicPropertyUpdater,
             IMemberService memberService,
@@ -48,6 +48,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             IAccountService accountService,
             NewContactValidator contactValidator,
             AccountValidator accountValidator)
+#pragma warning restore S107
         {
             _mapper = mapper;
             _dynamicPropertyUpdater = dynamicPropertyUpdater;
