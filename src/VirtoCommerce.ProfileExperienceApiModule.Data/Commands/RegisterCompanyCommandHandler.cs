@@ -35,6 +35,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly IAccountService _accountService;
         private readonly NewContactValidator _contactValidator;
         private readonly AccountValidator _accountValidator;
+        private readonly OrganizationValidator _organizationValidator;
 
         private const string Creator = "frontend";
         private const string UserType = "Manager";
@@ -48,7 +49,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             INotificationSender notificationSender,
             IAccountService accountService,
             NewContactValidator contactValidator,
-            AccountValidator accountValidator)
+            AccountValidator accountValidator,
+            OrganizationValidator organizationValidator)
 #pragma warning restore S107
         {
             _mapper = mapper;
@@ -60,6 +62,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _accountService = accountService;
             _contactValidator = contactValidator;
             _accountValidator = accountValidator;
+            _organizationValidator = organizationValidator;
         }
 
         public virtual async Task<RegisterCompanyResult> Handle(RegisterCompanyCommand request, CancellationToken cancellationToken)
@@ -87,12 +90,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             var account = GetApplicationUser(request.Account);
             
             FillContactFields(contact);
-            
-            var contactValidation = await _contactValidator.ValidateAsync(contact);
-            var accountValidation = await _accountValidator.ValidateAsync(request.Account);
 
-            var validationResults = new[] { contactValidation, accountValidation };
-            
+            var validationResults = await Task.WhenAll(
+                _contactValidator.ValidateAsync(contact),
+                _accountValidator.ValidateAsync(request.Account),
+                _organizationValidator.ValidateAsync(company));
+
             if (validationResults.Any(x => !x.IsValid))
             {
                 var errors = validationResults
