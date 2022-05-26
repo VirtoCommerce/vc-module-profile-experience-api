@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -84,7 +85,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             var company = _mapper.Map<Organization>(request.Company);
             var contact = _mapper.Map<Contact>(request.Contact);
             var account = GetApplicationUser(request.Account);
-
+            
             FillContactFields(contact);
             
             var contactValidation = await _contactValidator.ValidateAsync(contact);
@@ -136,6 +137,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                     .GetSettingValue<string>(ModuleConstants.Settings.General.OrganizationDefaultStatus.Name, null);
                 company.CreatedBy = Creator;
                 company.Status = organizationStatus;
+                company.OwnerId = contact.Id;
 
                 await _memberService.SaveChangesAsync(new Member[] { company });
 
@@ -176,9 +178,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             if (company != null)
             {
-                company.OwnerId = contact.Id;
-                await _memberService.SaveChangesAsync(new Member[] { company });
-                
                 await SendNotificationAsync(account.Email, company.Name, store);
             }
 
@@ -189,6 +188,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         {
             contact.FullName = contact.FirstName + " " + contact.LastName;
             contact.Name = contact.FullName;
+            contact.Id = Guid.NewGuid().ToString();
         }
 
         private async Task RollBackMembersCreationAsync(RegisterCompanyResult result)
