@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using FluentValidation.Results;
 using MediatR;
 using VirtoCommerce.CustomerModule.Core;
 using VirtoCommerce.CustomerModule.Core.Model;
@@ -91,10 +92,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             
             FillContactFields(contact);
 
-            var validationResults = await Task.WhenAll(
+            var validationTasks = new List<Task<ValidationResult>>
+            {
                 _contactValidator.ValidateAsync(contact),
                 _accountValidator.ValidateAsync(request.Account),
-                _organizationValidator.ValidateAsync(company));
+                _organizationValidator.ValidateAsync(company)
+            };
+
+            var validationResults = await Task.WhenAll(validationTasks);
 
             if (validationResults.Any(x => !x.IsValid))
             {
