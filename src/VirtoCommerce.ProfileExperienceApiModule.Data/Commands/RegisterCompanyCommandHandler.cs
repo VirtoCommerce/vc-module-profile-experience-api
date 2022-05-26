@@ -108,9 +108,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                     .Select(x => $"{x.ErrorCode}: {x.ErrorMessage}".TrimEnd(' ', ':'))
                     .ToList();
 
-                SetErrorResult(result, errors);
-                tokenSource.Cancel();
-
+                SetErrorResult(result, errors, tokenSource);
                 return result;
             }
 
@@ -120,9 +118,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             if (store == null)
             {
-                SetErrorResult(result, $"Store {request.StoreId} has not been found");
-                tokenSource.Cancel();
-                
+                SetErrorResult(result, $"Store {request.StoreId} has not been found", tokenSource);
                 return result;
             }
 
@@ -131,9 +127,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 var maintainerRole = await _accountService.FindRoleById(MaintainerRoleId);
                 if (maintainerRole == null)
                 {
-                    SetErrorResult(result, $"Organization maintainer role with id {MaintainerRoleId} not found");
-                    tokenSource.Cancel();
-
+                    SetErrorResult(result, $"Organization maintainer role with id {MaintainerRoleId} not found", tokenSource);
                     return result;
                 }
 
@@ -184,11 +178,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return result;
             }
 
-            if (company != null)
-            {
-                await SendNotificationAsync(account.Email, company.Name, store);
-            }
-
+            await SendNotificationAsync(account.Email, result, store);
             return result;
         }
 
@@ -220,29 +210,34 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return Task.CompletedTask;
         }
 
-        private static void SetErrorResult(RegisterCompanyResult result, string errorMessage)
+        private static void SetErrorResult(RegisterCompanyResult result, string errorMessage, CancellationTokenSource source)
         {
-            SetErrorResult(result, new List<string>{errorMessage});
+            SetErrorResult(result, new List<string>{errorMessage}, source);
         }
 
-        private static void SetErrorResult(RegisterCompanyResult result, List<string> errors)
+        private static void SetErrorResult(RegisterCompanyResult result, List<string> errors, CancellationTokenSource source)
         {
             result.AccountCreationResult = new AccountCreationResult
             {
                 Succeeded = false,
                 Errors = errors
             };
+
+            source.Cancel();
         }
 
-        protected virtual async Task SendNotificationAsync(string recipientEmail, string companyName, Store store)
+        protected virtual async Task SendNotificationAsync(string recipientEmail, RegisterCompanyResult result, Store store)
         {
-            var notification = await _notificationSearchService.GetNotificationAsync<RegisterCompanyEmailNotification>();
-            notification.To = recipientEmail;
-            notification.From = store.Email;
-            notification.CompanyName = companyName;
-            notification.LanguageCode = store.DefaultLanguage;
+            if (result.Company != null)
+            {
+                var notification = await _notificationSearchService.GetNotificationAsync<RegisterCompanyEmailNotification>();
+                notification.To = recipientEmail;
+                notification.From = store.Email;
+                notification.CompanyName = result.Company.Name;
+                notification.LanguageCode = store.DefaultLanguage;
 
-            await _notificationSender.ScheduleSendNotificationAsync(notification);
+                await _notificationSender.ScheduleSendNotificationAsync(notification);
+            }
         }
 
         protected virtual ApplicationUser GetApplicationUser(Account account) => new()
