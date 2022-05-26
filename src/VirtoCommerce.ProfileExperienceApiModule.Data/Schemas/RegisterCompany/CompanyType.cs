@@ -14,6 +14,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
             Field<ListGraphType<DynamicPropertyValueType>>(nameof(Member.DynamicProperties));
             Field<NonNullGraphType<MemberAddressType>>("address");
             Field<StringGraphType>("status");
+            Field<StringGraphType>("createdBy");
         }
     }
 }
