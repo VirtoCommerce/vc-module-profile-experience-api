@@ -96,7 +96,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             {
                 var errors = validationResults
                     .SelectMany(x => x.Errors)
-                    .Select(x => $"{x.ErrorCode}: {x.ErrorMessage}")
+                    .Select(x => $"{x.ErrorCode}: {x.ErrorMessage}".TrimEnd(' ', ':'))
                     .ToList();
 
                 SetErrorResult(result, errors);
@@ -162,7 +162,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             result.AccountCreationResult = new AccountCreationResult
             {
                 Succeeded = identityResult.Succeeded,
-                Errors = identityResult.Errors.Select(x => $"{x.Code}: {x.Description}").ToList(),
+                Errors = identityResult.Errors
+                    .Select(x => $"{x.Code}: {x.Description}".TrimEnd(' ', ':'))
+                    .ToList(),
                 AccountName = account.UserName
             };
 
@@ -174,6 +176,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             if (company != null)
             {
+                company.OwnerId = contact.Id;
+                await _memberService.SaveChangesAsync(new Member[] { company });
+                
                 await SendNotificationAsync(account.Email, company.Name, store);
             }
 

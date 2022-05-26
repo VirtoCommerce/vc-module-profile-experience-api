@@ -15,6 +15,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
             Field<NonNullGraphType<MemberAddressType>>("address");
             Field<StringGraphType>("status");
             Field<StringGraphType>("createdBy");
+            Field<StringGraphType>("ownerId");
         }
     }
 }
