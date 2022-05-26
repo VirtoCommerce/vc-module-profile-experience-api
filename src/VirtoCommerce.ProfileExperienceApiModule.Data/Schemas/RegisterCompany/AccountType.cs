@@ -10,6 +10,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
             Field<NonNullGraphType<StringGraphType>>("username");
             Field<NonNullGraphType<StringGraphType>>("email");
             Field<StringGraphType>("status");
+            Field<StringGraphType>("createdBy");
         }
     }
 }

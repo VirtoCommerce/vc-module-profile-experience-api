@@ -156,6 +156,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             account.UserType = UserType;
             account.MemberId = contact.Id;
             account.Roles = roles;
+            account.CreatedBy = Creator;
 
             var identityResult = await _accountService.CreateAccountAsync(account);
             result.AccountCreationResult = new AccountCreationResult
