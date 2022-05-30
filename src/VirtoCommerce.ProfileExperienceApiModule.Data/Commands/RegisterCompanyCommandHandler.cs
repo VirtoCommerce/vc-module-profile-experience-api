@@ -140,6 +140,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 company.CreatedBy = Creator;
                 company.Status = organizationStatus;
                 company.OwnerId = contact.Id;
+                company.Emails = new List<string> { company.Addresses.FirstOrDefault()?.Email };
 
                 await _memberService.SaveChangesAsync(new Member[] { company });
 
@@ -152,6 +153,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             contact.Status = contactStatus;
             contact.CreatedBy = Creator;
             contact.Organizations = company != null ? new List<string> { company.Id } : null;
+            contact.Emails = new List<string> { account.Email };
             await _memberService.SaveChangesAsync(new Member[] { contact });
             result.Contact = contact;
 
