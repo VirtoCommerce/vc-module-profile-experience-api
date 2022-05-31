@@ -236,10 +236,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 ? await RegisterCompanyNotificationAsync(result, store)
                 : await RegisterContactNotificationAsync(result, store);
 
-            if (notification != null)
-            {
-                await _notificationSender.ScheduleSendNotificationAsync(notification);
-            }
+            await _notificationSender.ScheduleSendNotificationAsync(notification);
         }
 
         protected virtual async Task<EmailNotification> RegisterCompanyNotificationAsync(RegisterCompanyResult result, Store store)
