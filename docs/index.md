@@ -376,3 +376,65 @@ mutation($command: InputUpdateRoleType!) {
 > ConcurrencyStamp is a random value that must change whenever a role is assigned to the store.
 ### RegistrationRequest
 #### Query:
+```
+mutation registrationRequest (command: InputRegisterCompanyType!) {
+    registrationRequest(command: $command) {
+        company {
+            id
+            name
+            status
+            createdBy
+            ownerId
+        }
+        contact {
+            id
+            name
+            status
+            createdBy
+        }
+        account {
+            id
+            username
+            email
+            status
+        }
+        result {
+            succeede
+            errors
+        }
+    }
+}
+    
+```
+#### Variables:
+```
+{
+  "command": {
+    "storeId": "store_id",
+    "contact": {
+      "firstName": "first_name",
+      "lastName": "last_name",
+      "phoneNumber": "phone_number"
+    },
+    "company": {
+      "name": "company_name"
+      "description": "description"
+      "address": {
+        "city": "City"
+        "countryCode":"USA"
+        "countryName":"United States"
+        "email":"e@mail.test"
+        "firstName":"First_name"
+        "lastName:"Last_name"
+        "line1":"line1"
+        "postalCode":"123654"
+      }
+    }
+    "account": {
+      "username": "user_name",
+      "password": "password",
+      "email": "e@mail.test" 
+    }
+  }
+}
+```
