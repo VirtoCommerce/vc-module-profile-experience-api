@@ -233,13 +233,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         protected virtual async Task SendNotificationAsync(RegisterCompanyResult result, Store store)
         {
             var notification = result.Company != null
-                ? await RegisterCompanyNotificationAsync(result, store)
-                : await RegisterContactNotificationAsync(result, store);
+                ? await GetRegisterCompanyNotificationAsync(result, store)
+                : await GetRegisterContactNotificationAsync(result, store);
 
             await _notificationSender.ScheduleSendNotificationAsync(notification);
         }
 
-        protected virtual async Task<EmailNotification> RegisterCompanyNotificationAsync(RegisterCompanyResult result, Store store)
+        protected virtual async Task<EmailNotification> GetRegisterCompanyNotificationAsync(RegisterCompanyResult result, Store store)
         {
             var notification = await _notificationSearchService.GetNotificationAsync<RegisterCompanyEmailNotification>();
             notification.To = result.Company.Emails.FirstOrDefault();
@@ -249,7 +249,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return notification;
         }
 
-        protected virtual async Task<EmailNotification> RegisterContactNotificationAsync(RegisterCompanyResult result, Store store)
+        protected virtual async Task<EmailNotification> GetRegisterContactNotificationAsync(RegisterCompanyResult result, Store store)
         {
             var notification = await _notificationSearchService.GetNotificationAsync<RegistrationEmailNotification>();
             notification.To = result.Contact.Emails.FirstOrDefault();
