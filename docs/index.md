@@ -1,13 +1,13 @@
 # Overview
 
-X-Profile module provides high performance search queries for customer and organization data.
+The X-Profile module provides high performance search queries for customer and company data.
 
-## Key features
-Through X-Profile, you can perform create, read, update, and delete (CRUD) operations with **users**, **organizations**, and **contacts**.
+## Key Features
+Through X-Profile, you can perform create, read, update, and delete (CRUD) operations with **users**, **companies**, and **contacts**.
 All such operations can be completed with various queries, which are listed and detailed in the sections below.
 
 ## How It Works
-Just like other xAPI modules, X-Profile module resides on a website's or application's back end and is managed with queries. It enables efficiently creating, updating, and deleting various entity profiles. The chart below shows how X-Profile works in case of creating a new user (customer):
+Just like other xAPI modules, X-Profile resides on a website's or application's back end and is managed with queries. It enables efficiently creating, updating, and deleting various entity profiles. The chart below shows how X-Profile works in case of creating a new user (customer):
 
 ![Creating new user process explained](./media/x-profile-creating-new-user-chart-sm.png)
 
@@ -22,7 +22,8 @@ List of available queries:
 |4|[user](#user)|`id` `userName` `email` `loginProvider` `providerKey`|User|
 
 ### Organization
-With this query, you can get the organization by its ID:
+With this query, you can get the organization (company) by its ID:
+
 ```
 {
   organization(id: "689a72757c754bef97cde51afc663430") {
@@ -45,8 +46,10 @@ With this query, you can get the organization by its ID:
   }
 }
 ```
+
 ### Contact
 With this query, you can get the contact by its ID:
+
 ```
 {
   contact(id: "5f807280-bb1a-42b2-9a96-ed107269ea06") {
@@ -73,8 +76,10 @@ With this query, you can get the contact by its ID:
   }
 }
 ```
+
 ### Role
 With this query, you can get the role by its name:
+
 ```
 {
   role(roleName: "Store administrator") {
@@ -84,8 +89,10 @@ With this query, you can get the role by its name:
   }
 }
 ```
+
 ### User
 With this query, you can get the user by a few arguments
+
 ```
 {
   user(id: "9b605a3096ba4cc8bc0b8d80c397c59f") {
@@ -126,6 +133,7 @@ List of mutations:
 
 ### CreateContact
 #### Query:
+
 ```
 mutation($command: InputCreateContactType!) {
   createContact(command: $command) {
@@ -136,7 +144,9 @@ mutation($command: InputCreateContactType!) {
   }
 }
 ```
+
 #### Variables:
+
 ```
 {
   "command": {
@@ -152,8 +162,10 @@ mutation($command: InputCreateContactType!) {
   }
 }
 ```
+
 ### UpdateContact
 #### Query:
+
 ```
 mutation($command: InputUpdateContactType!){
   updateContact(command: $command) {
@@ -162,7 +174,9 @@ mutation($command: InputUpdateContactType!){
   }
 }
 ```
+
 #### Variables:
+
 ```
 {
   "command": {
@@ -178,8 +192,10 @@ mutation($command: InputUpdateContactType!){
 	}
 }
 ```
+
 ### DeleteContact
 #### Query:
+
 ```
 mutation($command: InputDeleteContactType!){
   deleteContact(command: $command)
@@ -193,8 +209,10 @@ mutation($command: InputDeleteContactType!){
   }
 }
 ```
+
 ### CreateUser
 #### Query:
+
 ```
 mutation($command: InputCreateUserType!) {
   createUser(command: $command) {
@@ -202,7 +220,9 @@ mutation($command: InputCreateUserType!) {
   }
 }
 ```
+
 #### Variables:
+
 ```
 {
   "command": {
@@ -212,8 +232,10 @@ mutation($command: InputCreateUserType!) {
   }
 }
 ```
+
 ### UpdateUser
 #### Query:
+
 ```
 mutation($command: InputUpdateUserType!) {
   updateUser(command: $command) {
@@ -225,7 +247,9 @@ mutation($command: InputUpdateUserType!) {
   }
 }
 ```
+
 #### Variables:
+
 ```
 {
   "command": {
@@ -237,9 +261,12 @@ mutation($command: InputUpdateUserType!) {
   }
 }
 ```
+
 > SecurityStamp is a random value that must change whenever user credentials, i.e. login or password, change.
+
 ### DeleteUsers
 #### Query:
+
 ```
 mutation($command: InputDeleteUserType!) {
   deleteUsers(command: $command) {
@@ -251,7 +278,9 @@ mutation($command: InputDeleteUserType!) {
   }
 }
 ```
+
 #### Variables:
+
 ```
 {
   "command": {
@@ -259,8 +288,10 @@ mutation($command: InputDeleteUserType!) {
   }
 }
 ```
+
 ### UpdateAddresses
 #### Query:
+
 ```
 mutation($command: InputUpdateContactAddressType!) {
   updateAddresses(command: $command) {
@@ -270,7 +301,9 @@ mutation($command: InputUpdateContactAddressType!) {
   }
 }
 ```
+
 #### Variables:
+
 ```
 {
   "command": {
@@ -288,9 +321,12 @@ mutation($command: InputUpdateContactAddressType!) {
   }
 }
 ```
-> Address type: **1** - Billing, **2** - Shipping, **3** - BillingAndShipping
+
+> Address type: **1** stands for Billing, **2**, for Shipping, and **3**, for BillingAndShipping
+
 ### CreateOrganization
 #### Query:
+
 ```
 mutation($command: InputCreateOrganizationType!) {
   createOrganization(command: $command) {
@@ -300,7 +336,9 @@ mutation($command: InputCreateOrganizationType!) {
   }
 }
 ```
+
 #### Variables:
+
 ```
 {
   "command": {
@@ -315,8 +353,10 @@ mutation($command: InputCreateOrganizationType!) {
   }
 }
 ```
+
 ### UpdateOrganization
 #### Query:
+
 ```
 mutation($command: InputUpdateOrganizationType!) {
   updateOrganization(command: $command) {
@@ -326,7 +366,9 @@ mutation($command: InputUpdateOrganizationType!) {
   }
 }
 ```
+
 #### Variables:
+
 ```
 {
   "command": {
@@ -342,8 +384,10 @@ mutation($command: InputUpdateOrganizationType!) {
   }
 }
 ```
+
 ### UpdateRole
 #### Query:
+
 ```
 mutation($command: InputUpdateRoleType!) {
   updateRole(command: $command) {
@@ -355,7 +399,9 @@ mutation($command: InputUpdateRoleType!) {
   }
 }
 ```
+
 #### Variables:
+
 ```
 {
   "command": {
@@ -373,9 +419,12 @@ mutation($command: InputUpdateRoleType!) {
   }
 }
 ```
-> ConcurrencyStamp is a random value that must change whenever a role is assigned to the store.
+
+> ConcurrencyStamp is a random value that must get changed whenever a role is assigned to the store.
+
 ### RegistrationRequest
 #### Query:
+
 ```
 mutation registrationRequest (command: InputRegisterCompanyType!) {
     registrationRequest(command: $command) {
@@ -406,7 +455,9 @@ mutation registrationRequest (command: InputRegisterCompanyType!) {
 }
     
 ```
+
 #### Variables:
+
 ```
 {
   "command": {
@@ -438,8 +489,9 @@ mutation registrationRequest (command: InputRegisterCompanyType!) {
   }
 }
 ```
-> The mutation registers company when all argumets are passed and registers customer only when company is null. If company is created, the customer is member of the company and owner of it.
+
+> The mutation registers a company when all argumets have been provided, and registers a customer only when the company value is null. If a company is created, the customer becomes its member and owner.
 >
-> Company and customer creator is always "frontend"
+> The user that creates a company and/or customer is always displayed as *frontend*.
 >
-> Company status comes from the store's setting "Company default status". Contacts and account status comes from the store setting "Contact default status". This settings must be set in advance.
+> The company status is determined by the *Company default status* store setting, while contact and account statuses come from the *Contact default status* setting. Both settings must be provided in advance.
