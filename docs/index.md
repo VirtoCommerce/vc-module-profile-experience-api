@@ -438,3 +438,8 @@ mutation registrationRequest (command: InputRegisterCompanyType!) {
   }
 }
 ```
+> The mutation registers company when all argumets are passed and registers customer only when company is null. If company is created, the customer is member of the company and owner of it.
+>
+> Company and customer creator is always "frontend"
+>
+> Company status comes from the store's setting "Company default status". Contacts and account status comes from the store setting "Contact default status". This settings must be set in advance.
