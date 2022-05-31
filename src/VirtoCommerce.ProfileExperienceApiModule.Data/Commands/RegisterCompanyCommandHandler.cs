@@ -22,6 +22,7 @@ using VirtoCommerce.CustomerModule.Core.Notifications;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterCompany;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
+using VirtoCommerce.NotificationsModule.Core.Types;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -180,7 +181,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return result;
             }
 
-            await SendNotificationAsync(account.Email, result, store);
+            await SendNotificationAsync(result, store);
             return result;
         }
 
@@ -228,17 +229,29 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             source.Cancel();
         }
 
-        protected virtual async Task SendNotificationAsync(string recipientEmail, RegisterCompanyResult result, Store store)
+        protected virtual async Task SendNotificationAsync(RegisterCompanyResult result, Store store)
         {
             if (result.Company != null)
             {
-                var notification = await _notificationSearchService.GetNotificationAsync<RegisterCompanyEmailNotification>();
-                notification.To = recipientEmail;
-                notification.From = store.Email;
-                notification.CompanyName = result.Company.Name;
-                notification.LanguageCode = store.DefaultLanguage;
+                var registerCompanyNotification = await _notificationSearchService.GetNotificationAsync<RegisterCompanyEmailNotification>();
+                registerCompanyNotification.To = result.Company.Emails.FirstOrDefault();
+                registerCompanyNotification.From = store.Email;
+                registerCompanyNotification.CompanyName = result.Company.Name;
+                registerCompanyNotification.LanguageCode = store.DefaultLanguage;
 
-                await _notificationSender.ScheduleSendNotificationAsync(notification);
+                await _notificationSender.ScheduleSendNotificationAsync(registerCompanyNotification);
+            }
+            else
+            {
+                var registerContactNotification = await _notificationSearchService.GetNotificationAsync<RegistrationEmailNotification>();
+                registerContactNotification.To = result.Contact.Emails.FirstOrDefault();
+                registerContactNotification.From = store.Email;
+                registerContactNotification.FirstName = result.Contact.FirstName;
+                registerContactNotification.LastName = result.Contact.LastName;
+                registerContactNotification.Login = result.AccountCreationResult.AccountName;
+                registerContactNotification.LanguageCode = store.DefaultLanguage;
+
+                await _notificationSender.ScheduleSendNotificationAsync(registerContactNotification);
             }
         }
 
