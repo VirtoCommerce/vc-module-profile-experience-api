@@ -23,6 +23,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterCompany;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.NotificationsModule.Core.Types;
+using VirtoCommerce.NotificationsModule.Core.Model;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -90,7 +91,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             var company = _mapper.Map<Organization>(request.Company);
             var contact = _mapper.Map<Contact>(request.Contact);
             var account = GetApplicationUser(request.Account);
-            
+
             FillContactFields(contact);
 
             var validationTasks = new List<Task<ValidationResult>>
@@ -202,7 +203,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             result.Company = null;
             result.Contact = null;
         }
-        
+
         private Task SetDynamicPropertiesAsync(IList<DynamicPropertyValue> dynamicProperties, IHasDynamicProperties entity)
         {
             if (dynamicProperties?.Any() ?? false)
@@ -215,7 +216,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         private static void SetErrorResult(RegisterCompanyResult result, string errorMessage, CancellationTokenSource source)
         {
-            SetErrorResult(result, new List<string>{errorMessage}, source);
+            SetErrorResult(result, new List<string> { errorMessage }, source);
         }
 
         private static void SetErrorResult(RegisterCompanyResult result, List<string> errors, CancellationTokenSource source)
@@ -231,33 +232,43 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         protected virtual async Task SendNotificationAsync(RegisterCompanyResult result, Store store)
         {
-            if (result.Company != null)
-            {
-                var registerCompanyNotification = await _notificationSearchService.GetNotificationAsync<RegisterCompanyEmailNotification>();
-                registerCompanyNotification.To = result.Company.Emails.FirstOrDefault();
-                registerCompanyNotification.From = store.Email;
-                registerCompanyNotification.CompanyName = result.Company.Name;
-                registerCompanyNotification.LanguageCode = store.DefaultLanguage;
+            var notification = result.Company != null
+                ? await RegisterCompanyNotificationAsync(result, store)
+                : await RegisterContactNotificationAsync(result, store);
 
-                await _notificationSender.ScheduleSendNotificationAsync(registerCompanyNotification);
-            }
-            else
+            if (notification != null)
             {
-                var registerContactNotification = await _notificationSearchService.GetNotificationAsync<RegistrationEmailNotification>();
-                registerContactNotification.To = result.Contact.Emails.FirstOrDefault();
-                registerContactNotification.From = store.Email;
-                registerContactNotification.FirstName = result.Contact.FirstName;
-                registerContactNotification.LastName = result.Contact.LastName;
-                registerContactNotification.Login = result.AccountCreationResult.AccountName;
-                registerContactNotification.LanguageCode = store.DefaultLanguage;
-
-                await _notificationSender.ScheduleSendNotificationAsync(registerContactNotification);
+                await _notificationSender.ScheduleSendNotificationAsync(notification);
             }
+        }
+
+        protected virtual async Task<EmailNotification> RegisterCompanyNotificationAsync(RegisterCompanyResult result, Store store)
+        {
+            var notification = await _notificationSearchService.GetNotificationAsync<RegisterCompanyEmailNotification>();
+            notification.To = result.Company.Emails.FirstOrDefault();
+            notification.From = store.Email;
+            notification.CompanyName = result.Company.Name;
+            notification.LanguageCode = store.DefaultLanguage;
+            return notification;
+        }
+
+        protected virtual async Task<EmailNotification> RegisterContactNotificationAsync(RegisterCompanyResult result, Store store)
+        {
+            var notification = await _notificationSearchService.GetNotificationAsync<RegistrationEmailNotification>();
+            notification.To = result.Contact.Emails.FirstOrDefault();
+            notification.From = store.Email;
+            notification.FirstName = result.Contact.FirstName;
+            notification.LastName = result.Contact.LastName;
+            notification.Login = result.AccountCreationResult.AccountName;
+            notification.LanguageCode = store.DefaultLanguage;
+            return notification;
         }
 
         protected virtual ApplicationUser GetApplicationUser(Account account) => new()
         {
-            UserName = account.UserName, Email = account.Email, Password = account.Password
+            UserName = account.UserName,
+            Email = account.Email,
+            Password = account.Password
         };
     }
 }
