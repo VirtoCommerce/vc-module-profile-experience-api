@@ -122,6 +122,7 @@ List of mutations:
 |8|[createOrganization](#createorganization)|`id` `name` `memberType` `addresses` `phones` `emails` `groups`|Creates an organization|
 |9|[updateOrganization](#updateorganization)|`id!` `name` `memberType` `addresses` `phones` `emails` `groups`|Updates an organization|
 |10|[updateRole](#updaterole)|`concurrencyStamp` `id!` `name!` `description` `permissions!`|Updates a role|
+|11|[registrationRequest](#registrationRequest)|`storeId!` `company!` `contact` `account`|Registers customer or company|
 
 ### CreateContact
 #### Query:
@@ -373,3 +374,5 @@ mutation($command: InputUpdateRoleType!) {
 }
 ```
 > ConcurrencyStamp is a random value that must change whenever a role is assigned to the store.
+### RegistrationRequest
+#### Query:
