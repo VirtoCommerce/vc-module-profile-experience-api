@@ -149,7 +149,7 @@ mutation($command: InputCreateContactType!) {
           "value": "test value"
       }
     ]
-	}
+  }
 }
 ```
 ### UpdateContact
