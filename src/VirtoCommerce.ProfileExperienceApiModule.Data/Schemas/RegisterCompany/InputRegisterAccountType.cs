@@ -2,15 +2,13 @@ using GraphQL.Types;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
 {
-    public class AccountType : ObjectGraphType
+    public class InputRegisterAccountType : InputObjectGraphType
     {
-        public AccountType()
+        public InputRegisterAccountType()
         {
-            Field<NonNullGraphType<StringGraphType>>("id");
             Field<NonNullGraphType<StringGraphType>>("username");
             Field<NonNullGraphType<StringGraphType>>("email");
-            Field<StringGraphType>("status");
-            Field<StringGraphType>("createdBy");
+            Field<NonNullGraphType<StringGraphType>>("password");
         }
     }
 }
