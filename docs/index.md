@@ -119,14 +119,14 @@ List of mutations:
 
 |#|Endpoint|Arguments|Description|
 |-|-|-|-|
-|1|[createContact](#createcontact)|`id` `name!` `memberType` `addresses` `phones` `emails` `groups` `fullName` `firstName!` `lastName!` `middleName` `salutation` `photoUrl` `timeZone` `defaultLanguage` `organizations`|Creates a contact (obsolete, use [registrationRequest](#registrationRequest)|
+|1|[createContact](#createcontact)|`id` `name!` `memberType` `addresses` `phones` `emails` `groups` `fullName` `firstName!` `lastName!` `middleName` `salutation` `photoUrl` `timeZone` `defaultLanguage` `organizations`|Creates a contact (obsolete, use [registrationRequest](#registrationRequest))|
 |2|[updateContact](#updatecontact)|`id!` `name` `memberType` `addresses` `phones` `emails` `groups` `fullName` `firstName!` `lastName!` `middleName` `salutation` `photoUrl` `timeZone` `defaultLanguage` `organizations`|Updates a contact|
 |3|[deleteContact](#deletecontact)|`contactId!`|Deletes a contact|
 |4|[createUser](#createuser)|`id` `email` `createdBy` `createdDate` `isAdministrator` `lockoutEnabled` `lockoutEnd` `logins` `memberId` `password` `phoneNumber` `phoneContactConfirmed` `photoUrl` `roles` `storeId` `twoFactorEnabled` `userName` `userType`|Creates a user|
 |5|[updateUser](#updateuser)|`accessFailedCount` `email!` `id!` `isAdministrator` `lockoutEnabled` `lockoutEnd` `memberId` `phoneNumber` `phoneNumberConfirmed` `photoUrl` `roles` `storeId` `twoFactorEnabled` `userName!` `userType!` `passwordHash` `securityStamp!`|Updates a user|
 |6|[deleteUsers](#deleteusers)|`userNames!`|Delete a users|
 |7|[updateAddresses](#updateaddresses)|`contactId!` `addresses!`|Update an addresses|
-|8|[createOrganization](#createorganization)|`id` `name` `memberType` `addresses` `phones` `emails` `groups`|Creates an organization (obsolete, use [registrationRequest](#registrationRequest)|
+|8|[createOrganization](#createorganization)|`id` `name` `memberType` `addresses` `phones` `emails` `groups`|Creates an organization (obsolete, use [registrationRequest](#registrationRequest))|
 |9|[updateOrganization](#updateorganization)|`id!` `name` `memberType` `addresses` `phones` `emails` `groups`|Updates an organization|
 |10|[updateRole](#updaterole)|`concurrencyStamp` `id!` `name!` `description` `permissions!`|Updates a role|
 |11|[registrationRequest](#registrationRequest)|`storeId!` `company!` `contact` `account`|Registers customer or company|
