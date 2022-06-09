@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterCompany;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
 using VirtoCommerce.TaxModule.Core.Model;
 using Address = VirtoCommerce.CustomerModule.Core.Model.Address;
 
@@ -15,14 +15,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Mapping
 
             CreateMap<CustomerModule.Core.Model.Address, TaxModule.Core.Model.Address>();
 
-            CreateMap<CreateOrganizationCommand, Organization>()
+            CreateMap<CreateOrganizationCommand, CustomerModule.Core.Model.Organization>()
                 .ConvertUsing((command, org, context) =>
                 {
-                    org = new Organization { Name = command.Name, Addresses = command.Addresses };
+                    org = new CustomerModule.Core.Model.Organization { Name = command.Name, Addresses = command.Addresses };
                     return org;
                 });
 
-            CreateMap<UpdateOrganizationCommand, Organization>()
+            CreateMap<UpdateOrganizationCommand, CustomerModule.Core.Model.Organization>()
                 .ForMember(x => x.DynamicProperties, opt => opt.Ignore());
 
             CreateMap<CreateContactCommand, Contact>()
@@ -31,32 +31,36 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Mapping
 
             CreateMap<UpdateContactCommand, Contact>().ForMember(x => x.DynamicProperties, opt => opt.Ignore());
 
-            CreateMap<Company, Organization>()
-                .ConvertUsing((company, organization) =>
+            CreateMap<RegisteredOrganization, Organization>()
+                .ConvertUsing((input, result) =>
                 {
-                    organization = new Organization()
+                    result = new Organization()
                     {
-                        Name = company.Name,
-                        Description = company.Description,
-                        Addresses = new List<Address> { company.Address }
+                        Name = input.Name,
+                        Description = input.Description,
+                        Addresses = input.Address == null ?
+                            null :
+                            new List<Address> { input.Address }
                     };
 
-                    return organization;
+                    return result;
                 });
 
-            CreateMap<Owner, Contact>()
-                .ConvertUsing((owner, contact) =>
+            CreateMap<RegisteredContact, Contact>()
+                .ConvertUsing((input, result) =>
                 {
-                    contact = new Contact()
+                    result = new Contact()
                     {
-                        FirstName = owner.FirstName,
-                        LastName = owner.LastName,
-                        MiddleName = owner.MiddleName,
-                        BirthDate = owner.Birthdate,
-                        Phones = new List<string> { owner.PhoneNumber },
+                        FirstName = input.FirstName,
+                        LastName = input.LastName,
+                        MiddleName = input.MiddleName,
+                        BirthDate = input.Birthdate,
+                        Phones = input.PhoneNumber == null ?
+                            null :
+                            new List<string> { input.PhoneNumber }
                     };
 
-                    return contact;
+                    return result;
                 });
         }
     }
