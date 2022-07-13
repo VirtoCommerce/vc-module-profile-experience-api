@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using VirtoCommerce.ExperienceApiModule.Core.Models;
 
-namespace VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterCompany
+namespace VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization
 {
-    public class Owner
+    public class RegisteredContact
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }

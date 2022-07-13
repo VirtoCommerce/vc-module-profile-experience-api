@@ -19,13 +19,15 @@ using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.NotificationsModule.Core.Extensions;
 using VirtoCommerce.NotificationsModule.Core.Services;
 using VirtoCommerce.CustomerModule.Core.Notifications;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterCompany;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
+using VirtoCommerce.NotificationsModule.Core.Types;
+using VirtoCommerce.NotificationsModule.Core.Model;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
-    public class RegisterCompanyCommandHandler : IRequestHandler<RegisterCompanyCommand, RegisterCompanyResult>
+    public class RegisterRequestCommandHandler : IRequestHandler<RegisterRequestCommand, RegisterOrganizationResult>
     {
         private readonly IMapper _mapper;
         private readonly IDynamicPropertyUpdaterService _dynamicPropertyUpdater;
@@ -42,7 +44,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private const string UserType = "Manager";
         private const string MaintainerRoleId = "org-maintainer";
 #pragma warning disable S107
-        public RegisterCompanyCommandHandler(IMapper mapper,
+        public RegisterRequestCommandHandler(IMapper mapper,
             IDynamicPropertyUpdaterService dynamicPropertyUpdater,
             IMemberService memberService,
             ICrudService<Store> storeService,
@@ -66,7 +68,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _organizationValidator = organizationValidator;
         }
 
-        public virtual async Task<RegisterCompanyResult> Handle(RegisterCompanyCommand request, CancellationToken cancellationToken)
+        public virtual async Task<RegisterOrganizationResult> Handle(RegisterRequestCommand request, CancellationToken cancellationToken)
         {
             var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             var internalToken = cancellationTokenSource.Token;
@@ -81,22 +83,22 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return result;
         }
 
-        private async Task<RegisterCompanyResult> ProcessRequestAsync(RegisterCompanyCommand request, CancellationTokenSource tokenSource)
+        private async Task<RegisterOrganizationResult> ProcessRequestAsync(RegisterRequestCommand request, CancellationTokenSource tokenSource)
         {
-            var result = new RegisterCompanyResult();
+            var result = new RegisterOrganizationResult();
             IList<Role> roles = null;
 
-            var company = _mapper.Map<Organization>(request.Company);
+            var organization = _mapper.Map<Organization>(request.Organization);
             var contact = _mapper.Map<Contact>(request.Contact);
             var account = GetApplicationUser(request.Account);
-            
+
             FillContactFields(contact);
 
             var validationTasks = new List<Task<ValidationResult>>
             {
                 _contactValidator.ValidateAsync(contact),
                 _accountValidator.ValidateAsync(request.Account),
-                _organizationValidator.ValidateAsync(company)
+                _organizationValidator.ValidateAsync(organization)
             };
 
             var validationResults = await Task.WhenAll(validationTasks);
@@ -122,7 +124,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return result;
             }
 
-            if (company != null)
+            if (organization != null)
             {
                 var maintainerRole = await _accountService.FindRoleById(MaintainerRoleId);
                 if (maintainerRole == null)
@@ -133,18 +135,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
                 roles = new List<Role> { maintainerRole };
 
-                await SetDynamicPropertiesAsync(request.Company.DynamicProperties, company);
+                await SetDynamicPropertiesAsync(request.Organization.DynamicProperties, organization);
                 var organizationStatus = store
                     .Settings
                     .GetSettingValue<string>(ModuleConstants.Settings.General.OrganizationDefaultStatus.Name, null);
-                company.CreatedBy = Creator;
-                company.Status = organizationStatus;
-                company.OwnerId = contact.Id;
-                company.Emails = new List<string> { company.Addresses.FirstOrDefault()?.Email };
+                organization.CreatedBy = Creator;
+                organization.Status = organizationStatus;
+                organization.OwnerId = contact.Id;
+                organization.Emails = new List<string> { organization.Addresses?.FirstOrDefault()?.Email ?? account.Email };
 
-                await _memberService.SaveChangesAsync(new Member[] { company });
+                await _memberService.SaveChangesAsync(new Member[] { organization });
 
-                result.Company = company;
+                result.Organization = organization;
             }
 
             var contactStatus = store.Settings
@@ -152,7 +154,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             contact.Status = contactStatus;
             contact.CreatedBy = Creator;
-            contact.Organizations = company != null ? new List<string> { company.Id } : null;
+            contact.Organizations = organization != null ? new List<string> { organization.Id } : null;
             contact.Emails = new List<string> { account.Email };
             await _memberService.SaveChangesAsync(new Member[] { contact });
             result.Contact = contact;
@@ -180,7 +182,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return result;
             }
 
-            await SendNotificationAsync(account.Email, result, store);
+            await SendNotificationAsync(result, store);
             return result;
         }
 
@@ -191,17 +193,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             contact.Id = Guid.NewGuid().ToString();
         }
 
-        private async Task RollBackMembersCreationAsync(RegisterCompanyResult result)
+        private async Task RollBackMembersCreationAsync(RegisterOrganizationResult result)
         {
-            var ids = new[] { result.Company?.Id, result.Contact?.Id }
+            var ids = new[] { result.Organization?.Id, result.Contact?.Id }
                 .Where(x => x != null)
                 .ToArray();
             await _memberService.DeleteAsync(ids);
 
-            result.Company = null;
+            result.Organization = null;
             result.Contact = null;
         }
-        
+
         private Task SetDynamicPropertiesAsync(IList<DynamicPropertyValue> dynamicProperties, IHasDynamicProperties entity)
         {
             if (dynamicProperties?.Any() ?? false)
@@ -212,12 +214,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return Task.CompletedTask;
         }
 
-        private static void SetErrorResult(RegisterCompanyResult result, string errorMessage, CancellationTokenSource source)
+        private static void SetErrorResult(RegisterOrganizationResult result, string errorMessage, CancellationTokenSource source)
         {
-            SetErrorResult(result, new List<string>{errorMessage}, source);
+            SetErrorResult(result, new List<string> { errorMessage }, source);
         }
 
-        private static void SetErrorResult(RegisterCompanyResult result, List<string> errors, CancellationTokenSource source)
+        private static void SetErrorResult(RegisterOrganizationResult result, List<string> errors, CancellationTokenSource source)
         {
             result.AccountCreationResult = new AccountCreationResult
             {
@@ -228,23 +230,42 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             source.Cancel();
         }
 
-        protected virtual async Task SendNotificationAsync(string recipientEmail, RegisterCompanyResult result, Store store)
+        protected virtual async Task SendNotificationAsync(RegisterOrganizationResult result, Store store)
         {
-            if (result.Company != null)
-            {
-                var notification = await _notificationSearchService.GetNotificationAsync<RegisterCompanyEmailNotification>();
-                notification.To = recipientEmail;
-                notification.From = store.Email;
-                notification.CompanyName = result.Company.Name;
-                notification.LanguageCode = store.DefaultLanguage;
+            var notification = result.Organization != null
+                ? await GetRegisterCompanyNotificationAsync(result, store)
+                : await GetRegisterContactNotificationAsync(result, store);
 
-                await _notificationSender.ScheduleSendNotificationAsync(notification);
-            }
+            await _notificationSender.ScheduleSendNotificationAsync(notification);
+        }
+
+        protected virtual async Task<EmailNotification> GetRegisterCompanyNotificationAsync(RegisterOrganizationResult result, Store store)
+        {
+            var notification = await _notificationSearchService.GetNotificationAsync<RegisterCompanyEmailNotification>();
+            notification.To = result.Organization.Emails.FirstOrDefault();
+            notification.From = store.Email;
+            notification.CompanyName = result.Organization.Name;
+            notification.LanguageCode = store.DefaultLanguage;
+            return notification;
+        }
+
+        protected virtual async Task<EmailNotification> GetRegisterContactNotificationAsync(RegisterOrganizationResult result, Store store)
+        {
+            var notification = await _notificationSearchService.GetNotificationAsync<RegistrationEmailNotification>();
+            notification.To = result.Contact.Emails.FirstOrDefault();
+            notification.From = store.Email;
+            notification.FirstName = result.Contact.FirstName;
+            notification.LastName = result.Contact.LastName;
+            notification.Login = result.AccountCreationResult.AccountName;
+            notification.LanguageCode = store.DefaultLanguage;
+            return notification;
         }
 
         protected virtual ApplicationUser GetApplicationUser(Account account) => new()
         {
-            UserName = account.UserName, Email = account.Email, Password = account.Password
+            UserName = account.UserName,
+            Email = account.Email,
+            Password = account.Password
         };
     }
 }

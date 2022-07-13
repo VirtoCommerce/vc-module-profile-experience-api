@@ -4,14 +4,14 @@ using VirtoCommerce.ExperienceApiModule.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
 {
-    public class InputCompanyType : InputObjectGraphType
+    public class InputRegisterOrganizationType : InputObjectGraphType
     {
-        public InputCompanyType()
+        public InputRegisterOrganizationType()
         {
             Field<NonNullGraphType<StringGraphType>>("name");
             Field<StringGraphType>("description");
             Field<ListGraphType<InputDynamicPropertyValueType>>(nameof(Member.DynamicProperties));
-            Field<NonNullGraphType<InputMemberAddressType>>("address");
+            Field<InputMemberAddressType>("address");
         }
     }
 }

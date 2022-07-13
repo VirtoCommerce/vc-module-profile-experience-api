@@ -1,5 +1,5 @@
 using GraphQL.Types;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterCompany;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
 {

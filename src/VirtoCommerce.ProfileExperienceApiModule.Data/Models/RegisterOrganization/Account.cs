@@ -1,4 +1,4 @@
-namespace VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterCompany
+namespace VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization
 {
     public class Account
     {

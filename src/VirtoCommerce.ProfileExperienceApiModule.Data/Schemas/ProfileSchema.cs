@@ -26,7 +26,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Authorization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterCompany;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany;
 
@@ -361,13 +361,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             .FieldType);
 
             _ = schema.Mutation.AddField(FieldBuilder
-                .Create<RegisterCompanyResult, RegisterCompanyResult>(GraphTypeExtenstionHelper.GetActualType<RegisterCompanyType>())
-                .Name("registrationRequest")
-                .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRegisterCompanyType>>(), _commandName)
+                .Create<RegisterOrganizationResult, RegisterOrganizationResult>(GraphTypeExtenstionHelper.GetActualType<RequestRegistrationType>())
+                .Name("requestRegistration")
+                .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRequestRegistrationType>>(), _commandName)
                 .ResolveAsync(async context =>
                 {
-                    var type = GenericTypeHelper.GetActualType<RegisterCompanyCommand>();
-                    var command = (RegisterCompanyCommand)context.GetArgument(type, _commandName);
+                    var type = GenericTypeHelper.GetActualType<RegisterRequestCommand>();
+                    var command = (RegisterRequestCommand)context.GetArgument(type, _commandName);
                     return await _mediator.Send(command);
                 })
                 .FieldType);
