@@ -15,6 +15,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field<StringGraphType>(nameof(Contact.PhotoUrl));
             Field<StringGraphType>(nameof(Contact.TimeZone));
             Field<StringGraphType>(nameof(Contact.DefaultLanguage));
+            Field<StringGraphType>(nameof(Contact.About));
             Field<ListGraphType<StringGraphType>>(nameof(Contact.Organizations));
         }
     }
