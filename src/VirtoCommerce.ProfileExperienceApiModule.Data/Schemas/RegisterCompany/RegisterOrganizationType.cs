@@ -19,7 +19,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
             Field<StringGraphType>("status");
             Field<StringGraphType>("createdBy");
             Field<StringGraphType>("ownerId");
-            ExtendableField<NonNullGraphType<ListGraphType<DynamicPropertyValueType>>>(
+            ExtendableField<ListGraphType<DynamicPropertyValueType>>(
                 "dynamicProperties",
                 "Contact's dynamic property values",
                 QueryArgumentPresets.GetArgumentForDynamicProperties(),
