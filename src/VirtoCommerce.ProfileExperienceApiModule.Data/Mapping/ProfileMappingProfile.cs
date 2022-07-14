@@ -55,6 +55,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Mapping
                         LastName = input.LastName,
                         MiddleName = input.MiddleName,
                         BirthDate = input.Birthdate,
+                        About = input.About,
                         Phones = input.PhoneNumber == null ?
                             null :
                             new List<string> { input.PhoneNumber }
