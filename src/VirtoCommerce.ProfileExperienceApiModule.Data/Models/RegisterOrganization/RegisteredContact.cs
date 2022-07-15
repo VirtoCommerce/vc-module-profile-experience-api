@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.ExperienceApiModule.Core.Models;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization
@@ -13,5 +14,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganizat
         public string PhoneNumber { get; set; }
         public string About { get; set; }
         public IList<DynamicPropertyValue> DynamicProperties { get; set; }
+        public Address Address { get; set; }
     }
 }
