@@ -24,6 +24,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         public string FirstName { get; set; }
         public string FullName { get; set; }
         public string Salutation { get; set; }
+        public string About { get; set; }
         public IList<Address> Addresses { get; set; }
         public IList<string> Phones { get; set; }
         public IList<string> Emails { get; set; }

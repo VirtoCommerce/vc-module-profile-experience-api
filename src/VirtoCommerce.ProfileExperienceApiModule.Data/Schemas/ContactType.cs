@@ -37,6 +37,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field(x => x.Contact.Name, true);
             Field(x => x.Contact.OuterId, true);
             Field(x => x.Contact.Status, true).Description("Contact status");
+            Field(x => x.Contact.About);
             Field<ListGraphType<StringGraphType>>("emails", resolve: x => x.Source.Contact.Emails, description: "List of contact`s emails");
 
             Field<MemberAddressType>("defaultBillingAddress", description: "Default billing address",
