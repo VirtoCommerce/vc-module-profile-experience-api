@@ -3,9 +3,9 @@ using VirtoCommerce.CustomerModule.Core.Model;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class InputContactBaseType : InputMemberBaseType
+    public abstract class InputContactBaseType : InputMemberBaseType
     {
-        public InputContactBaseType()
+        protected InputContactBaseType()
         {
             Field<StringGraphType>(nameof(Contact.FullName));
             Field<NonNullGraphType<StringGraphType>>(nameof(Contact.FirstName));
