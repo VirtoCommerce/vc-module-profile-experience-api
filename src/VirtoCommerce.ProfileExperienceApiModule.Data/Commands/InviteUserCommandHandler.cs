@@ -47,23 +47,23 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         public virtual async Task<IdentityResultResponse> Handle(InviteUserCommand request, CancellationToken cancellationToken)
         {
-            using var userManager = _userManagerFactory();
-
             var result = new IdentityResultResponse
             {
                 Errors = new List<IdentityErrorInfo>(),
-                Succeeded = true,
+                Succeeded = false,
             };
 
             // PT-6083: reduce complexity
             foreach (var email in request.Emails)
             {
+                using var userManager = _userManagerFactory();
+
                 var contact = new Contact { FirstName = string.Empty, LastName = string.Empty, FullName = string.Empty, Organizations = new List<string> { request.OrganizationId } };
                 await _memberService.SaveChangesAsync(new Member[] { contact });
 
                 var user = new ApplicationUser { UserName = email, Email = email, MemberId = contact.Id, StoreId = request.StoreId };
                 var identityResult = await userManager.CreateAsync(user);
-
+                
                 if (identityResult.Succeeded)
                 {
                     var store = await _storeService.GetByIdAsync(user.StoreId);
@@ -87,7 +87,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 }
 
                 result.Errors.AddRange(identityResult.Errors.Select(x => x.MapToIdentityErrorInfo()));
-                result.Succeeded &= identityResult.Succeeded;
+                result.Succeeded |= identityResult.Succeeded;
 
                 if (!result.Succeeded)
                 {
