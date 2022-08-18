@@ -9,7 +9,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
         {
             Field(x => x.City).Description("City");
             Field(x => x.CountryCode).Description("Country code");
-            Field(x => x.CountryName).Description("Country name");
+            Field(x => x.CountryName, true).Description("Country name");
             Field(x => x.Email, true).Description("Email");
             Field(x => x.FirstName, true).Description("First name");
             Field<StringGraphType>("Id");
