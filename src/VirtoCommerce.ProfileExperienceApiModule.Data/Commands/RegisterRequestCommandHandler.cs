@@ -23,6 +23,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.NotificationsModule.Core.Types;
 using VirtoCommerce.NotificationsModule.Core.Model;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
@@ -182,7 +183,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return result;
             }
 
-            await SendNotificationAsync(result, store);
+            await SendNotificationAsync(result, store, request.NotificationLanguage);
             return result;
         }
 
@@ -230,34 +231,33 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             source.Cancel();
         }
 
-        protected virtual async Task SendNotificationAsync(RegisterOrganizationResult result, Store store)
+        protected virtual async Task SendNotificationAsync(RegisterOrganizationResult result, Store store, string notificationLanguage)
         {
             var notification = result.Organization != null
                 ? await GetRegisterCompanyNotificationAsync(result, store)
                 : await GetRegisterContactNotificationAsync(result, store);
+
+            notification.From = store.Email;
+            notification.LanguageCode = notificationLanguage;
 
             await _notificationSender.ScheduleSendNotificationAsync(notification);
         }
 
         protected virtual async Task<EmailNotification> GetRegisterCompanyNotificationAsync(RegisterOrganizationResult result, Store store)
         {
-            var notification = await _notificationSearchService.GetNotificationAsync<RegisterCompanyEmailNotification>();
+            var notification = await _notificationSearchService.GetNotificationAsync<RegisterCompanyEmailNotification>(new TenantIdentity(store.Id, nameof(Store)));
             notification.To = result.Organization.Emails.FirstOrDefault();
-            notification.From = store.Email;
             notification.CompanyName = result.Organization.Name;
-            notification.LanguageCode = store.DefaultLanguage;
             return notification;
         }
 
         protected virtual async Task<EmailNotification> GetRegisterContactNotificationAsync(RegisterOrganizationResult result, Store store)
         {
-            var notification = await _notificationSearchService.GetNotificationAsync<RegistrationEmailNotification>();
+            var notification = await _notificationSearchService.GetNotificationAsync<RegistrationEmailNotification>(new TenantIdentity(store.Id, nameof(Store)));
             notification.To = result.Contact.Emails.FirstOrDefault();
-            notification.From = store.Email;
             notification.FirstName = result.Contact.FirstName;
             notification.LastName = result.Contact.LastName;
             notification.Login = result.AccountCreationResult.AccountName;
-            notification.LanguageCode = store.DefaultLanguage;
             return notification;
         }
 
