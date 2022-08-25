@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FluentValidation.Results;
 using MediatR;
+using Microsoft.AspNetCore.Identity;
 using VirtoCommerce.CustomerModule.Core;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
@@ -23,6 +24,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.NotificationsModule.Core.Types;
 using VirtoCommerce.NotificationsModule.Core.Model;
+using VirtoCommerce.Platform.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
@@ -107,7 +109,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             {
                 var errors = validationResults
                     .SelectMany(x => x.Errors)
-                    .Select(x => $"{x.ErrorCode}: {x.ErrorMessage}".TrimEnd(' ', ':'))
+                    .Select(x => new RegistrationError{Code = x.ErrorCode, Description = x.ErrorMessage})
                     .ToList();
 
                 SetErrorResult(result, errors, tokenSource);
@@ -120,7 +122,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             if (store == null)
             {
-                SetErrorResult(result, $"Store {request.StoreId} has not been found", tokenSource);
+                SetErrorResult(result, "Store not found",$"Store {request.StoreId} has not been found", tokenSource);
                 return result;
             }
 
@@ -129,7 +131,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 var maintainerRole = await _accountService.FindRoleById(MaintainerRoleId);
                 if (maintainerRole == null)
                 {
-                    SetErrorResult(result, $"Organization maintainer role with id {MaintainerRoleId} not found", tokenSource);
+                    SetErrorResult(result, "Role not found",$"Organization maintainer role with id {MaintainerRoleId} not found", tokenSource);
                     return result;
                 }
 
@@ -167,14 +169,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             account.CreatedBy = Creator;
 
             var identityResult = await _accountService.CreateAccountAsync(account);
-            result.AccountCreationResult = new AccountCreationResult
-            {
-                Succeeded = identityResult.Succeeded,
-                Errors = identityResult.Errors
-                    .Select(x => $"{x.Code}: {x.Description}".TrimEnd(' ', ':'))
-                    .ToList(),
-                AccountName = account.UserName
-            };
+            result.AccountCreationResult = GetAccountCreationResult(identityResult, account);
 
             if (!result.AccountCreationResult.Succeeded)
             {
@@ -184,6 +179,21 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             await SendNotificationAsync(result, store);
             return result;
+        }
+
+        private static AccountCreationResult GetAccountCreationResult(IdentityResult identityResult, ApplicationUser account)
+        {
+            return new AccountCreationResult
+            {
+                Succeeded = identityResult.Succeeded,
+                AccountName = account.UserName,
+                Errors = identityResult.Errors.Select(x => new RegistrationError
+                {
+                    Code = x.Code,
+                    Description = x.Description,
+                    Parameter = x is CustomIdentityError error ? error.ErrorParameter.ToString() : null
+                }).ToList()
+            };
         }
 
         private static void FillContactFields(Contact contact)
@@ -214,12 +224,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return Task.CompletedTask;
         }
 
-        private static void SetErrorResult(RegisterOrganizationResult result, string errorMessage, CancellationTokenSource source)
+        private static void SetErrorResult(RegisterOrganizationResult result, string errorCode, string errorMessage, CancellationTokenSource source)
         {
-            SetErrorResult(result, new List<string> { errorMessage }, source);
+            SetErrorResult(result, new List<RegistrationError>{new() {Code = errorCode, Description = errorMessage}}, source);
         }
 
-        private static void SetErrorResult(RegisterOrganizationResult result, List<string> errors, CancellationTokenSource source)
+        private static void SetErrorResult(RegisterOrganizationResult result, List<RegistrationError> errors, CancellationTokenSource source)
         {
             result.AccountCreationResult = new AccountCreationResult
             {
