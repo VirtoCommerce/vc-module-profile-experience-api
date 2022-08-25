@@ -166,6 +166,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             account.MemberId = contact.Id;
             account.Roles = roles;
             account.CreatedBy = Creator;
+            result.Contact.SecurityAccounts = new List<ApplicationUser> { account };
 
             var identityResult = await _accountService.CreateAccountAsync(account);
             result.AccountCreationResult = new AccountCreationResult
@@ -183,7 +184,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return result;
             }
 
-            await SendNotificationAsync(result, store, request.NotificationLanguage);
+            var notificationRequest = new NotificationRequest
+            {
+                Organization = organization, Contact = contact, Store = store, LanguageCode = request.LanguageCode
+            };
+
+            await SendNotificationAsync(notificationRequest);
             return result;
         }
 
@@ -231,33 +237,33 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             source.Cancel();
         }
 
-        protected virtual async Task SendNotificationAsync(RegisterOrganizationResult result, Store store, string notificationLanguage)
+        protected virtual async Task SendNotificationAsync(NotificationRequest request)
         {
-            var notification = result.Organization != null
-                ? await GetRegisterCompanyNotificationAsync(result, store)
-                : await GetRegisterContactNotificationAsync(result, store);
+            var notification = request.Organization != null
+                ? await GetRegisterCompanyNotificationAsync(request)
+                : await GetRegisterContactNotificationAsync(request);
 
-            notification.From = store.Email;
-            notification.LanguageCode = notificationLanguage;
+            notification.From = request.Store.Email;
+            notification.LanguageCode = request.LanguageCode;
 
             await _notificationSender.ScheduleSendNotificationAsync(notification);
         }
 
-        protected virtual async Task<EmailNotification> GetRegisterCompanyNotificationAsync(RegisterOrganizationResult result, Store store)
+        protected virtual async Task<EmailNotification> GetRegisterCompanyNotificationAsync(NotificationRequest request)
         {
-            var notification = await _notificationSearchService.GetNotificationAsync<RegisterCompanyEmailNotification>(new TenantIdentity(store.Id, nameof(Store)));
-            notification.To = result.Organization.Emails.FirstOrDefault();
-            notification.CompanyName = result.Organization.Name;
+            var notification = await _notificationSearchService.GetNotificationAsync<RegisterCompanyEmailNotification>(new TenantIdentity(request.Store.Id, nameof(Store)));
+            notification.To = request.Organization.Emails.FirstOrDefault();
+            notification.CompanyName = request.Organization.Name;
             return notification;
         }
 
-        protected virtual async Task<EmailNotification> GetRegisterContactNotificationAsync(RegisterOrganizationResult result, Store store)
+        protected virtual async Task<EmailNotification> GetRegisterContactNotificationAsync(NotificationRequest request)
         {
-            var notification = await _notificationSearchService.GetNotificationAsync<RegistrationEmailNotification>(new TenantIdentity(store.Id, nameof(Store)));
-            notification.To = result.Contact.Emails.FirstOrDefault();
-            notification.FirstName = result.Contact.FirstName;
-            notification.LastName = result.Contact.LastName;
-            notification.Login = result.AccountCreationResult.AccountName;
+            var notification = await _notificationSearchService.GetNotificationAsync<RegistrationEmailNotification>(new TenantIdentity(request.Store.Id, nameof(Store)));
+            notification.To = request.Contact.Emails.FirstOrDefault();
+            notification.FirstName = request.Contact.FirstName;
+            notification.LastName = request.Contact.LastName;
+            notification.Login = request.Contact.SecurityAccounts.FirstOrDefault()?.UserName;
             return notification;
         }
 
