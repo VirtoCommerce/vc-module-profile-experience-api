@@ -8,7 +8,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
         public AccountCreationResultType()
         {
             Field(x => x.Succeeded);
-            Field<ListGraphType<StringGraphType>>("errors", "The errors that occurred during the operation.", resolve: context => context.Source.Errors);
+            Field<ListGraphType<RegistrationErrorType>>("errors", "The errors that occurred during the operation.", resolve: context => context.Source.Errors);
         }
     }
 }
