@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FluentValidation.Results;
 using MediatR;
+using Microsoft.AspNetCore.Identity;
 using VirtoCommerce.CustomerModule.Core;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
@@ -169,14 +170,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             result.Contact.SecurityAccounts = new List<ApplicationUser> { account };
 
             var identityResult = await _accountService.CreateAccountAsync(account);
-            result.AccountCreationResult = new AccountCreationResult
-            {
-                Succeeded = identityResult.Succeeded,
-                Errors = identityResult.Errors
-                    .Select(x => $"{x.Code}: {x.Description}".TrimEnd(' ', ':'))
-                    .ToList(),
-                AccountName = account.UserName
-            };
+            result.AccountCreationResult = GetAccountCreationResult(identityResult, account);
 
             if (!result.AccountCreationResult.Succeeded)
             {
@@ -191,6 +185,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             await SendNotificationAsync(notificationRequest);
             return result;
+        }
+
+        private static AccountCreationResult GetAccountCreationResult(IdentityResult identityResult, ApplicationUser account)
+        {
+            return new AccountCreationResult
+            {
+                Succeeded = identityResult.Succeeded,
+                Errors = identityResult.Errors
+                    .Select(x => $"{x.Code}: {x.Description}".TrimEnd(' ', ':'))
+                    .ToList(),
+                AccountName = account.UserName
+            };
         }
 
         private static void FillContactFields(Contact contact)
