@@ -25,6 +25,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.NotificationsModule.Core.Types;
 using VirtoCommerce.NotificationsModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
@@ -109,7 +110,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             {
                 var errors = validationResults
                     .SelectMany(x => x.Errors)
-                    .Select(x => $"{x.ErrorCode}: {x.ErrorMessage}".TrimEnd(' ', ':'))
+                    .Select(x => new RegistrationError{Code = x.ErrorCode, Description = x.ErrorMessage})
                     .ToList();
 
                 SetErrorResult(result, errors, tokenSource);
@@ -122,7 +123,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             if (store == null)
             {
-                SetErrorResult(result, $"Store {request.StoreId} has not been found", tokenSource);
+                SetErrorResult(result, "Store not found",$"Store {request.StoreId} has not been found", tokenSource);
                 return result;
             }
 
@@ -131,7 +132,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 var maintainerRole = await _accountService.FindRoleById(MaintainerRoleId);
                 if (maintainerRole == null)
                 {
-                    SetErrorResult(result, $"Organization maintainer role with id {MaintainerRoleId} not found", tokenSource);
+                    SetErrorResult(result, "Role not found",$"Organization maintainer role with id {MaintainerRoleId} not found", tokenSource);
                     return result;
                 }
 
@@ -192,10 +193,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return new AccountCreationResult
             {
                 Succeeded = identityResult.Succeeded,
-                Errors = identityResult.Errors
-                    .Select(x => $"{x.Code}: {x.Description}".TrimEnd(' ', ':'))
-                    .ToList(),
-                AccountName = account.UserName
+                AccountName = account.UserName,
+                Errors = identityResult.Errors.Select(x => new RegistrationError
+                {
+                    Code = x.Code,
+                    Description = x.Description,
+                    Parameter = x is CustomIdentityError error ? error.ErrorParameter.ToString() : null
+                }).ToList()
             };
         }
 
@@ -227,12 +231,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return Task.CompletedTask;
         }
 
-        private static void SetErrorResult(RegisterOrganizationResult result, string errorMessage, CancellationTokenSource source)
+        private static void SetErrorResult(RegisterOrganizationResult result, string errorCode, string errorMessage, CancellationTokenSource source)
         {
-            SetErrorResult(result, new List<string> { errorMessage }, source);
+            SetErrorResult(result, new List<RegistrationError>{new() {Code = errorCode, Description = errorMessage}}, source);
         }
 
-        private static void SetErrorResult(RegisterOrganizationResult result, List<string> errors, CancellationTokenSource source)
+        private static void SetErrorResult(RegisterOrganizationResult result, List<RegistrationError> errors, CancellationTokenSource source)
         {
             result.AccountCreationResult = new AccountCreationResult
             {
