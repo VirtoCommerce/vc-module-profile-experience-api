@@ -131,12 +131,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             if (organization != null)
             {
-                var maintainerRoleId = _configuration["VirtoCommerce:OrganizationMaintainerRole"];
-
-                var maintainerRole = await _accountService.FindRoleByName(maintainerRoleId) ?? await _accountService.FindRoleById(maintainerRoleId);
+                var maintainerRole = await GetMaintainerRole(result, tokenSource);
                 if (maintainerRole == null)
                 {
-                    SetErrorResult(result, "Role not found",$"Organization maintainer role {maintainerRoleId} not found", tokenSource);
                     return result;
                 }
 
@@ -184,6 +181,25 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             await SendNotificationAsync(result, store);
             return result;
+        }
+
+        private async Task<Role> GetMaintainerRole(RegisterOrganizationResult result, CancellationTokenSource tokenSource)
+        {
+            var maintainerRoleId = _configuration["VirtoCommerce:OrganizationMaintainerRole"];
+            if (maintainerRoleId == null)
+            {
+                SetErrorResult(result, "Role not configured", "Organization maintainer role configuration is not found in the app settings", tokenSource);
+                return null;
+            }
+
+            var role = await _accountService.FindRoleByName(maintainerRoleId) ?? await _accountService.FindRoleById(maintainerRoleId);
+
+            if (role == null)
+            {
+                SetErrorResult(result, "Role not found", $"Organization maintainer role {maintainerRoleId} not found", tokenSource);
+            }
+
+            return role;
         }
 
         private static AccountCreationResult GetAccountCreationResult(IdentityResult identityResult, ApplicationUser account)
