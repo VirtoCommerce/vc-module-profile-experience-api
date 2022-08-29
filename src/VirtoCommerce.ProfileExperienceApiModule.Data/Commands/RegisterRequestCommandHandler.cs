@@ -27,6 +27,8 @@ using VirtoCommerce.NotificationsModule.Core.Model;
 using VirtoCommerce.Platform.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Configuration;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -42,7 +44,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly NewContactValidator _contactValidator;
         private readonly AccountValidator _accountValidator;
         private readonly OrganizationValidator _organizationValidator;
-        private readonly IConfiguration _configuration;
+        private readonly IOptions<FrontendSecurityOptions> _securityOptions;
 
         private const string Creator = "frontend";
         private const string UserType = "Manager";
@@ -57,7 +59,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             NewContactValidator contactValidator,
             AccountValidator accountValidator,
             OrganizationValidator organizationValidator,
-            IConfiguration configuration)
+            IOptions<FrontendSecurityOptions> securityOptions)
 #pragma warning restore S107
         {
             _mapper = mapper;
@@ -70,7 +72,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _contactValidator = contactValidator;
             _accountValidator = accountValidator;
             _organizationValidator = organizationValidator;
-            _configuration = configuration;
+            _securityOptions = securityOptions;
         }
 
         public virtual async Task<RegisterOrganizationResult> Handle(RegisterRequestCommand request, CancellationToken cancellationToken)
@@ -185,7 +187,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         private async Task<Role> GetMaintainerRole(RegisterOrganizationResult result, CancellationTokenSource tokenSource)
         {
-            var maintainerRoleId = _configuration["VirtoCommerce:OrganizationMaintainerRole"];
+            var maintainerRoleId = _securityOptions.Value.OrganizationMaintainerRole;
             if (maintainerRoleId == null)
             {
                 SetErrorResult(result, "Role not configured", "Organization maintainer role configuration is not found in the app settings", tokenSource);
@@ -193,7 +195,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             }
 
             var role = await _accountService.FindRoleByName(maintainerRoleId) ?? await _accountService.FindRoleById(maintainerRoleId);
-
             if (role == null)
             {
                 SetErrorResult(result, "Role not found", $"Organization maintainer role {maintainerRoleId} not found", tokenSource);
