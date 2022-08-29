@@ -59,5 +59,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services
             using var roleManager = _roleManagerFactory();
             return await roleManager.FindByIdAsync(roleId);
         }
+
+        public async Task<Role> FindRoleByName(string roleName)
+        {
+            using var roleManager = _roleManagerFactory();
+            return await roleManager.FindByNameAsync(roleName);
+        }
     }
 }
