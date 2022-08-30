@@ -179,7 +179,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return result;
             }
 
-            var notificationRequest = new NotificationRequest
+            var notificationRequest = new RegisterOrganizationNotificationRequest
             {
                 Organization = organization, Contact = contact, Store = store, LanguageCode = request.LanguageCode
             };
@@ -247,7 +247,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             source.Cancel();
         }
 
-        protected virtual async Task SendNotificationAsync(NotificationRequest request)
+        protected virtual async Task SendNotificationAsync(RegisterOrganizationNotificationRequest request)
         {
             var notification = request.Organization != null
                 ? await GetRegisterCompanyNotificationAsync(request)
@@ -259,7 +259,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             await _notificationSender.ScheduleSendNotificationAsync(notification);
         }
 
-        protected virtual async Task<EmailNotification> GetRegisterCompanyNotificationAsync(NotificationRequest request)
+        protected virtual async Task<EmailNotification> GetRegisterCompanyNotificationAsync(RegisterOrganizationNotificationRequest request)
         {
             var notification = await _notificationSearchService.GetNotificationAsync<RegisterCompanyEmailNotification>(new TenantIdentity(request.Store.Id, nameof(Store)));
             notification.To = request.Organization.Emails.FirstOrDefault();
@@ -267,7 +267,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return notification;
         }
 
-        protected virtual async Task<EmailNotification> GetRegisterContactNotificationAsync(NotificationRequest request)
+        protected virtual async Task<EmailNotification> GetRegisterContactNotificationAsync(RegisterOrganizationNotificationRequest request)
         {
             var notification = await _notificationSearchService.GetNotificationAsync<RegistrationEmailNotification>(new TenantIdentity(request.Store.Id, nameof(Store)));
             notification.To = request.Contact.Emails.FirstOrDefault();
