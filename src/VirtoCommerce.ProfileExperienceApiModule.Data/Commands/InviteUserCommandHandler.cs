@@ -26,6 +26,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
     {
         private readonly IWebHostEnvironment _environment;
         private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
+        private readonly Func<RoleManager<Role>> _roleManagerFactory;
         private readonly IMemberService _memberService;
         private readonly INotificationSearchService _notificationSearchService;
         private readonly INotificationSender _notificationSender;
@@ -35,7 +36,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             IWebHostEnvironment environment,
             Func<UserManager<ApplicationUser>> userManager, IMemberService memberService,
             INotificationSearchService notificationSearchService, INotificationSender notificationSender,
-            IStoreService storeService)
+            IStoreService storeService, Func<RoleManager<Role>> roleManagerFactory)
         {
             _environment = environment;
             _userManagerFactory = userManager;
@@ -43,6 +44,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _notificationSearchService = notificationSearchService;
             _notificationSender = notificationSender;
             _storeService = storeService;
+            _roleManagerFactory = roleManagerFactory;
         }
 
         public virtual async Task<IdentityResultResponse> Handle(InviteUserCommand request, CancellationToken cancellationToken)
@@ -81,6 +83,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                         }
                         else
                         {
+                            result.Errors.AddRange(await AssignUserRoles(user, request.RoleIds));
                             await SendNotificationAsync(request, store, email);
                         }
                     }
@@ -101,6 +104,38 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             }
 
             return result;
+        }
+
+        protected virtual async Task<List<IdentityErrorInfo>> AssignUserRoles(ApplicationUser user, string[] roleIds)
+        {
+            var errors = new List<IdentityErrorInfo>();
+            var roles = new List<Role>();
+
+            if (roleIds.IsNullOrEmpty())
+            {
+                return errors;
+            }
+
+            using var roleManager = _roleManagerFactory();
+            using var userManager = _userManagerFactory();
+
+            foreach (var roleId in roleIds)
+            {
+                var role = await roleManager.FindByIdAsync(roleId) ?? await roleManager.FindByNameAsync(roleId);
+                if (role != null)
+                {
+                    roles.Add(role);
+                }
+                else
+                {
+                    errors.Add(new IdentityErrorInfo{Code = "Role not found", Description = $"Role {roleId} not found"});
+                }
+            }
+            
+            var assignResult = await userManager.AddToRolesAsync(user, roles.Select(x => x.NormalizedName).ToArray());
+            errors.AddRange(assignResult.Errors.Select(x => x.MapToIdentityErrorInfo()));
+
+            return errors;
         }
 
         protected virtual async Task SendNotificationAsync(InviteUserCommand request, Store store, string email)

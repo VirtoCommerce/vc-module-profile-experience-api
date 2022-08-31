@@ -14,5 +14,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         public string[] Emails { get; set; }
 
         public string Message { get; set; }
+
+        public string[] RoleIds { get; set; }
     }
 }
