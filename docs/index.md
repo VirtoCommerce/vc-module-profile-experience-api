@@ -490,8 +490,20 @@ mutation requestRegistration (command: InputRequestRegistrationType!) {
 }
 ```
 
-> The mutation registers a company when all argumets have been provided, and registers a customer only when the company value is null. If a company is created, the customer becomes its member and owner.
+> The mutation registers a company when all argumets have been provided, and registers a customer only when the company value is null. If a company is created, the customer becomes its member and owner. In this case customer gets the **Organization maintainer** role whose name or ID must be provided in **appsettings.json**.
 >
 > The user that creates a company and/or customer is always displayed as *frontend*.
 >
 > The company status is determined by the *Company default status* store setting, while contact and account statuses come from the *Contact default status* setting. Both settings must be provided in advance.
+>
+> Example of the role name settings provided below.
+
+```
+{
+...
+    "FrontendSecurity": {
+            "OrganizationMaintainerRole": "Organization maintainer"
+        },
+...
+}
+```
