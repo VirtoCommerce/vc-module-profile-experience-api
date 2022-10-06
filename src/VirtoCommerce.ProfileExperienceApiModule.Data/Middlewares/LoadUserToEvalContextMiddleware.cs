@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -7,6 +8,7 @@ using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.DynamicProperties;
 using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.TaxModule.Core.Model;
@@ -17,10 +19,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Middlewares
     {
         private readonly IMapper _mapper;
         private readonly IMemberResolver _memberIdResolver;
-        public LoadUserToEvalContextMiddleware(IMapper mapper, IMemberResolver memberIdResolver)
+        private readonly IMemberService _memberService;
+
+        public LoadUserToEvalContextMiddleware(IMapper mapper, IMemberResolver memberIdResolver, IMemberService memberService)
         {
             _mapper = mapper;
             _memberIdResolver = memberIdResolver;
+            _memberService = memberService;
         }
 
         public async Task Run(PromotionEvaluationContext parameter, Func<PromotionEvaluationContext, Task> next)
@@ -60,15 +65,32 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Middlewares
             if (member is Contact contact)
             {
                 evalContextBase.ShopperGender = contact.GetDynamicPropertyValue("gender", string.Empty);
+
                 if (contact.BirthDate != null)
                 {
                     var zeroTime = new DateTime(1, 1, 1);
                     var span = DateTime.UtcNow - contact.BirthDate.Value;
                     evalContextBase.ShopperAge = (zeroTime + span).Year - 1;
                 }
-                evalContextBase.UserGroups = contact.Groups?.ToArray();
+
                 evalContextBase.GeoTimeZone = contact.TimeZone;
-                //PT-5445: Set other fields from customer 
+
+                evalContextBase.UserGroups = contact.Groups?.ToArray();
+
+                if (!contact.Organizations.IsNullOrEmpty())
+                {
+                    var userGroups = new List<string>();
+
+                    if (!evalContextBase.UserGroups.IsNullOrEmpty())
+                    {
+                        userGroups.AddRange(evalContextBase.UserGroups);
+                    }
+
+                    var organizations = await _memberService.GetByIdsAsync(contact.Organizations.ToArray(), MemberResponseGroup.WithGroups.ToString());
+                    userGroups.AddRange(organizations.OfType<Organization>().SelectMany(x => x.Groups));
+
+                    evalContextBase.UserGroups = userGroups.Distinct().ToArray();
+                }
             }
         }
     }
