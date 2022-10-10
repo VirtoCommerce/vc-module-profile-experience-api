@@ -7,7 +7,7 @@ using AutoMapper;
 using FluentValidation.Results;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
-using VirtoCommerce.CustomerModule.Core;
+using CustomerCore = VirtoCommerce.CustomerModule.Core;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ExperienceApiModule.Core.Models;
@@ -145,7 +145,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 await SetDynamicPropertiesAsync(request.Organization.DynamicProperties, organization);
                 var organizationStatus = store
                     .Settings
-                    .GetSettingValue<string>(ModuleConstants.Settings.General.OrganizationDefaultStatus.Name, null);
+                    .GetSettingValue<string>(CustomerCore.ModuleConstants.Settings.General.OrganizationDefaultStatus.Name, null);
                 organization.CreatedBy = Creator;
                 organization.Status = organizationStatus;
                 organization.OwnerId = contact.Id;
@@ -157,7 +157,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             }
 
             var contactStatus = store.Settings
-                .GetSettingValue<string>(ModuleConstants.Settings.General.ContactDefaultStatus.Name, null);
+                .GetSettingValue<string>(CustomerCore.ModuleConstants.Settings.General.ContactDefaultStatus.Name, null);
 
             contact.Status = contactStatus;
             contact.CreatedBy = Creator;

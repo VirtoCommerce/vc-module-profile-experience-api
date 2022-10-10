@@ -1,3 +1,4 @@
+using System.Linq;
 using AutoMapper;
 using GraphQL.Server;
 using MediatR;
@@ -10,6 +11,7 @@ using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
 using VirtoCommerce.ExperienceApiModule.Core.Pipelines;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.Platform.Core.Modularity;
+using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.ProfileExperienceApiModule.Data;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
@@ -67,6 +69,10 @@ namespace VirtoCommerce.CusomersExperienceApi.Web
 
         public void PostInitialize(IApplicationBuilder appBuilder)
         {
+            var permissionsProvider = appBuilder.ApplicationServices.GetRequiredService<IPermissionsRegistrar>();
+            permissionsProvider.RegisterPermissions(ModuleConstants.Security.Permissions.AllPermissions.Select(x =>
+                new Permission() { GroupName = "Xapi", Name = x }).ToArray());
+
         }
 
         public void Uninstall()
