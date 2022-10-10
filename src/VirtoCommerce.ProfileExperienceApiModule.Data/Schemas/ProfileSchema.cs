@@ -343,7 +343,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             {
                                 var type = GenericTypeHelper.GetActualType<UpdateOrganizationCommand>();
                                 var command = (UpdateOrganizationCommand)context.GetArgument(type, _commandName);
-                                await CheckAuthAsync(context.GetCurrentUserId(), command, CustomerModule.Core.ModuleConstants.Security.Permissions.Update);
+                                await CheckAuthAsync(context.GetCurrentUserId(), command,
+                                    ModuleConstants.Security.Permissions.MyOrganizationEdit,
+                                    CustomerModule.Core.ModuleConstants.Security.Permissions.Update);
                                 return await _mediator.Send(command);
                             })
                             .FieldType);
@@ -464,6 +466,31 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                     return await _mediator.Send(command);
                 })
                 .FieldType);
+
+
+            _ = schema.Mutation.AddField(FieldBuilder.Create<ContactAggregate, ContactAggregate>(GraphTypeExtenstionHelper.GetActualType<ContactType>())
+              .Name("lockOrganizationContact")
+              .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputLockUnlockOrganizationContactType>>(), _commandName)
+              .ResolveAsync(async context =>
+              {
+                  var type = GenericTypeHelper.GetActualType<LockOrganizationContactCommand>();
+                  var command = (LockOrganizationContactCommand)context.GetArgument(type, _commandName);
+                  await CheckAuthAsync(context.GetCurrentUserId(), command, ModuleConstants.Security.Permissions.MyOrganizationEdit);
+                  return await _mediator.Send(command);
+              })
+              .FieldType);
+
+            _ = schema.Mutation.AddField(FieldBuilder.Create<ContactAggregate, ContactAggregate>(GraphTypeExtenstionHelper.GetActualType<ContactType>())
+              .Name("unlockOrganizationContact")
+              .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputLockUnlockOrganizationContactType>>(), _commandName)
+              .ResolveAsync(async context =>
+              {
+                  var type = GenericTypeHelper.GetActualType<UnlockOrganizationContactCommand>();
+                  var command = (UnlockOrganizationContactCommand)context.GetArgument(type, _commandName);
+                  await CheckAuthAsync(context.GetCurrentUserId(), command, ModuleConstants.Security.Permissions.MyOrganizationEdit);
+                  return await _mediator.Send(command);
+              })
+              .FieldType);
 
             // Security API fields
 
