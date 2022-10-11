@@ -220,7 +220,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 {
                     Code = x.Code,
                     Description = x.Description,
-                    Parameter = x is CustomIdentityError error ? error.ErrorParameter.ToString() : null
+                    Parameter = x is CustomIdentityError error ? error.Parameter.ToString() : null
                 }).ToList()
             };
         }
