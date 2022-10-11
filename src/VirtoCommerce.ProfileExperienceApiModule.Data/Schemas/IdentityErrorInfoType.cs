@@ -8,7 +8,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
         public IdentityErrorInfoType()
         {
             Field(x => x.Code).Description("Error code");
-            Field(x => x.ErrorParameter, nullable: true).Description("Error parameter");
+            Field(x => x.Parameter, nullable: true).Description("Error parameter");
             Field(x => x.Description, nullable: true).Description("Error description");
         }
     }
