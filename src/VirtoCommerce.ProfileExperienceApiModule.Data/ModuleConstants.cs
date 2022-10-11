@@ -18,5 +18,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data
             }
         }
 
+        public static class ContactStatuses
+        {
+            public const string Locked = "Locked";
+            public const string Approved = "Approved";
+        }
     }
 }

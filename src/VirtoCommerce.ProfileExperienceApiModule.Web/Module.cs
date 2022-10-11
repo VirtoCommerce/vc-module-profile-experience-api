@@ -72,12 +72,11 @@ namespace VirtoCommerce.CusomersExperienceApi.Web
             var permissionsProvider = appBuilder.ApplicationServices.GetRequiredService<IPermissionsRegistrar>();
             permissionsProvider.RegisterPermissions(ModuleConstants.Security.Permissions.AllPermissions.Select(x =>
                 new Permission() { GroupName = "Xapi", Name = x }).ToArray());
-
         }
 
         public void Uninstall()
         {
-            // do nothing in here
+            // Nothing to do there
         }
     }
 }
