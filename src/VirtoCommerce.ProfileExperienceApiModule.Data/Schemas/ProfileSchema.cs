@@ -9,8 +9,6 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
-using VirtoCommerce.CustomerModule.Core.Model;
-using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ExperienceApiModule.Core.Extensions;
 using VirtoCommerce.ExperienceApiModule.Core.Helpers;
 using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
@@ -40,7 +38,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
         private readonly IAuthorizationService _authorizationService;
         private readonly Func<SignInManager<ApplicationUser>> _signInManagerFactory;
         private readonly IMemberAggregateFactory _factory;
-        private readonly IMemberService _memberService;
         private readonly ILogger<ProfileSchema> _logger;
 
         public ProfileSchema(
@@ -48,14 +45,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             IAuthorizationService authorizationService,
             Func<SignInManager<ApplicationUser>> signInManagerFactory,
             IMemberAggregateFactory factory,
-            IMemberService memberService,
             ILogger<ProfileSchema> logger)
         {
             _mediator = mediator;
             _authorizationService = authorizationService;
             _signInManagerFactory = signInManagerFactory;
             _factory = factory;
-            _memberService = memberService;
             _logger = logger;
         }
 
@@ -760,12 +755,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             {
                 var user = await signInManager.UserManager.FindByIdAsync(userId) ?? new ApplicationUser
                 {
-                    Id = userId, UserName = ExperienceApiModule.Core.AnonymousUser.UserName,
+                    Id = userId,
+                    UserName = ExperienceApiModule.Core.AnonymousUser.UserName,
                 };
 
                 var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
 
-                if (!await CanExecuteWithoutPermissionAsync(user, resource) && !permissions.IsNullOrEmpty())
+                if (!CanExecuteWithoutPermissionAsync(user, resource) && !permissions.IsNullOrEmpty())
                 {
                     foreach (var permission in permissions)
                     {
@@ -799,7 +795,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             }
         }
 
-        private async Task<bool> CanExecuteWithoutPermissionAsync(ApplicationUser user, object resource)
+        private bool CanExecuteWithoutPermissionAsync(ApplicationUser user, object resource)
         {
             var result = false;
 
