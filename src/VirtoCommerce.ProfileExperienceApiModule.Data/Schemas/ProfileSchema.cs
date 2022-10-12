@@ -364,8 +364,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                                 var type = GenericTypeHelper.GetActualType<RemoveMemberFromOrganizationCommand>();
                                 var command = (RemoveMemberFromOrganizationCommand)context.GetArgument(type, _commandName);
                                 await CheckAuthAsync(context.GetCurrentUserId(), command,
-                                    ModuleConstants.Security.Permissions.MyOrganizationEdit,
-                                    CustomerModule.Core.ModuleConstants.Security.Permissions.Update);
+                                    ModuleConstants.Security.Permissions.MyOrganizationEdit);
                                 return await _mediator.Send(command);
                             })
                             .FieldType);
