@@ -808,11 +808,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             {
                 result = updateMemberDynamicPropertiesCommand.MemberId == user.MemberId;
             }
-            else if (resource is UpdateOrganizationCommand updateOrganizationCommand && !string.IsNullOrEmpty(user.MemberId))
-            {
-                var member = await _memberService.GetByIdAsync(user.MemberId) as Contact;
-                result = member?.Organizations.Any(x => x.EqualsInvariant(updateOrganizationCommand.Id)) ?? false;
-            }
 
             return result;
         }
