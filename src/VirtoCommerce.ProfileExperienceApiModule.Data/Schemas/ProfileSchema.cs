@@ -362,17 +362,31 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             })
                             .FieldType);
 
+            _ = schema.Mutation.AddField(FieldBuilder.Create<object, object>(GraphTypeExtenstionHelper.GetActualType<ContactType>())
+                            .Name("removeMemberFromOrganization")
+                            .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRemoveMemberFromOrganizationType>>(), _commandName)
+                            .ResolveAsync(async context =>
+                            {
+                                var type = GenericTypeHelper.GetActualType<RemoveMemberFromOrganizationCommand>();
+                                var command = (RemoveMemberFromOrganizationCommand)context.GetArgument(type, _commandName);
+                                await CheckAuthAsync(context.GetCurrentUserId(), command,
+                                    ModuleConstants.Security.Permissions.MyOrganizationEdit,
+                                    CustomerModule.Core.ModuleConstants.Security.Permissions.Update);
+                                return await _mediator.Send(command);
+                            })
+                            .FieldType);
+
             _ = schema.Mutation.AddField(FieldBuilder
-                .Create<RegisterOrganizationResult, RegisterOrganizationResult>(GraphTypeExtenstionHelper.GetActualType<RequestRegistrationType>())
-                .Name("requestRegistration")
-                .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRequestRegistrationType>>(), _commandName)
-                .ResolveAsync(async context =>
-                {
-                    var type = GenericTypeHelper.GetActualType<RegisterRequestCommand>();
-                    var command = (RegisterRequestCommand)context.GetArgument(type, _commandName);
-                    return await _mediator.Send(command);
-                })
-                .FieldType);
+                            .Create<RegisterOrganizationResult, RegisterOrganizationResult>(GraphTypeExtenstionHelper.GetActualType<RequestRegistrationType>())
+                            .Name("requestRegistration")
+                            .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRequestRegistrationType>>(), _commandName)
+                            .ResolveAsync(async context =>
+                            {
+                                var type = GenericTypeHelper.GetActualType<RegisterRequestCommand>();
+                                var command = (RegisterRequestCommand)context.GetArgument(type, _commandName);
+                                return await _mediator.Send(command);
+                            })
+                            .FieldType);
 
             _ = schema.Mutation.AddField(FieldBuilder.Create<ContactAggregate, ContactAggregate>(GraphTypeExtenstionHelper.GetActualType<ContactType>())
                             .Name("createContact")
