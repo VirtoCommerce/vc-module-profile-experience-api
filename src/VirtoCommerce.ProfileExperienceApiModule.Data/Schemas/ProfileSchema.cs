@@ -362,7 +362,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             })
                             .FieldType);
 
-            _ = schema.Mutation.AddField(FieldBuilder.Create<object, object>(GraphTypeExtenstionHelper.GetActualType<ContactType>())
+            _ = schema.Mutation.AddField(FieldBuilder.Create<object, MemberAggregateRootBase>(GraphTypeExtenstionHelper.GetActualType<ContactType>())
                             .Name("removeMemberFromOrganization")
                             .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRemoveMemberFromOrganizationType>>(), _commandName)
                             .ResolveAsync(async context =>
