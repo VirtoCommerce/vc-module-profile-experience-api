@@ -11,7 +11,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Extensions
             var error = new IdentityErrorInfo { Code = x.Code, Description = x.Description };
             if (x is CustomIdentityError customIdentityError)
             {
-                error.ErrorParameter = customIdentityError.ErrorParameter;
+                error.Parameter = customIdentityError.Parameter;
             }
 
             return error;
