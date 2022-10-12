@@ -128,7 +128,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 }
                 else
                 {
-                    errors.Add(new IdentityErrorInfo{Code = "Role not found", Description = $"Role {roleId} not found"});
+                    errors.Add(new IdentityErrorInfo{Code = "Role not found", Description = $"Role '{roleId}' not found", Parameter = roleId});
                 }
             }
             
