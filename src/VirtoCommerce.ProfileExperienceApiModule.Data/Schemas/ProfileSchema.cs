@@ -684,6 +684,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         })
                         .FieldType);
 
+            _ = schema.Mutation.AddField(FieldBuilder.Create<object, IdentityResultResponse>(GraphTypeExtenstionHelper.GetActualType<CustomIdentityResultType>())
+                        .Name("changeOrganizationContactRole")
+                        .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputChangeOrganizationContactRoleType>>(), _commandName)
+                        .ResolveAsync(async context =>
+                        {
+                            var type = GenericTypeHelper.GetActualType<ChangeOrganizationContactRoleCommand>();
+                            var command = (ChangeOrganizationContactRoleCommand)context.GetArgument(type, _commandName);
+                            await CheckAuthAsync(context.GetCurrentUserId(), command, ModuleConstants.Security.Permissions.MyOrganizationEdit);
+                            return await _mediator.Send(command);
+                        })
+            .FieldType);
+
             #region delete user
 
 #pragma warning disable S125 // Sections of code should not be commented out
