@@ -175,6 +175,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             {
                 result = await HasSameOrganizationAsync(currentContact, unlockOrganizationContact.UserId, userManager);
             }
+            else if (context.Resource is ChangeOrganizationContactRoleCommand changeOrganizationContactRoleCommand)
+            {
+                result = await HasSameOrganizationAsync(currentContact, changeOrganizationContactRoleCommand.UserId, userManager);
+            }
+
             else if (context.Resource is RemoveMemberFromOrganizationCommand removeMemberFromOrganizationCommand)
             {
                 result = await HasSameOrganizationAsync(currentContact, removeMemberFromOrganizationCommand.ContactId, userManager);
