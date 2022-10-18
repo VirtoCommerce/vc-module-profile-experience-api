@@ -126,12 +126,13 @@ List of mutations:
 |5|[unlockOrganizationContact](#unlockOrganizationContact)|`userId!`|Set _Approved_ status to a specified contact|
 |6|[createUser](#createuser)|`id` `email` `createdBy` `createdDate` `isAdministrator` `lockoutEnabled` `lockoutEnd` `logins` `memberId` `password` `phoneNumber` `phoneContactConfirmed` `photoUrl` `roles` `storeId` `twoFactorEnabled` `userName` `userType`|Creates a user|
 |7|[updateUser](#updateuser)|`accessFailedCount` `email!` `id!` `isAdministrator` `lockoutEnabled` `lockoutEnd` `memberId` `phoneNumber` `phoneNumberConfirmed` `photoUrl` `roles` `storeId` `twoFactorEnabled` `userName!` `userType!` `passwordHash` `securityStamp!`|Updates a user|
-|8|[deleteUsers](#deleteusers)|`userNames!`|Delete a users|
-|9|[updateAddresses](#updateaddresses)|`contactId!` `addresses!`|Update an addresses|
-|10|[createOrganization](#createorganization)|`id` `name` `memberType` `addresses` `phones` `emails` `groups`|Creates an organization (obsolete, use [registrationRequest](#registrationRequest))|
-|11|[updateOrganization](#updateorganization)|`id!` `name` `memberType` `addresses` `phones` `emails` `groups`|Updates an organization|
-|12|[updateRole](#updaterole)|`concurrencyStamp` `id!` `name!` `description` `permissions!`|Updates a role|
-|13|[registrationRequest](#registrationRequest)|`storeId!` `company!` `contact` `account`|Registers customer or company|
+|8|[changeOrganizationContactRole](#changeOrganizationContactRole)|`userId! roleIds!`|Assign roles to a specified user|
+|9|[deleteUsers](#deleteusers)|`userNames!`|Delete users|
+|10|[updateAddresses](#updateaddresses)|`contactId!` `addresses!`|Update an addresses|
+|11|[createOrganization](#createorganization)|`id` `name` `memberType` `addresses` `phones` `emails` `groups`|Creates an organization (obsolete, use [registrationRequest](#registrationRequest))|
+|12|[updateOrganization](#updateorganization)|`id!` `name` `memberType` `addresses` `phones` `emails` `groups`|Updates an organization|
+|13|[updateRole](#updaterole)|`concurrencyStamp` `id!` `name!` `description` `permissions!`|Updates a role|
+|14|[registrationRequest](#registrationRequest)|`storeId!` `company!` `contact` `account`|Registers customer or company|
 
 ### CreateContact
 #### Query:
@@ -301,6 +302,32 @@ mutation($command: InputUpdateUserType!) {
 ```
 
 > SecurityStamp is a random value that must change whenever user credentials, i.e. login or password, change.
+
+### ChangeOrganizationContactRole
+#### Query:
+```
+mutation changeOrganizationContactRole($command:  InputChangeOrganizationContactRoleType!){
+  changeOrganizationContactRole(command:$command){
+    succeeded
+    errors
+    {
+      code
+      description
+    }
+  }
+}
+```
+
+#### Variables:
+```
+{
+  "command":
+  {
+    "userId": "237a4784-d25f-419e-b4d7-cf151393d1cc",
+    "roleIds": ["org-maintainer","purchasing-agent"]
+	}
+}
+```
 
 ### DeleteUsers
 #### Query:
