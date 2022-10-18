@@ -794,7 +794,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             null, new PermissionAuthorizationRequirement(permission));
                         if (!permissionAuthorizationResult.Succeeded)
                         {
-                            throw new AuthorizationError($"User doesn't have the required permission '{permission}'.");
+                            throw new ForbiddenError($"User doesn't have the required permission '{permission}'.");
                         }
                     }
                 }
@@ -804,7 +804,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
                 if (!authorizationResult.Succeeded)
                 {
-                    throw new AuthorizationError($"Access denied");
+                    throw new ForbiddenError($"Access denied");
                 }
             }
             catch (AuthorizationError ex)
