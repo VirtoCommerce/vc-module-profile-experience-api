@@ -786,20 +786,23 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
                 var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
 
-                if (!CanExecuteWithoutPermissionAsync(user, resource) && !permissions.IsNullOrEmpty())
+                if (!CanExecuteWithoutPermissionAsync(user, resource))
                 {
                     if (user.Logins is null)
                     {
                         throw new AuthorizationError($"Can't run the operation under anonymous user or the token expired or invalid.");
                     }
 
-                    foreach (var permission in permissions)
+                    if (!permissions.IsNullOrEmpty())
                     {
-                        var permissionAuthorizationResult = await _authorizationService.AuthorizeAsync(userPrincipal,
-                            null, new PermissionAuthorizationRequirement(permission));
-                        if (!permissionAuthorizationResult.Succeeded)
+                        foreach (var permission in permissions)
                         {
-                            throw new ForbiddenError($"User doesn't have the required permission '{permission}'.");
+                            var permissionAuthorizationResult = await _authorizationService.AuthorizeAsync(userPrincipal,
+                                null, new PermissionAuthorizationRequirement(permission));
+                            if (!permissionAuthorizationResult.Succeeded)
+                            {
+                                throw new ForbiddenError($"User doesn't have the required permission '{permission}'.");
+                            }
                         }
                     }
                 }
