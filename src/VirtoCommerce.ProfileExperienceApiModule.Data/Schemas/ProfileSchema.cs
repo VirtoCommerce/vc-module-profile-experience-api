@@ -788,6 +788,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
                 if (!CanExecuteWithoutPermissionAsync(user, resource) && !permissions.IsNullOrEmpty())
                 {
+                    if (user.Logins is null)
+                    {
+                        throw new AuthorizationError($"Can't run the operation under anonymous user or the token expired or invalid.");
+                    }
+
                     foreach (var permission in permissions)
                     {
                         var permissionAuthorizationResult = await _authorizationService.AuthorizeAsync(userPrincipal,
