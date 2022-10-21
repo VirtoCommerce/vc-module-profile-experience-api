@@ -14,7 +14,6 @@ using VirtoCommerce.ExperienceApiModule.Core.Helpers;
 using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
 using VirtoCommerce.ExperienceApiModule.Core.Infrastructure.Authorization;
 using VirtoCommerce.Platform.Core;
-using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Security.Authorization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
@@ -793,16 +792,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         throw new AuthorizationError($"Can't run the operation under anonymous user or the token expired or invalid.");
                     }
 
-                    if (!permissions.IsNullOrEmpty())
+                    foreach (var permission in permissions is null ? Array.Empty<string>() : permissions)
                     {
-                        foreach (var permission in permissions)
+                        var permissionAuthorizationResult = await _authorizationService.AuthorizeAsync(userPrincipal,
+                            null, new PermissionAuthorizationRequirement(permission));
+                        if (!permissionAuthorizationResult.Succeeded)
                         {
-                            var permissionAuthorizationResult = await _authorizationService.AuthorizeAsync(userPrincipal,
-                                null, new PermissionAuthorizationRequirement(permission));
-                            if (!permissionAuthorizationResult.Succeeded)
-                            {
-                                throw new ForbiddenError($"User doesn't have the required permission '{permission}'.");
-                            }
+                            throw new ForbiddenError($"User doesn't have the required permission '{permission}'.");
                         }
                     }
                 }
