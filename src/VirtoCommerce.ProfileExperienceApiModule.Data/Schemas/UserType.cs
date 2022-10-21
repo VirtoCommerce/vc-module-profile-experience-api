@@ -2,16 +2,18 @@ using System.Linq;
 using System.Threading.Tasks;
 using GraphQL.Resolvers;
 using GraphQL.Types;
+using MediatR;
 using VirtoCommerce.ExperienceApiModule.Core.Helpers;
 using VirtoCommerce.ExperienceApiModule.Core.Services;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
     public class UserType : ObjectGraphType<ApplicationUser>
     {
-        public UserType(IContactAggregateRepository contactAggregateRepository, IUserManagerCore userManagerCore)
+        public UserType(IContactAggregateRepository contactAggregateRepository, IUserManagerCore userManagerCore, IMediator mediator)
         {
             Field(x => x.AccessFailedCount);
             Field(x => x.CreatedBy, true);
@@ -63,6 +65,25 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 Description = "Account locked state",
                 Type = typeof(BooleanGraphType),
                 Resolver = new AsyncFieldResolver<ApplicationUser, bool>(context => userManagerCore.IsLockedOutAsync(context.Source)),
+            });
+
+            AddField(new FieldType
+            {
+                Name = "operator",
+                Type = GraphTypeExtenstionHelper.GetActualType<UserType>(),
+                Resolver = new AsyncFieldResolver<object>(async context =>
+                {
+                    if (context.UserContext.TryGetValue("OperatorUserName", out var operatorUser))
+                    {
+                        var result = await mediator.Send(new GetUserQuery
+                        {
+                            UserName = operatorUser as string
+                        });
+                        return result;
+                    }
+
+                    return null;
+                })
             });
         }
     }
