@@ -56,16 +56,23 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             };
 
             // PT-6083: reduce complexity
-            foreach (var email in request.Emails)
+            foreach (var email in request.Emails.Distinct())
             {
                 using var userManager = _userManagerFactory();
 
-                var contact = new Contact { FirstName = string.Empty, LastName = string.Empty, FullName = string.Empty, Organizations = new List<string> { request.OrganizationId } };
+                var contact = new Contact
+                {
+                    FirstName = string.Empty,
+                    LastName = string.Empty,
+                    FullName = string.Empty,
+                    Organizations = new List<string> { request.OrganizationId },
+                    Emails = new List<string> { email }
+                };
                 await _memberService.SaveChangesAsync(new Member[] { contact });
 
                 var user = new ApplicationUser { UserName = email, Email = email, MemberId = contact.Id, StoreId = request.StoreId };
                 var identityResult = await userManager.CreateAsync(user);
-                
+
                 if (identityResult.Succeeded)
                 {
                     var store = await _storeService.GetByIdAsync(user.StoreId);
@@ -128,10 +135,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 }
                 else
                 {
-                    errors.Add(new IdentityErrorInfo{Code = "Role not found", Description = $"Role '{roleId}' not found", Parameter = roleId});
+                    errors.Add(new IdentityErrorInfo { Code = "Role not found", Description = $"Role '{roleId}' not found", Parameter = roleId });
                 }
             }
-            
+
             var assignResult = await userManager.AddToRolesAsync(user, roles.Select(x => x.NormalizedName).ToArray());
             errors.AddRange(assignResult.Errors.Select(x => x.MapToIdentityErrorInfo()));
 
