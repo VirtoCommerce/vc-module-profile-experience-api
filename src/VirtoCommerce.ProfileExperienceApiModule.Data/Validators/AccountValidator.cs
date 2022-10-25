@@ -14,7 +14,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
                 .NotNull()
                 .NotEmpty()
                 .Must(x => x.IsValidEmail())
-                .WithMessage("Invalid email format");
+                .WithMessage("Invalid email format in the account");
         }
     }
 }

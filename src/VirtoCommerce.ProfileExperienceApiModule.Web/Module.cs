@@ -43,6 +43,7 @@ namespace VirtoCommerce.CusomersExperienceApi.Web
             serviceCollection.AddSingleton<IMemberAggregateFactory, MemberAggregateFactory>();
             serviceCollection.AddTransient<NewContactValidator>();
             serviceCollection.AddTransient<AccountValidator>();
+            serviceCollection.AddTransient<AddressValidator>();
             serviceCollection.AddTransient<OrganizationValidator>();
             serviceCollection.AddTransient<IMemberAggregateRootRepository, MemberAggregateRootRepository>();
             serviceCollection.AddTransient<IOrganizationAggregateRepository, OrganizationAggregateRepository>();

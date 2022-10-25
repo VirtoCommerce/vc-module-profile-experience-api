@@ -44,6 +44,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly IAccountService _accountService;
         private readonly NewContactValidator _contactValidator;
         private readonly AccountValidator _accountValidator;
+        private readonly AddressValidator _addressValidator;
         private readonly OrganizationValidator _organizationValidator;
         private readonly IOptions<FrontendSecurityOptions> _securityOptions;
 
@@ -59,6 +60,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             IAccountService accountService,
             NewContactValidator contactValidator,
             AccountValidator accountValidator,
+            AddressValidator addressValidator,
             OrganizationValidator organizationValidator,
             IOptions<FrontendSecurityOptions> securityOptions)
 #pragma warning restore S107
@@ -72,6 +74,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _accountService = accountService;
             _contactValidator = contactValidator;
             _accountValidator = accountValidator;
+            _addressValidator = addressValidator;
             _organizationValidator = organizationValidator;
             _securityOptions = securityOptions;
         }
@@ -108,6 +111,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 _accountValidator.ValidateAsync(request.Account),
                 _organizationValidator.ValidateAsync(organization)
             };
+
+            foreach (var address in organization.Addresses)
+            {
+                validationTasks.Add(_addressValidator.ValidateAsync(address));
+            }
 
             var validationResults = await Task.WhenAll(validationTasks);
 
