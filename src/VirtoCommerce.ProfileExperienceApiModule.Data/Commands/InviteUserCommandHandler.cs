@@ -56,7 +56,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             };
 
             // PT-6083: reduce complexity
-            foreach (var email in request.Emails)
+            foreach (var email in request.Emails.Distinct())
             {
                 using var userManager = _userManagerFactory();
 
