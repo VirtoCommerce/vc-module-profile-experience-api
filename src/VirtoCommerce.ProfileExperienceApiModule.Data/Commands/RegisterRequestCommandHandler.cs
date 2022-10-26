@@ -7,29 +7,28 @@ using AutoMapper;
 using FluentValidation.Results;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
-using CustomerCore = VirtoCommerce.CustomerModule.Core;
+using Microsoft.Extensions.Options;
 using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.CustomerModule.Core.Notifications;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ExperienceApiModule.Core.Models;
 using VirtoCommerce.ExperienceApiModule.Core.Services;
+using VirtoCommerce.NotificationsModule.Core.Extensions;
+using VirtoCommerce.NotificationsModule.Core.Model;
+using VirtoCommerce.NotificationsModule.Core.Services;
+using VirtoCommerce.NotificationsModule.Core.Types;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.DynamicProperties;
 using VirtoCommerce.Platform.Core.GenericCrud;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Core.Settings;
-using VirtoCommerce.StoreModule.Core.Model;
-using VirtoCommerce.NotificationsModule.Core.Extensions;
-using VirtoCommerce.NotificationsModule.Core.Services;
-using VirtoCommerce.CustomerModule.Core.Notifications;
+using VirtoCommerce.Platform.Security;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Configuration;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
-using VirtoCommerce.NotificationsModule.Core.Types;
-using VirtoCommerce.NotificationsModule.Core.Model;
-using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.Platform.Security;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Configuration;
+using VirtoCommerce.StoreModule.Core.Model;
+using CustomerCore = VirtoCommerce.CustomerModule.Core;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -44,6 +43,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly IAccountService _accountService;
         private readonly NewContactValidator _contactValidator;
         private readonly AccountValidator _accountValidator;
+        private readonly AddressValidator _addressValidator;
         private readonly OrganizationValidator _organizationValidator;
         private readonly IOptions<FrontendSecurityOptions> _securityOptions;
 
@@ -59,6 +59,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             IAccountService accountService,
             NewContactValidator contactValidator,
             AccountValidator accountValidator,
+            AddressValidator addressValidator,
             OrganizationValidator organizationValidator,
             IOptions<FrontendSecurityOptions> securityOptions)
 #pragma warning restore S107
@@ -72,6 +73,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _accountService = accountService;
             _contactValidator = contactValidator;
             _accountValidator = accountValidator;
+            _addressValidator = addressValidator;
             _organizationValidator = organizationValidator;
             _securityOptions = securityOptions;
         }
@@ -109,13 +111,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 _organizationValidator.ValidateAsync(organization)
             };
 
+            foreach (var address in organization.Addresses)
+            {
+                validationTasks.Add(_addressValidator.ValidateAsync(address));
+            }
+
             var validationResults = await Task.WhenAll(validationTasks);
 
             if (validationResults.Any(x => !x.IsValid))
             {
                 var errors = validationResults
                     .SelectMany(x => x.Errors)
-                    .Select(x => new RegistrationError{Code = x.ErrorCode, Description = x.ErrorMessage})
+                    .Select(x => new RegistrationError { Code = x.ErrorCode, Description = x.ErrorMessage })
                     .ToList();
 
                 SetErrorResult(result, errors, tokenSource);
@@ -128,40 +135,37 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             if (store == null)
             {
-                SetErrorResult(result, "Store not found",$"Store {request.StoreId} has not been found", tokenSource);
+                SetErrorResult(result, "Store not found", $"Store {request.StoreId} has not been found", tokenSource);
                 return result;
             }
 
-            if (organization != null)
+            var maintainerRole = await GetMaintainerRole(result, tokenSource);
+            if (maintainerRole == null)
             {
-                var maintainerRole = await GetMaintainerRole(result, tokenSource);
-                if (maintainerRole == null)
-                {
-                    return result;
-                }
-
-                roles = new List<Role> { maintainerRole };
-
-                await SetDynamicPropertiesAsync(request.Organization.DynamicProperties, organization);
-                var organizationStatus = store
-                    .Settings
-                    .GetSettingValue<string>(CustomerCore.ModuleConstants.Settings.General.OrganizationDefaultStatus.Name, null);
-                organization.CreatedBy = Creator;
-                organization.Status = organizationStatus;
-                organization.OwnerId = contact.Id;
-                organization.Emails = new List<string> { organization.Addresses?.FirstOrDefault()?.Email ?? account.Email };
-
-                await _memberService.SaveChangesAsync(new Member[] { organization });
-
-                result.Organization = organization;
+                return result;
             }
+
+            roles = new List<Role> { maintainerRole };
+
+            await SetDynamicPropertiesAsync(request.Organization.DynamicProperties, organization);
+            var organizationStatus = store
+                .Settings
+                .GetSettingValue<string>(CustomerCore.ModuleConstants.Settings.General.OrganizationDefaultStatus.Name, null);
+            organization.CreatedBy = Creator;
+            organization.Status = organizationStatus;
+            organization.OwnerId = contact.Id;
+            organization.Emails = new List<string> { organization.Addresses?.FirstOrDefault()?.Email ?? account.Email };
+
+            await _memberService.SaveChangesAsync(new Member[] { organization });
+
+            result.Organization = organization;
 
             var contactStatus = store.Settings
                 .GetSettingValue<string>(CustomerCore.ModuleConstants.Settings.General.ContactDefaultStatus.Name, null);
 
             contact.Status = contactStatus;
             contact.CreatedBy = Creator;
-            contact.Organizations = organization != null ? new List<string> { organization.Id } : null;
+            contact.Organizations = new List<string> { organization.Id };
             contact.Emails = new List<string> { account.Email };
             await _memberService.SaveChangesAsync(new Member[] { contact });
             result.Contact = contact;
@@ -185,7 +189,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             var notificationRequest = new RegisterOrganizationNotificationRequest
             {
-                Organization = organization, Contact = contact, Store = store, LanguageCode = request.LanguageCode
+                Organization = organization,
+                Contact = contact,
+                Store = store,
+                LanguageCode = request.LanguageCode
             };
 
             await SendNotificationAsync(notificationRequest);
@@ -255,7 +262,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         private static void SetErrorResult(RegisterOrganizationResult result, string errorCode, string errorMessage, CancellationTokenSource source)
         {
-            SetErrorResult(result, new List<RegistrationError>{new() {Code = errorCode, Description = errorMessage}}, source);
+            SetErrorResult(result, new List<RegistrationError> { new() { Code = errorCode, Description = errorMessage } }, source);
         }
 
         private static void SetErrorResult(RegisterOrganizationResult result, List<RegistrationError> errors, CancellationTokenSource source)
