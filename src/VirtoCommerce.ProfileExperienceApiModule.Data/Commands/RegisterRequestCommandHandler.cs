@@ -111,7 +111,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 _organizationValidator.ValidateAsync(organization)
             };
 
-            foreach (var address in organization.Addresses)
+            foreach (var address in organization?.Addresses ?? new List<Address>())
             {
                 validationTasks.Add(_addressValidator.ValidateAsync(address));
             }
