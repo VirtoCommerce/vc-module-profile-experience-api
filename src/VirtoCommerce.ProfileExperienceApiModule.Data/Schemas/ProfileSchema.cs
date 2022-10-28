@@ -14,6 +14,7 @@ using VirtoCommerce.ExperienceApiModule.Core.Helpers;
 using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
 using VirtoCommerce.ExperienceApiModule.Core.Infrastructure.Authorization;
 using VirtoCommerce.Platform.Core;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Security.Authorization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
@@ -785,14 +786,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
                 var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
 
-                if (!CanExecuteWithoutPermissionAsync(user, resource))
+                if (!CanExecuteWithoutPermissionAsync(user, resource) && !permissions.IsNullOrEmpty())
                 {
                     if (user.Logins is null)
                     {
                         throw new AuthorizationError($"Can't run the operation under anonymous user or the token expired or invalid.");
                     }
 
-                    foreach (var permission in permissions is null ? Array.Empty<string>() : permissions)
+                    foreach (var permission in permissions)
                     {
                         var permissionAuthorizationResult = await _authorizationService.AuthorizeAsync(userPrincipal,
                             null, new PermissionAuthorizationRequirement(permission));
