@@ -158,7 +158,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 organization.CreatedBy = Creator;
                 organization.Status = organizationStatus;
                 organization.OwnerId = contact.Id;
-                organization.Emails = new List<string> { orgAdresses.FirstOrDefault()?.Email ?? account.Email };
+                organization.Emails = new List<string> { GetProperAddress(account, orgAdresses) };
 
                 await _memberService.SaveChangesAsync(new Member[] { organization });
 
@@ -202,6 +202,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             await SendNotificationAsync(notificationRequest);
             return result;
+        }
+
+        private static string GetProperAddress(ApplicationUser account, IList<Address> orgAdresses)
+        {
+            return orgAdresses.FirstOrDefault()?.Email ?? account.Email;
         }
 
         private async Task<Role> GetMaintainerRole(RegisterOrganizationResult result, CancellationTokenSource tokenSource)
