@@ -164,14 +164,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 await _memberService.SaveChangesAsync(new Member[] { organization });
 
                 result.Organization = organization;
+                contact.Organizations = new List<string> { organization.Id };
             }
 
             var contactStatus = store.Settings
                 .GetSettingValue<string>(CustomerCore.ModuleConstants.Settings.General.ContactDefaultStatus.Name, null);
 
             contact.Status = contactStatus;
-            contact.CreatedBy = Creator;
-            contact.Organizations = new List<string> { organization.Id };
+            contact.CreatedBy = Creator;            
             contact.Emails = new List<string> { account.Email };
             await _memberService.SaveChangesAsync(new Member[] { contact });
             result.Contact = contact;
