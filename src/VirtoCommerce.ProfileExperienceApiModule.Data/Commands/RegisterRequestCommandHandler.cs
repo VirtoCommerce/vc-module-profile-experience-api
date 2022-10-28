@@ -139,26 +139,29 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return result;
             }
 
-            var maintainerRole = await GetMaintainerRole(result, tokenSource);
-            if (maintainerRole == null)
+            if (organization != null)
             {
-                return result;
+                var maintainerRole = await GetMaintainerRole(result, tokenSource);
+                if (maintainerRole == null)
+                {
+                    return result;
+                }
+
+                roles = new List<Role> { maintainerRole };
+
+                await SetDynamicPropertiesAsync(request.Organization.DynamicProperties, organization);
+                var organizationStatus = store
+                    .Settings
+                    .GetSettingValue<string>(CustomerCore.ModuleConstants.Settings.General.OrganizationDefaultStatus.Name, null);
+                organization.CreatedBy = Creator;
+                organization.Status = organizationStatus;
+                organization.OwnerId = contact.Id;
+                organization.Emails = new List<string> { organization.Addresses?.FirstOrDefault()?.Email ?? account.Email };
+
+                await _memberService.SaveChangesAsync(new Member[] { organization });
+
+                result.Organization = organization;
             }
-
-            roles = new List<Role> { maintainerRole };
-
-            await SetDynamicPropertiesAsync(request.Organization.DynamicProperties, organization);
-            var organizationStatus = store
-                .Settings
-                .GetSettingValue<string>(CustomerCore.ModuleConstants.Settings.General.OrganizationDefaultStatus.Name, null);
-            organization.CreatedBy = Creator;
-            organization.Status = organizationStatus;
-            organization.OwnerId = contact.Id;
-            organization.Emails = new List<string> { organization.Addresses?.FirstOrDefault()?.Email ?? account.Email };
-
-            await _memberService.SaveChangesAsync(new Member[] { organization });
-
-            result.Organization = organization;
 
             var contactStatus = store.Settings
                 .GetSettingValue<string>(CustomerCore.ModuleConstants.Settings.General.ContactDefaultStatus.Name, null);
