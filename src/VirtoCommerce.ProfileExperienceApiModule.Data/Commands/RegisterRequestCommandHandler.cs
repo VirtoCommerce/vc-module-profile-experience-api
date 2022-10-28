@@ -93,6 +93,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return result;
         }
 
+#pragma warning disable S138
         private async Task<RegisterOrganizationResult> ProcessRequestAsync(RegisterRequestCommand request, CancellationTokenSource tokenSource)
         {
             var result = new RegisterOrganizationResult();
@@ -241,6 +242,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 }).ToList()
             };
         }
+#pragma warning restore S138
 
         private static void FillContactFields(Contact contact)
         {
