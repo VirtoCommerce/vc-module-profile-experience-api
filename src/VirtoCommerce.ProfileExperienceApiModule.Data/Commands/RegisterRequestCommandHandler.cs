@@ -111,7 +111,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 _organizationValidator.ValidateAsync(organization)
             };
 
-            foreach (var address in organization?.Addresses ?? new List<Address>())
+            var orgAdresses = organization?.Addresses ?? new List<Address>();
+
+            foreach (var address in orgAdresses)
             {
                 validationTasks.Add(_addressValidator.ValidateAsync(address));
             }
@@ -156,7 +158,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 organization.CreatedBy = Creator;
                 organization.Status = organizationStatus;
                 organization.OwnerId = contact.Id;
-                organization.Emails = new List<string> { organization.Addresses?.FirstOrDefault()?.Email ?? account.Email };
+                organization.Emails = new List<string> { orgAdresses.FirstOrDefault()?.Email ?? account.Email };
 
                 await _memberService.SaveChangesAsync(new Member[] { organization });
 
