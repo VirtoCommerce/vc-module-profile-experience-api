@@ -8,7 +8,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
     {
         public InputUpdateOrganizationType()
         {
-            Fields.FirstOrDefault(x => x.Name == nameof(Member.Id)).Type = typeof(NonNullGraphType<StringGraphType>);
+            Fields.First(x => x.Name == nameof(Member.Id)).Type = typeof(NonNullGraphType<StringGraphType>);
         }
     }
 }
