@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoFixture;
-using AutoMapper;
 using Moq;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.ExperienceApiModule.Core.Models;
@@ -23,7 +22,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             // Arragne
             var aggregateRepositoryMock = new Mock<IOrganizationAggregateRepository>();
             var dynamicPropertyUpdaterServiceMock = new Mock<IDynamicPropertyUpdaterService>();
-            var mapperMock = new Mock<IMapper>();
 
             var organization = _fixture.Create<Organization>();
             var organizatnoAggregate = new OrganizationAggregate { Member = organization };
@@ -33,7 +31,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 .ReturnsAsync(organizatnoAggregate);
 
             var handler = new UpdateOrganizationCommandHandler(
-                mapperMock.Object,
                 aggregateRepositoryMock.Object,
                 dynamicPropertyUpdaterServiceMock.Object);
 

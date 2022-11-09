@@ -1,6 +1,5 @@
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
 using MediatR;
 using VirtoCommerce.ExperienceApiModule.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
@@ -10,14 +9,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
     public class UpdateOrganizationCommandHandler : IRequestHandler<UpdateOrganizationCommand, OrganizationAggregate>
     {
         private readonly IOrganizationAggregateRepository _organizationAggregateRepository;
-        private readonly IMapper _mapper;
         private readonly IDynamicPropertyUpdaterService _dynamicPropertyUpdater;
 
-        public UpdateOrganizationCommandHandler(IMapper mapper,
+        public UpdateOrganizationCommandHandler(
             IOrganizationAggregateRepository organizationAggregateRepository,
             IDynamicPropertyUpdaterService dynamicPropertyUpdater)
         {
-            _mapper = mapper;
             _organizationAggregateRepository = organizationAggregateRepository;
             _dynamicPropertyUpdater = dynamicPropertyUpdater;
         }
@@ -25,7 +22,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         public virtual async Task<OrganizationAggregate> Handle(UpdateOrganizationCommand request, CancellationToken cancellationToken)
         {
             var organizationAggregate = await _organizationAggregateRepository.GetMemberAggregateRootByIdAsync<OrganizationAggregate>(request.Id);
-            _mapper.Map(request, organizationAggregate.Organization);
+            _ = request.MapTo(organizationAggregate.Organization);
 
             if (request.DynamicProperties != null)
             {
