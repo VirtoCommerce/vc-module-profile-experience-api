@@ -9,9 +9,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
         public AddressValidator()
         {
             RuleFor(x => x.Email)
-                .NotNull()
-                .NotEmpty()
-                .Must(x => x.IsValidEmail())
+                .Must(x => string.IsNullOrEmpty(x) || x.IsValidEmail())
                 .WithMessage("Invalid email format an the address");
         }
     }
