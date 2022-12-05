@@ -99,7 +99,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 result.Errors.AddRange(identityResult.Errors.Select(x => x.MapToIdentityErrorInfo()));
                 result.Succeeded |= identityResult.Succeeded;
 
-                if (!result.Succeeded)
+                if (!identityResult.Succeeded)
                 {
                     await _memberService.DeleteAsync(new[] { contact.Id });
 
