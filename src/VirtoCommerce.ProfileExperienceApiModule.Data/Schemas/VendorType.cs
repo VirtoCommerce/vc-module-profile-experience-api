@@ -17,9 +17,9 @@ public class VendorType: MemberBaseType<VendorAggregate>
         
         Field<StringGraphType>("about", description: "About vendor",
             resolve: context =>
-                context.Source.Contact.About ?? 
-                context.Source.Organization.Description ??
-                context.Source.Vendor.Description);
+                context.Source.Contact?.About ?? 
+                context.Source.Organization?.Description ??
+                context.Source.Vendor?.Description);
         Field<StringGraphType>("iconUrl", description: "Icon URL",
             resolve: context =>
                 context.Source.Member.IconUrl ??
