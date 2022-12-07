@@ -18,8 +18,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregate>
     where TAggregate: MemberAggregateRootBase
 {
-
-    public MemberBaseType(IDynamicPropertyResolverService dynamicPropertyResolverService)
+    protected MemberBaseType(IDynamicPropertyResolverService dynamicPropertyResolverService)
     {
         Field(x => x.Member.Id);
         Field(x => x.Member.OuterId, true).Description("Outer ID");
