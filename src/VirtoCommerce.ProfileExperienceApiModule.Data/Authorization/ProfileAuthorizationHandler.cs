@@ -11,6 +11,7 @@ using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Vendor;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
@@ -64,6 +65,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             else if (context.Resource is OrganizationAggregate organizationAggregate && currentContact != null)
             {
                 result = currentContact.Organizations.Contains(organizationAggregate.Organization.Id);
+            }
+            else if
+                (context.Resource is VendorAggregate vendorAggregate)
+            {
+                result = true;
             }
 
             else if (context.Resource is Role role)

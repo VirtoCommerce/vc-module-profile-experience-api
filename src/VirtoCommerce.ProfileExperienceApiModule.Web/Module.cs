@@ -17,6 +17,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Vendor;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Authorization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Configuration;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Middlewares;
@@ -25,7 +26,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.TaxModule.Core.Model;
 
-namespace VirtoCommerce.CusomersExperienceApi.Web
+namespace VirtoCommerce.ProfileExperienceApiModule.Web
 {
     public class Module : IModule, IHasConfiguration
     {
@@ -48,6 +49,7 @@ namespace VirtoCommerce.CusomersExperienceApi.Web
             serviceCollection.AddTransient<IMemberAggregateRootRepository, MemberAggregateRootRepository>();
             serviceCollection.AddTransient<IOrganizationAggregateRepository, OrganizationAggregateRepository>();
             serviceCollection.AddTransient<IContactAggregateRepository, ContactAggregateRepository>();
+            serviceCollection.AddTransient<IVendorAggregateRepository, VendorAggregateRepository>();
             serviceCollection.AddTransient<IAccountService, AccountsService>();
             serviceCollection.AddSingleton<IAuthorizationHandler, ProfileAuthorizationHandler>();
             serviceCollection.AddOptions<FrontendSecurityOptions>().Bind(Configuration.GetSection("FrontendSecurity")).ValidateDataAnnotations();
@@ -65,6 +67,11 @@ namespace VirtoCommerce.CusomersExperienceApi.Web
             serviceCollection.AddPipeline<PriceEvaluationContext>(builder =>
             {
                 builder.AddMiddleware(typeof(LoadUserToEvalContextMiddleware));
+            });
+
+            serviceCollection.AddPipeline<VendorAggregate>(builder =>
+            {
+                builder.AddMiddleware(typeof(EmptyMiddleware));
             });
         }
 

@@ -1,5 +1,5 @@
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Vendor;
 
-public interface IVendorAggregateRootRepository: IMemberAggregateRootRepository
+public interface IVendorAggregateRepository: IMemberAggregateRootRepository
 {
 }

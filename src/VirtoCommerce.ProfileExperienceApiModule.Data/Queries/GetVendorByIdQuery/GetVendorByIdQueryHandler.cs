@@ -9,15 +9,15 @@ public class GetVendorByIdQueryHandler: GetMemberByIdQueryHandlerBase<GetVendorB
 {
     private readonly IGenericPipelineLauncher _pipeline;
 
-    public GetVendorByIdQueryHandler(IVendorAggregateRootRepository aggregateRepository, IGenericPipelineLauncher pipeline) : base(aggregateRepository)
+    public GetVendorByIdQueryHandler(IVendorAggregateRepository aggregateRepository, IGenericPipelineLauncher pipeline) : base(aggregateRepository)
     {
         _pipeline = pipeline;
     }
 
-    public override Task<VendorAggregate> Handle(GetVendorByIdQuery request, CancellationToken cancellationToken)
+    public override async Task<VendorAggregate> Handle(GetVendorByIdQuery request, CancellationToken cancellationToken)
     {
-        var result = base.Handle(request, cancellationToken);
-        _pipeline.Execute(result);
+        var result = await base.Handle(request, cancellationToken);
+        await _pipeline.Execute(result);
         return result;
     }
 }
