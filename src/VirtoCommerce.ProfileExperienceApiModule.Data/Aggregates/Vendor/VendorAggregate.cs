@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using VirtoCommerce.ExperienceApiModule.Core;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Vendor;
@@ -12,5 +13,5 @@ public class VendorAggregate: MemberAggregateRootBase
 
     public CustomerModule.Core.Model.Vendor Vendor => Member as CustomerModule.Core.Model.Vendor;
 
-    public ExpRating Rating { get; set; }
+    public IEnumerable<ExpVendorRating> Ratings { get; set; }
 }

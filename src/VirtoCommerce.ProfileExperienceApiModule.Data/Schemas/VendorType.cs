@@ -1,4 +1,6 @@
+using System.Linq;
 using GraphQL.Types;
+using VirtoCommerce.ExperienceApiModule.Core.Extensions;
 using VirtoCommerce.ExperienceApiModule.Core.Helpers;
 using VirtoCommerce.ExperienceApiModule.Core.Schemas;
 using VirtoCommerce.ExperienceApiModule.Core.Services;
@@ -30,9 +32,15 @@ public class VendorType: MemberBaseType<VendorAggregate>
             GraphTypeExtenstionHelper.GetActualType<RatingType>(),
             "rating",
             "Vendor rating",
+            arguments: new QueryArguments(new QueryArgument<StringGraphType>
+            {
+                Name = "storeId",
+                Description = "Filter vendor ratings to return only values for specified store"
+            }),
             resolve: context =>
             {
-                var result = context.Source.Rating;
+                var storeId = context.GetArgumentOrValue<string>("storeId");
+                var result = context.Source.Ratings?.FirstOrDefault(rating => rating.StoreId == storeId);
                 return result;
             });
     }
