@@ -24,7 +24,6 @@ public class VendorType: MemberBaseType<VendorAggregate>
             resolve: context =>
                 context.Source.Member.IconUrl ??
                 context.Source.Contact?.PhotoUrl ??
-                context.Source.Employee?.PhotoUrl ??
                 context.Source.Vendor?.LogoUrl);
         Field<StringGraphType>("siteUrl", description: "Site URL", resolve: context => context.Source.Vendor?.SiteUrl);
 

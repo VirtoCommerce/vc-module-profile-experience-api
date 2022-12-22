@@ -71,7 +71,7 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
 
         #region Addresses
 
-        var addressesConnectionBuilder = GraphTypeExtenstionHelper.CreateConnection<MemberAddressType, OrganizationAggregate>()
+        var addressesConnectionBuilder = GraphTypeExtenstionHelper.CreateConnection<MemberAddressType, MemberAggregateRootBase>()
             .Name("addresses")
             .Argument<StringGraphType>("sort", "Sort expression")
             .PageSize(20);
@@ -88,12 +88,12 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
             context => dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source.Member, context.GetArgumentOrValue<string>("cultureName")));
     }
 
-    protected virtual object ResolveAddressesConnection(IResolveConnectionContext<OrganizationAggregate> context)
+    protected virtual object ResolveAddressesConnection(IResolveConnectionContext<MemberAggregateRootBase> context)
     {
         var take = context.First ?? 20;
         var skip = Convert.ToInt32(context.After ?? 0.ToString());
         var sort = context.GetArgument<string>("sort");
-        var addresses = context.Source.Organization.Addresses.AsEnumerable();
+        var addresses = context.Source.Member.Addresses.AsEnumerable();
 
         if (!string.IsNullOrEmpty(sort))
         {

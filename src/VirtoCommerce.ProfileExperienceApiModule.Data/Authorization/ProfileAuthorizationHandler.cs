@@ -66,10 +66,28 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             {
                 result = currentContact.Organizations.Contains(organizationAggregate.Organization.Id);
             }
-            else if
-                (context.Resource is VendorAggregate vendorAggregate)
+            else if (context.Resource is VendorAggregate vendorAggregate)
             {
-                result = true;
+                switch (vendorAggregate.Member.MemberType)
+                {
+                    case nameof(Contact):
+                        result = currentContact.Id == vendorAggregate.Contact.Id;
+                        if (!result)
+                        {
+                            result = await HasSameOrganizationAsync(currentContact, vendorAggregate.Contact.Id, userManager);
+                        }
+
+                        break;
+                    case nameof(Organization):
+                        result = currentContact.Organizations.Contains(vendorAggregate.Organization.Id);
+                        break;
+                    case nameof(Vendor):
+                        result = true;
+                        break;
+                    default:
+                        result = false;
+                        break;
+                }
             }
 
             else if (context.Resource is Role role)
