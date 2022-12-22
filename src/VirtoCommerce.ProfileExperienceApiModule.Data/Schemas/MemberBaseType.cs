@@ -12,6 +12,7 @@ using VirtoCommerce.ExperienceApiModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
+using VirtoCommerce.CoreModule.Core.Seo;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 
@@ -28,7 +29,32 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
         Field(x => x.Member.Phones).Description("Phones");
         Field(x => x.Member.Emails).Description("Emails");
         Field(x => x.Member.Groups);
+
+        #region SEO
+
         Field(x => x.Member.SeoObjectType).Description("SEO object type");
+        Field<SeoInfoType>("seoInfo",
+            arguments: new QueryArguments(
+                new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "storeId" },
+                new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "cultureName" }),
+            resolve: context =>
+            {
+                var source = context.Source;
+                var storeId = context.GetArgumentOrValue<string>("storeId");
+                var cultureName = context.GetArgumentOrValue<string>("cultureName");
+
+                SeoInfo seoInfo = null;
+
+                if (!source.Member.SeoInfos.IsNullOrEmpty())
+                {
+                    seoInfo = source.Member.SeoInfos.GetBestMatchingSeoInfo(storeId, cultureName);
+                }
+
+                return seoInfo ??
+                       SeoInfosExtensions.GetFallbackSeoInfo(source.Member.Id, source.Member.Name, cultureName);
+            }, description: "Request related SEO info");
+
+        #endregion
 
         #region Default addresses
 

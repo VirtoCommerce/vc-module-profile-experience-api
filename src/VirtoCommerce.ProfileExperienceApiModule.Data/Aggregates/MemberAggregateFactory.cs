@@ -1,5 +1,8 @@
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Vendor;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
 {
@@ -12,7 +15,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
 
             if (member != null)
             {
-                result = AbstractTypeFactory<T>.TryCreateInstance();
+                result = member.MemberType switch
+                {
+                    nameof(CustomerModule.Core.Model.Contact) => (T)(object)AbstractTypeFactory<ContactAggregate>.TryCreateInstance(),
+                    nameof(CustomerModule.Core.Model.Organization) => (T)(object)AbstractTypeFactory<OrganizationAggregate>.TryCreateInstance(),
+                    nameof(CustomerModule.Core.Model.Vendor) => (T)(object)AbstractTypeFactory<VendorAggregate>.TryCreateInstance(),
+                };
 
                 result.Member = member;
             }
