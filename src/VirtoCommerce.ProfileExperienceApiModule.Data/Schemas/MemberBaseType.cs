@@ -24,7 +24,7 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
         Field(x => x.Member.OuterId, true).Description("Outer ID");
         Field(x => x.Member.MemberType).Description("Member type");
         Field(x => x.Member.Name, true).Description("Name");
-        Field(x => x.Member.Status).Description("Status");
+        Field(x => x.Member.Status, true).Description("Status");
         Field(x => x.Member.Phones).Description("Phones");
         Field(x => x.Member.Emails).Description("Emails");
         Field(x => x.Member.Groups);
