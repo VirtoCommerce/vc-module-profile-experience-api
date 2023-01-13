@@ -58,9 +58,6 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
 
         #region Default addresses
 
-        Field<MemberAddressType>("defaultAddress", description: "Default address",
-            resolve: context => context.Source.Member.Addresses.SingleOrDefault(address => address.IsDefault));
-
         Field<MemberAddressType>("defaultBillingAddress", description: "Default billing address",
             resolve: context => context.Source.Member.Addresses.FirstOrDefault(address => address.AddressType == CoreModule.Core.Common.AddressType.Billing && address.IsDefault));
 
