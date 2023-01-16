@@ -43,7 +43,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             {
                 var user = await userManager.FindByEmailAsync(request.Email);
 
-                if (user == null && user.StoreId != request.StoreId)
+                if (user == null || user.StoreId != request.StoreId)
                 {
                     return true;
                 }
