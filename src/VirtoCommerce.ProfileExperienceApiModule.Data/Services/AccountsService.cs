@@ -37,13 +37,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services
                 result = await userManager.CreateAsync(account, account.Password);
             }
 
-            if (result.Succeeded)
-            {
-                var user = await userManager.FindByNameAsync(account.UserName);
-
-                await _storeNotificationSender.SendUserEmailVerificationAsync(user);
-            }
-
             return result;
         }
 
