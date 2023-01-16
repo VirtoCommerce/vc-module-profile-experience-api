@@ -24,7 +24,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             if (result.Succeeded)
             {
                 // Send Email Verification
-                await _mediator.Send(new SendVerifyEmailCommand(request.ApplicationUser.StoreId, string.Empty, request.ApplicationUser.Email));
+                await _mediator.Send(new SendVerifyEmailCommand(request.ApplicationUser.StoreId, string.Empty, request.ApplicationUser.Email), cancellationToken);
 
             }
 
