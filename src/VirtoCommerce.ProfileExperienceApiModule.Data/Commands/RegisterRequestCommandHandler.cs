@@ -154,7 +154,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             }
 
             // Validate parameters & stop processing if any error is occured
-            bool isValid = await ValidateAsync(organization, contact, request.Account, result, tokenSource);
+            var isValid = await ValidateAsync(organization, contact, request.Account, result, tokenSource);
             if (!isValid)
             {
                 return;
@@ -199,8 +199,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             // Send Email Verification Command
             await SendVerifyEmailCommand(request, account.Email);
-
-            return;
         }
 
         private async Task<bool> ValidateAsync(Organization organization, Contact contact, Account account, RegisterOrganizationResult result, CancellationTokenSource tokenSource)
@@ -300,9 +298,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return notification;
         }
 
-        protected virtual async Task SendVerifyEmailCommand(RegisterRequestCommand request, string email)
+        protected virtual Task SendVerifyEmailCommand(RegisterRequestCommand request, string email)
         {
-            await _mediator.Send(new SendVerifyEmailCommand(request.StoreId,
+            return _mediator.Send(new SendVerifyEmailCommand(request.StoreId,
                 request.LanguageCode,
                 email));
         }

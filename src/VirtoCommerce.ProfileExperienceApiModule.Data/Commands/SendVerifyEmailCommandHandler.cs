@@ -14,14 +14,12 @@ using VirtoCommerce.Platform.Core.GenericCrud;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.StoreModule.Core.Model;
-using VirtoCommerce.StoreModule.Core.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
     public class SendVerifyEmailCommandHandler : IRequestHandler<SendVerifyEmailCommand, bool>
     {
         private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
-        private readonly IStoreNotificationSender _storeNotificationSender;
         private readonly ICrudService<Store> _storeService;
         private readonly INotificationSearchService _notificationSearchService;
         private readonly INotificationSender _notificationSender;
