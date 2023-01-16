@@ -198,7 +198,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             await SendRegistrationEmailNotificationAsync(notificationRequest);
 
             // Send Email Verification Command
-            await SendVerifyEmailCommand(request, account.Email);
+            await SendVerifyEmailCommand(request, account.Email, tokenSource);
         }
 
         private async Task<bool> ValidateAsync(Organization organization, Contact contact, Account account, RegisterOrganizationResult result, CancellationTokenSource tokenSource)
@@ -298,11 +298,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return notification;
         }
 
-        protected virtual Task SendVerifyEmailCommand(RegisterRequestCommand request, string email)
+        protected virtual Task SendVerifyEmailCommand(RegisterRequestCommand request, string email, CancellationTokenSource tokenSource)
         {
             return _mediator.Send(new SendVerifyEmailCommand(request.StoreId,
                 request.LanguageCode,
-                email));
+                email), tokenSource.Token);
         }
 
         private static string ResolveEmail(ApplicationUser account, IList<Address> orgAdresses)
