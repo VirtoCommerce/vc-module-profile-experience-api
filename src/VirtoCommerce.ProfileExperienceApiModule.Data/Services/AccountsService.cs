@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
-using VirtoCommerce.StoreModule.Core.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services
 {
@@ -11,14 +10,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services
     {
         private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
         private readonly Func<RoleManager<Role>> _roleManagerFactory;
-        private readonly IStoreNotificationSender _storeNotificationSender;
 
         public AccountsService(Func<UserManager<ApplicationUser>> userManagerFactory,
-            IStoreNotificationSender storeNotificationSender,
             Func<RoleManager<Role>> roleManagerFactory)
         {
             _userManagerFactory = userManagerFactory;
-            _storeNotificationSender = storeNotificationSender;
             _roleManagerFactory = roleManagerFactory;
         }
 
@@ -35,13 +31,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services
             else
             {
                 result = await userManager.CreateAsync(account, account.Password);
-            }
-
-            if (result.Succeeded)
-            {
-                var user = await userManager.FindByNameAsync(account.UserName);
-
-                await _storeNotificationSender.SendUserEmailVerificationAsync(user);
             }
 
             return result;

@@ -34,6 +34,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
     public class RegisterRequestCommandHandler : IRequestHandler<RegisterRequestCommand, RegisterOrganizationResult>
     {
+        private const string UserType = "Manager";
+
         private readonly IMapper _mapper;
         private readonly IDynamicPropertyUpdaterService _dynamicPropertyUpdater;
         private readonly IMemberService _memberService;
@@ -46,9 +48,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly AddressValidator _addressValidator;
         private readonly OrganizationValidator _organizationValidator;
         private readonly IOptions<FrontendSecurityOptions> _securityOptions;
+        private readonly IMediator _mediator;
 
-        private const string Creator = "frontend";
-        private const string UserType = "Manager";
+        protected Store CurrentStore { get; private set; }
+        protected string DefaultContactStatus { get; private set; }
+        protected string DefaultOrganizationStatus { get; private set; }
+        protected Role MaintainerRole { get; private set; }
+
 #pragma warning disable S107
         public RegisterRequestCommandHandler(IMapper mapper,
             IDynamicPropertyUpdaterService dynamicPropertyUpdater,
@@ -61,7 +67,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             AccountValidator accountValidator,
             AddressValidator addressValidator,
             OrganizationValidator organizationValidator,
-            IOptions<FrontendSecurityOptions> securityOptions)
+            IOptions<FrontendSecurityOptions> securityOptions,
+            IMediator mediator)
 #pragma warning restore S107
         {
             _mapper = mapper;
@@ -76,6 +83,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _addressValidator = addressValidator;
             _organizationValidator = organizationValidator;
             _securityOptions = securityOptions;
+            _mediator = mediator;
         }
 
         public virtual async Task<RegisterOrganizationResult> Handle(RegisterRequestCommand request, CancellationToken cancellationToken)
@@ -83,7 +91,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             var internalToken = cancellationTokenSource.Token;
 
-            var result = await ProcessRequestAsync(request, cancellationTokenSource);
+            var result = new RegisterOrganizationResult();
+
+            await BeforeProcessRequestAsync(request, result, cancellationTokenSource);
+            if (internalToken.IsCancellationRequested)
+            {
+                return result;
+            }
+
+            await ProcessRequestAsync(request, result, cancellationTokenSource);
+
+            await AfterProcessRequestAsync(request, result, cancellationTokenSource);
 
             if (internalToken.IsCancellationRequested)
             {
@@ -93,28 +111,107 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return result;
         }
 
-#pragma warning disable S138
-        private async Task<RegisterOrganizationResult> ProcessRequestAsync(RegisterRequestCommand request, CancellationTokenSource tokenSource)
+        protected virtual Task AfterProcessRequestAsync(RegisterRequestCommand request, RegisterOrganizationResult result, CancellationTokenSource tokenSource)
         {
-            var result = new RegisterOrganizationResult();
-            IList<Role> roles = null;
+            return Task.CompletedTask;
+        }
 
-            var organization = _mapper.Map<Organization>(request.Organization);
-            var contact = _mapper.Map<Contact>(request.Contact);
-            var account = GetApplicationUser(request.Account);
+        protected virtual async Task BeforeProcessRequestAsync(RegisterRequestCommand request, RegisterOrganizationResult result, CancellationTokenSource tokenSource)
+        {
+            // Resolve Current Store
+            CurrentStore = await _storeService.GetByIdAsync(request.StoreId);
 
-            FillContactFields(contact);
-
-            var validationTasks = new List<Task<ValidationResult>>
+            if (CurrentStore == null)
             {
-                _contactValidator.ValidateAsync(contact),
-                _accountValidator.ValidateAsync(request.Account),
-                _organizationValidator.ValidateAsync(organization)
+                SetErrorResult(result, "Store not found", $"Store {request.StoreId} has not been found", tokenSource);
+                return;
+            }
+
+            // Read Settings
+            DefaultContactStatus = CurrentStore.Settings
+                .GetSettingValue<string>(CustomerCore.ModuleConstants.Settings.General.ContactDefaultStatus.Name, null);
+
+            DefaultOrganizationStatus = CurrentStore.Settings
+                .GetSettingValue<string>(CustomerCore.ModuleConstants.Settings.General.OrganizationDefaultStatus.Name, null);
+
+            MaintainerRole = await GetMaintainerRole(result, tokenSource);
+        }
+
+#pragma warning disable S138
+        protected virtual async Task ProcessRequestAsync(RegisterRequestCommand request, RegisterOrganizationResult result, CancellationTokenSource tokenSource)
+        {
+            // Map incoming enties from request to Virto Commerce enties
+            var account = ToApplicationUser(request.Account);
+
+            var contact = await ToContact(request.Contact, account);
+            account.MemberId = contact.Id;
+
+            Organization organization = null;
+            if (request.Organization != null)
+            {
+                organization = await ToOrganization(request.Organization, contact, account);
+                account.Roles = new List<Role> { MaintainerRole };
+            }
+
+            // Validate parameters & stop processing if any error is occured
+            var isValid = await ValidateAsync(organization, contact, request.Account, result, tokenSource);
+            if (!isValid)
+            {
+                return;
+            }
+
+            // Create Organisation
+            if (organization != null)
+            {
+                await _memberService.SaveChangesAsync(new Member[] { organization });
+
+                // Create relation between contact and organization
+                contact.Organizations = new List<string> { organization.Id };
+            }
+
+            // Create Contact
+            await _memberService.SaveChangesAsync(new Member[] { contact });
+
+            // Create Security Account
+            var identityResult = await _accountService.CreateAccountAsync(account);
+            result.AccountCreationResult = ToAccountCreationResult(identityResult, account);
+
+            if (!identityResult.Succeeded)
+            {
+                tokenSource.Cancel();
+                return;
+            }
+
+            // Save data to result
+            result.Organization = organization;
+            result.Contact = contact;
+            result.Contact.SecurityAccounts = new List<ApplicationUser> { account };
+
+            // Send Notifications
+            var notificationRequest = new RegisterOrganizationNotificationRequest
+            {
+                Store = CurrentStore,
+                LanguageCode = request.LanguageCode,
+                Organization = organization,
+                Contact = contact,
             };
+            await SendRegistrationEmailNotificationAsync(notificationRequest);
 
-            var orgAdresses = organization?.Addresses ?? new List<Address>();
+            // Send Email Verification Command
+            await SendVerifyEmailCommand(request, account.Email, tokenSource);
+        }
 
-            foreach (var address in orgAdresses)
+        private async Task<bool> ValidateAsync(Organization organization, Contact contact, Account account, RegisterOrganizationResult result, CancellationTokenSource tokenSource)
+        {
+            var validationTasks = new List<Task<ValidationResult>>();
+
+            validationTasks.AddRange(new Task<ValidationResult>[]{
+                _organizationValidator.ValidateAsync(organization),
+                _contactValidator.ValidateAsync(contact),
+                _accountValidator.ValidateAsync(account)});
+
+            var orgAddresses = organization?.Addresses ?? new List<Address>();
+            foreach (var address in orgAddresses)
             {
                 validationTasks.Add(_addressValidator.ValidateAsync(address));
             }
@@ -129,88 +226,91 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                     .ToList();
 
                 SetErrorResult(result, errors, tokenSource);
-                return result;
+                return false;
             }
 
-            await SetDynamicPropertiesAsync(request.Contact.DynamicProperties, contact);
+            return true;
+        }
 
-            var store = await _storeService.GetByIdAsync(request.StoreId);
+        private async Task<Organization> ToOrganization(RegisteredOrganization organization, Contact contact, ApplicationUser account)
+        {
+            var result = _mapper.Map<Organization>(organization);
 
-            if (store == null)
-            {
-                SetErrorResult(result, "Store not found", $"Store {request.StoreId} has not been found", tokenSource);
-                return result;
-            }
+            result.Status = DefaultOrganizationStatus;
+            result.OwnerId = contact.Id;
+            result.Emails = new List<string> { ResolveEmail(account, result.Addresses ?? new List<Address>()) };
 
-            if (organization != null)
-            {
-                var maintainerRole = await GetMaintainerRole(result, tokenSource);
-                if (maintainerRole == null)
-                {
-                    return result;
-                }
+            await SetDynamicPropertiesAsync(organization.DynamicProperties, result);
 
-                roles = new List<Role> { maintainerRole };
 
-                await SetDynamicPropertiesAsync(request.Organization.DynamicProperties, organization);
-                var organizationStatus = store
-                    .Settings
-                    .GetSettingValue<string>(CustomerCore.ModuleConstants.Settings.General.OrganizationDefaultStatus.Name, null);
-                organization.CreatedBy = Creator;
-                organization.Status = organizationStatus;
-                organization.OwnerId = contact.Id;
-                organization.Emails = new List<string> { GetProperAddress(account, orgAdresses) };
-
-                await _memberService.SaveChangesAsync(new Member[] { organization });
-
-                result.Organization = organization;
-                contact.Organizations = new List<string> { organization.Id };
-            }
-
-            var contactStatus = store.Settings
-                .GetSettingValue<string>(CustomerCore.ModuleConstants.Settings.General.ContactDefaultStatus.Name, null);
-
-            contact.Status = contactStatus;
-            contact.CreatedBy = Creator;            
-            contact.Emails = new List<string> { account.Email };
-            await _memberService.SaveChangesAsync(new Member[] { contact });
-            result.Contact = contact;
-
-            account.StoreId = request.StoreId;
-            account.Status = contactStatus;
-            account.UserType = UserType;
-            account.MemberId = contact.Id;
-            account.Roles = roles;
-            account.CreatedBy = Creator;
-            result.Contact.SecurityAccounts = new List<ApplicationUser> { account };
-
-            var identityResult = await _accountService.CreateAccountAsync(account);
-            result.AccountCreationResult = GetAccountCreationResult(identityResult, account);
-
-            if (!result.AccountCreationResult.Succeeded)
-            {
-                tokenSource.Cancel();
-                return result;
-            }
-
-            var notificationRequest = new RegisterOrganizationNotificationRequest
-            {
-                Organization = organization,
-                Contact = contact,
-                Store = store,
-                LanguageCode = request.LanguageCode
-            };
-
-            await SendNotificationAsync(notificationRequest);
             return result;
         }
 
-        private static string GetProperAddress(ApplicationUser account, IList<Address> orgAdresses)
+        private async Task<Contact> ToContact(RegisteredContact contact, ApplicationUser account)
+        {
+            var result = _mapper.Map<Contact>(contact);
+
+            result.Id = Guid.NewGuid().ToString();
+            result.FullName = contact.FirstName + " " + contact.LastName;
+            result.Name = result.FullName;
+            result.Status = DefaultContactStatus;
+            result.Emails = new List<string> { account.Email };
+
+            await SetDynamicPropertiesAsync(contact.DynamicProperties, result);
+
+            return result;
+        }
+
+        protected virtual async Task SendRegistrationEmailNotificationAsync(RegisterOrganizationNotificationRequest request)
+        {
+            var notification = request.Organization != null
+                ? await GetRegisterCompanyNotificationAsync(request)
+                : await GetRegisterContactNotificationAsync(request);
+
+            await _notificationSender.ScheduleSendNotificationAsync(notification);
+        }
+
+        protected virtual async Task<EmailNotification> GetRegisterCompanyNotificationAsync(RegisterOrganizationNotificationRequest request)
+        {
+            var notification = await _notificationSearchService.GetNotificationAsync<RegisterCompanyEmailNotification>(new TenantIdentity(request.Store.Id, nameof(Store)));
+
+            notification.From = request.Store.Email;
+            notification.LanguageCode = string.IsNullOrEmpty(request.LanguageCode) ? request.Store.DefaultLanguage : request.LanguageCode;
+
+            notification.To = request.Organization.Emails.FirstOrDefault();
+            notification.CompanyName = request.Organization.Name;
+
+            return notification;
+        }
+
+        protected virtual async Task<EmailNotification> GetRegisterContactNotificationAsync(RegisterOrganizationNotificationRequest request)
+        {
+            var notification = await _notificationSearchService.GetNotificationAsync<RegistrationEmailNotification>(new TenantIdentity(request.Store.Id, nameof(Store)));
+
+            notification.From = request.Store.Email;
+            notification.LanguageCode = string.IsNullOrEmpty(request.LanguageCode) ? request.Store.DefaultLanguage : request.LanguageCode;
+
+            notification.To = request.Contact.Emails.FirstOrDefault();
+            notification.FirstName = request.Contact.FirstName;
+            notification.LastName = request.Contact.LastName;
+            notification.Login = request.Contact.SecurityAccounts.FirstOrDefault()?.UserName;
+
+            return notification;
+        }
+
+        protected virtual Task SendVerifyEmailCommand(RegisterRequestCommand request, string email, CancellationTokenSource tokenSource)
+        {
+            return _mediator.Send(new SendVerifyEmailCommand(request.StoreId,
+                request.LanguageCode,
+                email), tokenSource.Token);
+        }
+
+        private static string ResolveEmail(ApplicationUser account, IList<Address> orgAdresses)
         {
             return orgAdresses.FirstOrDefault()?.Email ?? account.Email;
         }
 
-        private async Task<Role> GetMaintainerRole(RegisterOrganizationResult result, CancellationTokenSource tokenSource)
+        protected virtual async Task<Role> GetMaintainerRole(RegisterOrganizationResult result, CancellationTokenSource tokenSource)
         {
             var maintainerRoleId = _securityOptions.Value.OrganizationMaintainerRole;
             if (maintainerRoleId == null)
@@ -228,7 +328,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return role;
         }
 
-        private static AccountCreationResult GetAccountCreationResult(IdentityResult identityResult, ApplicationUser account)
+        protected virtual AccountCreationResult ToAccountCreationResult(IdentityResult identityResult, ApplicationUser account)
         {
             return new AccountCreationResult
             {
@@ -242,16 +342,20 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 }).ToList()
             };
         }
+
+        protected virtual ApplicationUser ToApplicationUser(Account account) => new()
+        {
+            UserName = account.UserName,
+            Email = account.Email,
+            Password = account.Password,
+            StoreId = CurrentStore.Id,
+            Status = DefaultContactStatus,
+            UserType = UserType,
+        };
+
 #pragma warning restore S138
 
-        private static void FillContactFields(Contact contact)
-        {
-            contact.FullName = contact.FirstName + " " + contact.LastName;
-            contact.Name = contact.FullName;
-            contact.Id = Guid.NewGuid().ToString();
-        }
-
-        private async Task RollBackMembersCreationAsync(RegisterOrganizationResult result)
+        protected virtual async Task RollBackMembersCreationAsync(RegisterOrganizationResult result)
         {
             var ids = new[] { result.Organization?.Id, result.Contact?.Id }
                 .Where(x => x != null)
@@ -288,41 +392,5 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             source.Cancel();
         }
 
-        protected virtual async Task SendNotificationAsync(RegisterOrganizationNotificationRequest request)
-        {
-            var notification = request.Organization != null
-                ? await GetRegisterCompanyNotificationAsync(request)
-                : await GetRegisterContactNotificationAsync(request);
-
-            notification.From = request.Store.Email;
-            notification.LanguageCode = request.LanguageCode;
-
-            await _notificationSender.ScheduleSendNotificationAsync(notification);
-        }
-
-        protected virtual async Task<EmailNotification> GetRegisterCompanyNotificationAsync(RegisterOrganizationNotificationRequest request)
-        {
-            var notification = await _notificationSearchService.GetNotificationAsync<RegisterCompanyEmailNotification>(new TenantIdentity(request.Store.Id, nameof(Store)));
-            notification.To = request.Organization.Emails.FirstOrDefault();
-            notification.CompanyName = request.Organization.Name;
-            return notification;
-        }
-
-        protected virtual async Task<EmailNotification> GetRegisterContactNotificationAsync(RegisterOrganizationNotificationRequest request)
-        {
-            var notification = await _notificationSearchService.GetNotificationAsync<RegistrationEmailNotification>(new TenantIdentity(request.Store.Id, nameof(Store)));
-            notification.To = request.Contact.Emails.FirstOrDefault();
-            notification.FirstName = request.Contact.FirstName;
-            notification.LastName = request.Contact.LastName;
-            notification.Login = request.Contact.SecurityAccounts.FirstOrDefault()?.UserName;
-            return notification;
-        }
-
-        protected virtual ApplicationUser GetApplicationUser(Account account) => new()
-        {
-            UserName = account.UserName,
-            Email = account.Email,
-            Password = account.Password
-        };
     }
 }
