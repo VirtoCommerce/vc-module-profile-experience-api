@@ -66,7 +66,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             {
                 result = currentContact.Organizations.Contains(organizationAggregate.Organization.Id);
             }
-            else if (context.Resource is VendorAggregate vendorAggregate)
+            else if (context.Resource is VendorAggregate)
             {
                 result = true;
             }
