@@ -1,3 +1,4 @@
+using System;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
@@ -20,7 +21,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
                     result = member.MemberType switch
                     {
                         nameof(CustomerModule.Core.Model.Organization) => (T)(object)AbstractTypeFactory<OrganizationAggregate>.TryCreateInstance(),
-                        nameof(CustomerModule.Core.Model.Contact) => (T)(object)AbstractTypeFactory<ContactAggregate>.TryCreateInstance()
+                        nameof(CustomerModule.Core.Model.Contact) => (T)(object)AbstractTypeFactory<ContactAggregate>.TryCreateInstance(),
+                        _ => throw new ArgumentOutOfRangeException()
                     };
                 }
                 else
