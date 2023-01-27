@@ -22,7 +22,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
                     {
                         nameof(CustomerModule.Core.Model.Organization) => (T)(object)AbstractTypeFactory<OrganizationAggregate>.TryCreateInstance(),
                         nameof(CustomerModule.Core.Model.Contact) => (T)(object)AbstractTypeFactory<ContactAggregate>.TryCreateInstance(),
-                        _ => throw new ArgumentOutOfRangeException()
+                        _ => throw new ArgumentOutOfRangeException(nameof(member), "Member type isn't supported")
                     };
                 }
                 else
