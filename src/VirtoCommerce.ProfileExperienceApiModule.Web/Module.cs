@@ -69,7 +69,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
                 builder.AddMiddleware(typeof(LoadUserToEvalContextMiddleware));
             });
 
-            serviceCollection.AddPipeline<VendorAggregate>();
+            serviceCollection.AddPipeline<VendorAggregate>(builder =>
+            {
+                builder.AddMiddleware(typeof(EmptyMiddleware));
+            });
         }
 
         public void PostInitialize(IApplicationBuilder appBuilder)
