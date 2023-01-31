@@ -20,6 +20,7 @@ using VirtoCommerce.Platform.Security.Authorization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Vendor;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Authorization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
@@ -56,6 +57,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
         public void Build(ISchema schema)
         {
+            //Queries
+
             schema.Query.AddField(new FieldType
             {
                 Name = "me",
@@ -74,41 +77,15 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                     return AnonymousUser.Instance;
                 })
             });
+            
+            schema.AddMemberQuery<OrganizationAggregate, OrganizationType, GetOrganizationByIdQuery>(
+                _mediator, "organization", (userId, obj) => CheckAuthAsync(userId, obj));
 
-            //Queries
+            schema.AddMemberQuery<ContactAggregate, ContactType, GetContactByIdQuery>(
+                _mediator, "contact", (userId, obj) => CheckAuthAsync(userId, obj));
 
-            #region organization query
-#pragma warning disable S125 // Sections of code should not be commented out
-            /* organization query with contacts connection filtering:
-            {
-              organization(id: "689a72757c754bef97cde51afc663430"){
-                 id contacts(first:10, after: "0", searchPhrase: null){
-                  totalCount items {id firstName}
-                }
-              }
-            }
-             */
-#pragma warning restore S125 // Sections of code should not be commented out
-            #endregion
-            schema.Query.AddField(new FieldType
-            {
-                Name = "organization",
-                Arguments = new QueryArguments(
-                    new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "id" },
-                    new QueryArgument<StringGraphType> { Name = "userId" }
-                ),
-                Type = GraphTypeExtenstionHelper.GetActualType<OrganizationType>(),
-                Resolver = new AsyncFieldResolver<object>(async context =>
-                {
-                    var query = new GetOrganizationByIdQuery(context.GetArgument<string>("id"));
-                    var organizationAggregate = await _mediator.Send(query);
-                    await CheckAuthAsync(context.GetCurrentUserId(), organizationAggregate);
-                    //store organization aggregate in the user context for future usage in the graph types resolvers
-                    context.UserContext.Add("organizationAggregate", organizationAggregate);
-
-                    return organizationAggregate;
-                })
-            });
+            schema.AddMemberQuery<VendorAggregate, VendorType, GetVendorByIdQuery>(
+                _mediator, "vendor", (userId, obj) => CheckAuthAsync(userId, obj));
 
             var organizationsConnectionBuilder = GraphTypeExtenstionHelper.CreateConnection<OrganizationType, object>()
                 .Name("organizations")
@@ -129,41 +106,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             });
 
             schema.Query.AddField(organizationsConnectionBuilder.FieldType);
-
-            #region contact query
-            /// <example>
-#pragma warning disable S125 // Sections of code should not be commented out
-            /*
-                         {
-                          contact(id: "51311ae5-371c-453b-9394-e6d352f1cea7"){
-                              firstName memberType organizationIds organizations { id businessCategory description emails groups memberType name outerId ownerId parentId phones seoObjectType }
-                              addresses { line1 phone }
-                         }
-                        }
-                         */
-#pragma warning restore S125 // Sections of code should not be commented out
-            /// </example>
-
-            #endregion
-            schema.Query.AddField(new FieldType
-            {
-                Name = "contact",
-                Arguments = new QueryArguments(
-                    new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "id" },
-                    new QueryArgument<StringGraphType> { Name = "userId" }
-                ),
-                Type = GraphTypeExtenstionHelper.GetActualType<ContactType>(),
-                Resolver = new AsyncFieldResolver<object>(async context =>
-                {
-                    var query = new GetContactByIdQuery(context.GetArgument<string>("id"));
-                    var contactAggregate = await _mediator.Send(query);
-                    await CheckAuthAsync(context.GetCurrentUserId(), contactAggregate);
-                    //store contactAggregate in the user context for future usage in the graph types resolvers
-                    context.UserContext.Add("contactAggregate", contactAggregate);
-
-                    return contactAggregate;
-                })
-            });
 
             var contactsConnectionBuilder = GraphTypeExtenstionHelper.CreateConnection<ContactType, object>()
                 .Name("contacts")

@@ -1,3 +1,4 @@
+using System;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
@@ -7,17 +8,27 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
 {
     public class MemberAggregateFactory : IMemberAggregateFactory
     {
-        public virtual T Create<T>(Member member) where T : class, IMemberAggregateRoot
+        public virtual T Create<T>(Member member)
+            where T : class, IMemberAggregateRoot
         {
             var result = default(T);
 
             if (member != null)
             {
-                result = member.MemberType switch
+                // This is workaround for addresses & dynamic properties commands
+                if (typeof(T).Name == nameof(MemberAggregateRootBase))
                 {
-                    nameof(Organization) => (T)(object)AbstractTypeFactory<OrganizationAggregate>.TryCreateInstance(),
-                    _ => (T)(object)AbstractTypeFactory<ContactAggregate>.TryCreateInstance()
-                };
+                    result = member.MemberType switch
+                    {
+                        nameof(CustomerModule.Core.Model.Organization) => (T)(object)AbstractTypeFactory<OrganizationAggregate>.TryCreateInstance(),
+                        nameof(CustomerModule.Core.Model.Contact) => (T)(object)AbstractTypeFactory<ContactAggregate>.TryCreateInstance(),
+                        _ => throw new ArgumentOutOfRangeException(nameof(member), "Member type isn't supported")
+                    };
+                }
+                else
+                {
+                    result = AbstractTypeFactory<T>.TryCreateInstance();
+                }
 
                 result.Member = member;
             }
