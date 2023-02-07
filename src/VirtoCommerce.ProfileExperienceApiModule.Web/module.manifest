@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <module xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <id>VirtoCommerce.ProfileExperienceApiModule</id>
   <version>3.236.0</version>
@@ -21,7 +21,7 @@
   <moduleType>VirtoCommerce.ProfileExperienceApiModule.Web.Module, VirtoCommerce.ProfileExperienceApiModule.Web</moduleType>
   <dependencies>
     <dependency id="VirtoCommerce.Customer" version="3.210.0" />
-    <dependency id="VirtoCommerce.ExperienceApi" version="3.254.0" />
+    <dependency id="VirtoCommerce.ExperienceApi" version="3.256.0-alpha.1090-pt-10238" />
     <dependency id="VirtoCommerce.Marketing" version="3.200.0" />
     <dependency id="VirtoCommerce.Pricing" version="3.200.0" />
   </dependencies>
