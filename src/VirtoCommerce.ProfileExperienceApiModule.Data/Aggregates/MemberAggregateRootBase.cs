@@ -12,6 +12,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
         {
             foreach (var address in addresses)
             {
+                if (address != null && address.AddressType == CoreModule.Core.Common.AddressType.Undefined)
+                {
+                    address.AddressType = CoreModule.Core.Common.AddressType.BillingAndShipping;
+                }
+
                 var addressForReplacement = Member.Addresses.FirstOrDefault(x => x.Key == address.Key);
 
                 if (addressForReplacement != null)
