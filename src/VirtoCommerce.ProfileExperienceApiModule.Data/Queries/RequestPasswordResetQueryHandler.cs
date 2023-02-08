@@ -6,9 +6,10 @@ using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
 using VirtoCommerce.NotificationsModule.Core.Extensions;
 using VirtoCommerce.NotificationsModule.Core.Services;
 using VirtoCommerce.NotificationsModule.Core.Types;
+using VirtoCommerce.Platform.Core.GenericCrud;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
-using VirtoCommerce.StoreModule.Core.Services;
+using VirtoCommerce.StoreModule.Core.Model;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries
 {
@@ -17,14 +18,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries
         private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
         private readonly INotificationSearchService _notificationSearchService;
         private readonly INotificationSender _notificationSender;
-        private readonly IStoreService _storeService;
+        private readonly ICrudService<Store> _storeService;
 
         public RequestPasswordResetQueryHandler(
             Func<UserManager<ApplicationUser>> userManagerFactory,
             INotificationSearchService notificationSearchService,
             INotificationSender notificationSender,
-            IStoreService storeService
-            )
+            ICrudService<Store> storeService)
         {
             _userManagerFactory = userManagerFactory;
             _notificationSearchService = notificationSearchService;

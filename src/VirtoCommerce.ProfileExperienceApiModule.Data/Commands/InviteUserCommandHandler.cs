@@ -13,12 +13,12 @@ using VirtoCommerce.NotificationsModule.Core.Extensions;
 using VirtoCommerce.NotificationsModule.Core.Services;
 using VirtoCommerce.NotificationsModule.Core.Types;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.GenericCrud;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 using VirtoCommerce.StoreModule.Core.Model;
-using VirtoCommerce.StoreModule.Core.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -30,13 +30,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly IMemberService _memberService;
         private readonly INotificationSearchService _notificationSearchService;
         private readonly INotificationSender _notificationSender;
-        private readonly IStoreService _storeService;
+        private readonly ICrudService<Store> _storeService;
 
         public InviteUserCommandHandler(
             IWebHostEnvironment environment,
             Func<UserManager<ApplicationUser>> userManager, IMemberService memberService,
             INotificationSearchService notificationSearchService, INotificationSender notificationSender,
-            IStoreService storeService, Func<RoleManager<Role>> roleManagerFactory)
+            ICrudService<Store> storeService, Func<RoleManager<Role>> roleManagerFactory)
         {
             _environment = environment;
             _userManagerFactory = userManager;
