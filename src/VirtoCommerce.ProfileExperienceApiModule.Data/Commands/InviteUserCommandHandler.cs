@@ -19,6 +19,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 using VirtoCommerce.StoreModule.Core.Model;
+using VirtoCommerce.StoreModule.Core.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -36,14 +37,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             IWebHostEnvironment environment,
             Func<UserManager<ApplicationUser>> userManager, IMemberService memberService,
             INotificationSearchService notificationSearchService, INotificationSender notificationSender,
-            ICrudService<Store> storeService, Func<RoleManager<Role>> roleManagerFactory)
+            IStoreService storeService, Func<RoleManager<Role>> roleManagerFactory)
         {
             _environment = environment;
             _userManagerFactory = userManager;
             _memberService = memberService;
             _notificationSearchService = notificationSearchService;
             _notificationSender = notificationSender;
-            _storeService = storeService;
+            _storeService = (ICrudService<Store>)storeService;
             _roleManagerFactory = roleManagerFactory;
         }
 

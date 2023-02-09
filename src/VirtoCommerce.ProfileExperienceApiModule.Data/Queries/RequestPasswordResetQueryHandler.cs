@@ -10,6 +10,7 @@ using VirtoCommerce.Platform.Core.GenericCrud;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.StoreModule.Core.Model;
+using VirtoCommerce.StoreModule.Core.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries
 {
@@ -24,12 +25,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries
             Func<UserManager<ApplicationUser>> userManagerFactory,
             INotificationSearchService notificationSearchService,
             INotificationSender notificationSender,
-            ICrudService<Store> storeService)
+            IStoreService storeService)
         {
             _userManagerFactory = userManagerFactory;
             _notificationSearchService = notificationSearchService;
             _notificationSender = notificationSender;
-            _storeService = storeService;
+            _storeService = (ICrudService<Store>)storeService;
         }
 
         public virtual async Task<bool> Handle(RequestPasswordResetQuery request, CancellationToken cancellationToken)
