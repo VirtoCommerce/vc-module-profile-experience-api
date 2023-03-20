@@ -13,6 +13,7 @@ using VirtoCommerce.NotificationsModule.Core.Extensions;
 using VirtoCommerce.NotificationsModule.Core.Services;
 using VirtoCommerce.NotificationsModule.Core.Types;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.GenericCrud;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
@@ -30,7 +31,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly IMemberService _memberService;
         private readonly INotificationSearchService _notificationSearchService;
         private readonly INotificationSender _notificationSender;
-        private readonly IStoreService _storeService;
+        private readonly ICrudService<Store> _storeService;
 
         public InviteUserCommandHandler(
             IWebHostEnvironment environment,
@@ -43,7 +44,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _memberService = memberService;
             _notificationSearchService = notificationSearchService;
             _notificationSender = notificationSender;
-            _storeService = storeService;
+            _storeService = (ICrudService<Store>)storeService;
             _roleManagerFactory = roleManagerFactory;
         }
 
