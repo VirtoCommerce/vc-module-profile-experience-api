@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Security.Claims;
 using GraphQL;
 using GraphQL.Builders;
 using GraphQL.Resolvers;
@@ -97,6 +98,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             {
                 context.CopyArgumentsToUserContext();
 
+                var user = ((GraphQLUserContext)context.UserContext).User;
+                var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                    user.FindFirstValue("name") ??
+                    ExperienceApiModule.Core.AnonymousUser.UserName;
+
+                await CheckAuthAsync(userId, context);
+                
                 var query = context.GetSearchMembersQuery<SearchOrganizationsQuery>();
                 query.DeepSearch = true;
 
@@ -116,6 +124,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             contactsConnectionBuilder.ResolveAsync(async context =>
             {
                 context.CopyArgumentsToUserContext();
+
+                var user = ((GraphQLUserContext)context.UserContext).User;
+                var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                    user.FindFirstValue("name") ??
+                    ExperienceApiModule.Core.AnonymousUser.UserName;
+
+                await CheckAuthAsync(userId, context);
 
                 var query = context.GetSearchMembersQuery<SearchContactsQuery>();
                 query.DeepSearch = true;
