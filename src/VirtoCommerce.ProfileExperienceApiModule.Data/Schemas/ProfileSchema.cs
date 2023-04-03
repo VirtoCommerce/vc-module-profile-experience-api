@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Security.Claims;
 using GraphQL;
 using GraphQL.Builders;
 using GraphQL.Resolvers;
@@ -28,6 +29,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany;
+using static Microsoft.ApplicationInsights.MetricDimensionNames.TelemetryContext;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
@@ -97,6 +99,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             {
                 context.CopyArgumentsToUserContext();
 
+                var userId = GetUserId(((GraphQLUserContext)context.UserContext));
+
+                await CheckAuthAsync(userId, context);
+                
                 var query = context.GetSearchMembersQuery<SearchOrganizationsQuery>();
                 query.DeepSearch = true;
 
@@ -116,6 +122,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             contactsConnectionBuilder.ResolveAsync(async context =>
             {
                 context.CopyArgumentsToUserContext();
+
+                var userId = GetUserId(((GraphQLUserContext)context.UserContext));
+
+                await CheckAuthAsync(userId, context);
 
                 var query = context.GetSearchMembersQuery<SearchContactsQuery>();
                 query.DeepSearch = true;
@@ -786,6 +796,15 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             var user = await signInManager.UserManager.FindByIdAsync(userId);
 
             return user?.Email;
+        }
+
+        private string GetUserId(GraphQLUserContext context)
+        {
+            var user = context.User;
+
+            return user.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                user.FindFirstValue("name") ??
+                ExperienceApiModule.Core.AnonymousUser.UserName;
         }
     }
 }
