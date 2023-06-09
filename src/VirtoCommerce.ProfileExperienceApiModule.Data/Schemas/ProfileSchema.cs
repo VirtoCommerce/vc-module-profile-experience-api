@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Security.Claims;
+using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.Builders;
 using GraphQL.Resolvers;
@@ -29,7 +29,6 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany;
-using static Microsoft.ApplicationInsights.MetricDimensionNames.TelemetryContext;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
@@ -79,7 +78,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                     return AnonymousUser.Instance;
                 })
             });
-            
+
             schema.AddMemberQuery<OrganizationAggregate, OrganizationType, GetOrganizationByIdQuery>(
                 _mediator, "organization", (userId, obj) => CheckAuthAsync(userId, obj));
 
@@ -102,7 +101,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 var userId = GetUserId(((GraphQLUserContext)context.UserContext));
 
                 await CheckAuthAsync(userId, context);
-                
+
                 var query = context.GetSearchMembersQuery<SearchOrganizationsQuery>();
                 query.DeepSearch = true;
 
@@ -290,8 +289,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             {
                                 var type = GenericTypeHelper.GetActualType<UpdateOrganizationCommand>();
                                 var command = (UpdateOrganizationCommand)context.GetArgument(type, _commandName);
-                                await CheckAuthAsync(context.GetCurrentUserId(), command,
-                                    ModuleConstants.Security.Permissions.MyOrganizationEdit);
+                                await CheckAuthAsync(context.GetCurrentUserId(), command, permissions: ModuleConstants.Security.Permissions.MyOrganizationEdit);
                                 return await _mediator.Send(command);
                             })
                             .FieldType);
@@ -315,8 +313,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             {
                                 var type = GenericTypeHelper.GetActualType<RemoveMemberFromOrganizationCommand>();
                                 var command = (RemoveMemberFromOrganizationCommand)context.GetArgument(type, _commandName);
-                                await CheckAuthAsync(context.GetCurrentUserId(), command,
-                                    ModuleConstants.Security.Permissions.MyOrganizationEdit);
+                                await CheckAuthAsync(context.GetCurrentUserId(), command, permissions: ModuleConstants.Security.Permissions.MyOrganizationEdit);
                                 return await _mediator.Send(command);
                             })
                             .FieldType);
@@ -366,7 +363,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             {
                                 var type = GenericTypeHelper.GetActualType<DeleteContactCommand>();
                                 var command = (DeleteContactCommand)context.GetArgument(type, _commandName);
-                                await CheckAuthAsync(context.GetCurrentUserId(), command, CustomerModule.Core.ModuleConstants.Security.Permissions.Delete);
+                                await CheckAuthAsync(context.GetCurrentUserId(), command, permissions: CustomerModule.Core.ModuleConstants.Security.Permissions.Delete);
                                 return await _mediator.Send(command);
                             })
                             .FieldType);
@@ -390,7 +387,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         {
                             var type = GenericTypeHelper.GetActualType<UpdateMemberDynamicPropertiesCommand>();
                             var command = (UpdateMemberDynamicPropertiesCommand)context.GetArgument(type, _commandName);
-                            await CheckAuthAsync(context.GetCurrentUserId(), command, CustomerModule.Core.ModuleConstants.Security.Permissions.Update);
+                            await CheckAuthAsync(context.GetCurrentUserId(), command, permissions: CustomerModule.Core.ModuleConstants.Security.Permissions.Update);
 
                             return await _mediator.Send(command);
                         })
@@ -426,6 +423,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 })
                 .FieldType);
 
+            _ = schema.Mutation.AddField(FieldBuilder.Create<object, IdentityResultResponse>(GraphTypeExtenstionHelper.GetActualType<CustomIdentityResultType>())
+                .Name("changePassword")
+                .Argument(GraphTypeExtenstionHelper.GetActualComplexType<InputChangePasswordType>(), _commandName)
+                .ResolveAsync(async context =>
+                {
+                    var type = GenericTypeHelper.GetActualType<ChangePasswordCommand>();
+                    var command = (ChangePasswordCommand)context.GetArgument(type, _commandName);
+                    await CheckAuthAsync(context.GetCurrentUserId(), command, checkPasswordExpired: false);
+
+                    return await _mediator.Send(command);
+                })
+                .FieldType);
 
             _ = schema.Mutation.AddField(FieldBuilder.Create<ContactAggregate, ContactAggregate>(GraphTypeExtenstionHelper.GetActualType<ContactType>())
               .Name("lockOrganizationContact")
@@ -434,7 +443,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
               {
                   var type = GenericTypeHelper.GetActualType<LockOrganizationContactCommand>();
                   var command = (LockOrganizationContactCommand)context.GetArgument(type, _commandName);
-                  await CheckAuthAsync(context.GetCurrentUserId(), command, ModuleConstants.Security.Permissions.MyOrganizationEdit);
+                  await CheckAuthAsync(context.GetCurrentUserId(), command, permissions: ModuleConstants.Security.Permissions.MyOrganizationEdit);
                   return await _mediator.Send(command);
               })
               .FieldType);
@@ -446,7 +455,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
               {
                   var type = GenericTypeHelper.GetActualType<UnlockOrganizationContactCommand>();
                   var command = (UnlockOrganizationContactCommand)context.GetArgument(type, _commandName);
-                  await CheckAuthAsync(context.GetCurrentUserId(), command, ModuleConstants.Security.Permissions.MyOrganizationEdit);
+                  await CheckAuthAsync(context.GetCurrentUserId(), command, permissions: ModuleConstants.Security.Permissions.MyOrganizationEdit);
                   return await _mediator.Send(command);
               })
               .FieldType);
@@ -656,7 +665,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         {
                             var type = GenericTypeHelper.GetActualType<ChangeOrganizationContactRoleCommand>();
                             var command = (ChangeOrganizationContactRoleCommand)context.GetArgument(type, _commandName);
-                            await CheckAuthAsync(context.GetCurrentUserId(), command, ModuleConstants.Security.Permissions.MyOrganizationEdit);
+                            await CheckAuthAsync(context.GetCurrentUserId(), command, permissions: ModuleConstants.Security.Permissions.MyOrganizationEdit);
                             return await _mediator.Send(command);
                         })
             .FieldType);
@@ -685,7 +694,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         {
                             var type = GenericTypeHelper.GetActualType<DeleteUserCommand>();
                             var command = (DeleteUserCommand)context.GetArgument(type, _commandName);
-                            await CheckAuthAsync(context.GetCurrentUserId(), command, PlatformConstants.Security.Permissions.SecurityDelete);
+                            await CheckAuthAsync(context.GetCurrentUserId(), command, permissions: PlatformConstants.Security.Permissions.SecurityDelete);
                             return await _mediator.Send(command);
                         })
                         .FieldType);
@@ -716,7 +725,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                      {
                          var type = GenericTypeHelper.GetActualType<UpdateRoleCommand>();
                          var command = (UpdateRoleCommand)context.GetArgument(type, _commandName);
-                         await CheckAuthAsync(context.GetCurrentUserId(), command, PlatformConstants.Security.Permissions.SecurityUpdate);
+                         await CheckAuthAsync(context.GetCurrentUserId(), command, permissions: PlatformConstants.Security.Permissions.SecurityUpdate);
 
                          return await _mediator.Send(command);
                      })
@@ -724,7 +733,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
         }
 
         // PT-1654: Fix Authentication
-        private async Task CheckAuthAsync(string userId, object resource, params string[] permissions)
+        private async Task CheckAuthAsync(string userId, object resource, bool checkPasswordExpired = true, params string[] permissions)
         {
             var signInManager = _signInManagerFactory();
 
@@ -735,6 +744,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                     Id = userId,
                     UserName = ExperienceApiModule.Core.AnonymousUser.UserName,
                 };
+
+                if (checkPasswordExpired && user.PasswordExpired)
+                {
+                    throw new AuthorizationError($"This user has their password expired. Please change the password using 'changePassword' command.");
+                }
 
                 var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
 
