@@ -13,16 +13,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
     public class ChangePasswordCommandHandler : UserCommandHandlerBase, IRequestHandler<ChangePasswordCommand, IdentityResultResponse>
     {
-        private readonly PasswordOptionsExtended _passwordOptions;
-
         public ChangePasswordCommandHandler(
             Func<UserManager<ApplicationUser>> userManagerFactory,
-            IOptions<AuthorizationOptions> securityOptions,
-            IOptions<PasswordOptionsExtended> passwordOptions
-            )
+            IOptions<AuthorizationOptions> securityOptions)
             : base(userManagerFactory, securityOptions)
         {
-            _passwordOptions = passwordOptions.Value;
         }
 
         public async Task<IdentityResultResponse> Handle(ChangePasswordCommand request, CancellationToken cancellationToken)
@@ -39,6 +34,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             if (!IsUserEditable(user.UserName))
             {
                 return CreateResponse(IdentityResult.Failed(new IdentityError { Code = "UserNotEditable", Description = "It is forbidden to edit this user." }));
+            }
+
+            if (request.OldPassword == request.NewPassword)
+            {
+                return CreateResponse(IdentityResult.Failed(new IdentityError { Code = "SamePassword", Description = "You have used this password in the past. Choose another one." }));
             }
 
             var result = await userManager.ChangePasswordAsync(user, request.OldPassword, request.NewPassword);
