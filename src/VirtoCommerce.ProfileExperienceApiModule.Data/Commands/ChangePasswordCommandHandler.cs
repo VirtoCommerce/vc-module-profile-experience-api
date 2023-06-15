@@ -38,7 +38,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             if (request.OldPassword == request.NewPassword)
             {
-                return CreateResponse(IdentityResult.Failed(new IdentityError { Code = "SamePassword", Description = "You have used this password in the past. Choose another one." }));
+                return CreateResponse(IdentityResult.Failed(new IdentityError { Code = "SamePassword", Description = "New password is the same as old password. Please choose another one." }));
             }
 
             var result = await userManager.ChangePasswordAsync(user, request.OldPassword, request.NewPassword);
