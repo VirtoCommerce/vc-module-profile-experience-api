@@ -40,6 +40,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field(x => x.TwoFactorEnabled);
             Field(x => x.UserName);
             Field(x => x.UserType, true);
+            Field<BooleanGraphType>("forcePasswordChange", resolve: x => x.Source.PasswordExpired, description: "Make this user change their password when they sign in next time");
 
             AddField(new FieldType
             {

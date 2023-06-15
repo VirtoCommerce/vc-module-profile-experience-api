@@ -33,7 +33,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             var result = context.User.IsInRole(PlatformConstants.Security.SystemRoles.Administrator);
 
             // Administrators can do anything except creating any users
-            if (result && !(context.Resource is CreateUserCommand))
+            if (result && context.Resource is not CreateUserCommand)
             {
                 context.Succeed(requirement);
                 return;
@@ -184,10 +184,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             {
                 result = await HasSameOrganizationAsync(currentContact, changeOrganizationContactRoleCommand.UserId, userManager);
             }
-
             else if (context.Resource is RemoveMemberFromOrganizationCommand removeMemberFromOrganizationCommand)
             {
                 result = await HasSameOrganizationAsync(currentContact, removeMemberFromOrganizationCommand.ContactId, userManager);
+            }
+            else if (context.Resource is ChangePasswordCommand changePasswordCommand)
+            {
+                result = changePasswordCommand.UserId == currentUserId;
             }
             if (result)
             {
@@ -208,7 +211,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
         private async Task<bool> HasSameOrganizationAsync(Contact currentContact, string contactId, UserManager<ApplicationUser> userManager)
         {
             if (currentContact is null)
+            {
                 return false;
+            }
 
             var contact = await GetCustomerAsync(contactId, userManager) as Contact;
             return currentContact.Organizations.Intersect(contact?.Organizations ?? Array.Empty<string>()).Any();
