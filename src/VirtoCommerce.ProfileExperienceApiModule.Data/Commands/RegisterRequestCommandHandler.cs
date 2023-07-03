@@ -19,7 +19,6 @@ using VirtoCommerce.NotificationsModule.Core.Services;
 using VirtoCommerce.NotificationsModule.Core.Types;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.DynamicProperties;
-using VirtoCommerce.Platform.Core.GenericCrud;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.Platform.Security;
@@ -28,18 +27,19 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.StoreModule.Core.Model;
-using CustomerCore = VirtoCommerce.CustomerModule.Core;
+using VirtoCommerce.StoreModule.Core.Services;
+using CustomerSettings = VirtoCommerce.CustomerModule.Core.ModuleConstants.Settings.General;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
     public class RegisterRequestCommandHandler : IRequestHandler<RegisterRequestCommand, RegisterOrganizationResult>
     {
-        private const string UserType = "Manager";
+        private const string _userType = "Manager";
 
         private readonly IMapper _mapper;
         private readonly IDynamicPropertyUpdaterService _dynamicPropertyUpdater;
         private readonly IMemberService _memberService;
-        private readonly ICrudService<Store> _storeService;
+        private readonly IStoreService _storeService;
         private readonly INotificationSearchService _notificationSearchService;
         private readonly INotificationSender _notificationSender;
         private readonly IAccountService _accountService;
@@ -55,11 +55,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         protected string DefaultOrganizationStatus { get; private set; }
         protected Role MaintainerRole { get; private set; }
 
-#pragma warning disable S107
+#pragma warning disable S107 // Method has x parameters which are greater than y
         public RegisterRequestCommandHandler(IMapper mapper,
             IDynamicPropertyUpdaterService dynamicPropertyUpdater,
             IMemberService memberService,
-            ICrudService<Store> storeService,
+            IStoreService storeService,
             INotificationSearchService notificationSearchService,
             INotificationSender notificationSender,
             IAccountService accountService,
@@ -129,18 +129,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             // Read Settings
             DefaultContactStatus = CurrentStore.Settings
-                .GetSettingValue<string>(CustomerCore.ModuleConstants.Settings.General.ContactDefaultStatus.Name, null);
+                .GetSettingValue<string>(CustomerSettings.ContactDefaultStatus.Name, null);
 
             DefaultOrganizationStatus = CurrentStore.Settings
-                .GetSettingValue<string>(CustomerCore.ModuleConstants.Settings.General.OrganizationDefaultStatus.Name, null);
+                .GetSettingValue<string>(CustomerSettings.OrganizationDefaultStatus.Name, null);
 
             MaintainerRole = await GetMaintainerRole(result, tokenSource);
         }
 
-#pragma warning disable S138
         protected virtual async Task ProcessRequestAsync(RegisterRequestCommand request, RegisterOrganizationResult result, CancellationTokenSource tokenSource)
         {
-            // Map incoming enties from request to Virto Commerce enties
+            // Map incoming entities from request to Virto Commerce entities
             var account = ToApplicationUser(request.Account);
 
             var contact = await ToContact(request.Contact, account);
@@ -153,14 +152,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 account.Roles = new List<Role> { MaintainerRole };
             }
 
-            // Validate parameters & stop processing if any error is occured
+            // Validate parameters & stop processing if any error is occurred
             var isValid = await ValidateAsync(organization, contact, request.Account, result, tokenSource);
             if (!isValid)
             {
                 return;
             }
 
-            // Create Organisation
+            // Create Organization
             if (organization != null)
             {
                 await _memberService.SaveChangesAsync(new Member[] { organization });
@@ -205,7 +204,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         {
             var validationTasks = new List<Task<ValidationResult>>();
 
-            validationTasks.AddRange(new Task<ValidationResult>[]{
+            validationTasks.AddRange(new[]{
                 _organizationValidator.ValidateAsync(organization),
                 _contactValidator.ValidateAsync(contact),
                 _accountValidator.ValidateAsync(account)});
@@ -305,9 +304,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 email), tokenSource.Token);
         }
 
-        private static string ResolveEmail(ApplicationUser account, IList<Address> orgAdresses)
+        private static string ResolveEmail(ApplicationUser account, IList<Address> orgAddresses)
         {
-            return orgAdresses.FirstOrDefault()?.Email ?? account.Email;
+            return orgAddresses.FirstOrDefault()?.Email ?? account.Email;
         }
 
         protected virtual async Task<Role> GetMaintainerRole(RegisterOrganizationResult result, CancellationTokenSource tokenSource)
@@ -338,7 +337,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 {
                     Code = x.Code,
                     Description = x.Description,
-                    Parameter = x is CustomIdentityError error ? error.Parameter.ToString() : null
+                    Parameter = x is CustomIdentityError error ? error.Parameter : null
                 }).ToList()
             };
         }
@@ -350,10 +349,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             Password = account.Password,
             StoreId = CurrentStore.Id,
             Status = DefaultContactStatus,
-            UserType = UserType,
+            UserType = _userType,
         };
-
-#pragma warning restore S138
 
         protected virtual async Task RollBackMembersCreationAsync(RegisterOrganizationResult result)
         {
