@@ -10,22 +10,23 @@ using VirtoCommerce.NotificationsModule.Core.Model;
 using VirtoCommerce.NotificationsModule.Core.Services;
 using VirtoCommerce.NotificationsModule.Core.Types;
 using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.Platform.Core.GenericCrud;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.StoreModule.Core.Model;
+using VirtoCommerce.StoreModule.Core.Services;
+using StoreSettings = VirtoCommerce.StoreModule.Core.ModuleConstants.Settings.General;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
     public class SendVerifyEmailCommandHandler : IRequestHandler<SendVerifyEmailCommand, bool>
     {
         private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
-        private readonly ICrudService<Store> _storeService;
+        private readonly IStoreService _storeService;
         private readonly INotificationSearchService _notificationSearchService;
         private readonly INotificationSender _notificationSender;
 
         public SendVerifyEmailCommandHandler(Func<UserManager<ApplicationUser>> userManagerFactory,
-            ICrudService<Store> storeService,
+            IStoreService storeService,
             INotificationSearchService notificationSearchService,
             INotificationSender notificationSender)
         {
@@ -52,7 +53,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                     return true;
                 }
 
-                var settingDescriptor = VirtoCommerce.StoreModule.Core.ModuleConstants.Settings.General.EmailVerificationEnabled;
+                var settingDescriptor = StoreSettings.EmailVerificationEnabled;
 
                 if (store.Settings.GetSettingValue(settingDescriptor.Name, (bool)settingDescriptor.DefaultValue))
                 {

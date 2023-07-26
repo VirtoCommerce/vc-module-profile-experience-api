@@ -1,5 +1,3 @@
-using System.Linq;
-using AutoMapper;
 using GraphQL.Server;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -37,8 +35,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
         {
             serviceCollection.AddSchemaBuilder<ProfileSchema>();
 
-            var graphQlbuilder = new CustomGraphQLBuilder(serviceCollection);
-            graphQlbuilder.AddGraphTypes(typeof(XProfileAnchor));
+            var graphQlBuilder = new CustomGraphQLBuilder(serviceCollection);
+            graphQlBuilder.AddGraphTypes(typeof(XProfileAnchor));
 
             serviceCollection.AddMediatR(typeof(XProfileAnchor));
             serviceCollection.AddSingleton<IMemberAggregateFactory, MemberAggregateFactory>();
@@ -60,10 +58,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
             {
                 builder.AddMiddleware(typeof(LoadUserToEvalContextMiddleware));
             });
+
             serviceCollection.AddPipeline<TaxEvaluationContext>(builder =>
             {
                 builder.AddMiddleware(typeof(LoadUserToEvalContextMiddleware));
             });
+
             serviceCollection.AddPipeline<PriceEvaluationContext>(builder =>
             {
                 builder.AddMiddleware(typeof(LoadUserToEvalContextMiddleware));
@@ -74,9 +74,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
 
         public void PostInitialize(IApplicationBuilder appBuilder)
         {
-            var permissionsProvider = appBuilder.ApplicationServices.GetRequiredService<IPermissionsRegistrar>();
-            permissionsProvider.RegisterPermissions(ModuleConstants.Security.Permissions.AllPermissions.Select(x =>
-                new Permission() { GroupName = "Xapi", Name = x }).ToArray());
+            var permissionsRegistrar = appBuilder.ApplicationServices.GetRequiredService<IPermissionsRegistrar>();
+            permissionsRegistrar.RegisterPermissions(ModuleInfo.Id, "XAPI", ModuleConstants.Security.Permissions.AllPermissions);
         }
 
         public void Uninstall()
