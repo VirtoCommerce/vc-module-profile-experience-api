@@ -411,6 +411,19 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         })
                         .FieldType);
 
+            _ = schema.Mutation.AddField(FieldBuilder
+                        .Create<RegisterOrganizationResult, IdentityResultResponse>(GraphTypeExtenstionHelper.GetActualType<CustomIdentityResultType>())
+                        .Name("confirmEmail")
+                        .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputConfirmEmailType>>(), _commandName)
+                        .ResolveAsync(async context =>
+                        {
+                            var type = GenericTypeHelper.GetActualType<ConfirmEmailCommand>();
+                            var command = (ConfirmEmailCommand)context.GetArgument(type, _commandName);
+
+                            return await _mediator.Send(command);
+                        })
+                        .FieldType);
+
             _ = schema.Mutation.AddField(FieldBuilder.Create<object, IdentityResultResponse>(GraphTypeExtenstionHelper.GetActualType<CustomIdentityResultType>())
                 .Name("resetPasswordByToken")
                 .Argument(GraphTypeExtenstionHelper.GetActualComplexType<InputResetPasswordByTokenType>(), _commandName)

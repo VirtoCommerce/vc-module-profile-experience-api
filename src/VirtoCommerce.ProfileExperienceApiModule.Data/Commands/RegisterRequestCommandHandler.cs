@@ -9,26 +9,24 @@ using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using VirtoCommerce.CustomerModule.Core.Model;
-using VirtoCommerce.CustomerModule.Core.Notifications;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ExperienceApiModule.Core.Models;
 using VirtoCommerce.ExperienceApiModule.Core.Services;
-using VirtoCommerce.NotificationsModule.Core.Extensions;
-using VirtoCommerce.NotificationsModule.Core.Model;
 using VirtoCommerce.NotificationsModule.Core.Services;
-using VirtoCommerce.NotificationsModule.Core.Types;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.DynamicProperties;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.Platform.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Configuration;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
 using CustomerSettings = VirtoCommerce.CustomerModule.Core.ModuleConstants.Settings.General;
+using RegistrationFlows = VirtoCommerce.ProfileExperienceApiModule.Data.ModuleConstants.RegistrationFlows;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -40,8 +38,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly IDynamicPropertyUpdaterService _dynamicPropertyUpdater;
         private readonly IMemberService _memberService;
         private readonly IStoreService _storeService;
-        private readonly INotificationSearchService _notificationSearchService;
-        private readonly INotificationSender _notificationSender;
         private readonly IAccountService _accountService;
         private readonly NewContactValidator _contactValidator;
         private readonly AccountValidator _accountValidator;
@@ -75,8 +71,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _dynamicPropertyUpdater = dynamicPropertyUpdater;
             _memberService = memberService;
             _storeService = storeService;
-            _notificationSearchService = notificationSearchService;
-            _notificationSender = notificationSender;
             _accountService = accountService;
             _contactValidator = contactValidator;
             _accountValidator = accountValidator;
@@ -142,7 +136,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             // Map incoming entities from request to Virto Commerce entities
             var account = ToApplicationUser(request.Account);
 
-            var contact = await ToContact(request.Contact, account);
+            var contact = await ToContact(request.Contact, account, request.LanguageCode);
             account.MemberId = contact.Id;
 
             Organization organization = null;
@@ -172,8 +166,16 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             await _memberService.SaveChangesAsync(new Member[] { contact });
 
             // Create Security Account
+            var emailVerificationFlow = CurrentStore.GetEmailVerificationFlow();
+
+            // make user with confirmed email immediately if no email verification flow is seleced
+            // other two flows allow user to confirm email
+            account.EmailConfirmed = emailVerificationFlow == RegistrationFlows.NoEmailVerification;
+            // lock account before confirming email
+            account.LockoutEnd = emailVerificationFlow == RegistrationFlows.EmailVerificationRequired ? DateTime.MaxValue : null;
+
             var identityResult = await _accountService.CreateAccountAsync(account);
-            result.AccountCreationResult = ToAccountCreationResult(identityResult, account);
+            result.AccountCreationResult = ToAccountCreationResult(identityResult, account, account.LockoutEnd.HasValue);
 
             if (!identityResult.Succeeded)
             {
@@ -186,18 +188,35 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             result.Contact = contact;
             result.Contact.SecurityAccounts = new List<ApplicationUser> { account };
 
-            // Send Notifications
-            var notificationRequest = new RegisterOrganizationNotificationRequest
+            // Send email notifications
+            var registrationNotificationRequest = new SendRegistrationNotificationCommand
             {
                 Store = CurrentStore,
                 LanguageCode = request.LanguageCode,
                 Organization = organization,
                 Contact = contact,
             };
-            await SendRegistrationEmailNotificationAsync(notificationRequest);
 
-            // Send Email Verification Command
-            await SendVerifyEmailCommand(request, account.Email, tokenSource);
+            switch (emailVerificationFlow)
+            {
+                case RegistrationFlows.NoEmailVerification:
+                    {
+                        await SendRegistrationEmailNotificationAsync(registrationNotificationRequest, tokenSource);
+                        break;
+                    }
+
+                case RegistrationFlows.EmailVerificationOptional:
+                    {
+                        await SendRegistrationEmailNotificationAsync(registrationNotificationRequest, tokenSource);
+                        await SendVerifyEmailCommandAsync(request, account.Email, tokenSource);
+                        break;
+                    }
+                case RegistrationFlows.EmailVerificationRequired:
+                    {
+                        await SendVerifyEmailCommandAsync(request, account.Email, tokenSource);
+                        break;
+                    }
+            }
         }
 
         private async Task<bool> ValidateAsync(Organization organization, Contact contact, Account account, RegisterOrganizationResult result, CancellationTokenSource tokenSource)
@@ -245,59 +264,28 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return result;
         }
 
-        private async Task<Contact> ToContact(RegisteredContact contact, ApplicationUser account)
+        private async Task<Contact> ToContact(RegisteredContact contact, ApplicationUser account, string language)
         {
             var result = _mapper.Map<Contact>(contact);
 
             result.Id = Guid.NewGuid().ToString();
-            result.FullName = contact.FirstName + " " + contact.LastName;
+            result.FullName = $"{contact.FirstName} {contact.LastName}";
             result.Name = result.FullName;
             result.Status = DefaultContactStatus;
             result.Emails = new List<string> { account.Email };
+            result.DefaultLanguage = language;
 
             await SetDynamicPropertiesAsync(contact.DynamicProperties, result);
 
             return result;
         }
 
-        protected virtual async Task SendRegistrationEmailNotificationAsync(RegisterOrganizationNotificationRequest request)
+        protected virtual Task SendRegistrationEmailNotificationAsync(SendRegistrationNotificationCommand request, CancellationTokenSource tokenSource)
         {
-            var notification = request.Organization != null
-                ? await GetRegisterCompanyNotificationAsync(request)
-                : await GetRegisterContactNotificationAsync(request);
-
-            await _notificationSender.ScheduleSendNotificationAsync(notification);
+            return _mediator.Send(request, tokenSource.Token);
         }
 
-        protected virtual async Task<EmailNotification> GetRegisterCompanyNotificationAsync(RegisterOrganizationNotificationRequest request)
-        {
-            var notification = await _notificationSearchService.GetNotificationAsync<RegisterCompanyEmailNotification>(new TenantIdentity(request.Store.Id, nameof(Store)));
-
-            notification.From = request.Store.Email;
-            notification.LanguageCode = string.IsNullOrEmpty(request.LanguageCode) ? request.Store.DefaultLanguage : request.LanguageCode;
-
-            notification.To = request.Organization.Emails.FirstOrDefault();
-            notification.CompanyName = request.Organization.Name;
-
-            return notification;
-        }
-
-        protected virtual async Task<EmailNotification> GetRegisterContactNotificationAsync(RegisterOrganizationNotificationRequest request)
-        {
-            var notification = await _notificationSearchService.GetNotificationAsync<RegistrationEmailNotification>(new TenantIdentity(request.Store.Id, nameof(Store)));
-
-            notification.From = request.Store.Email;
-            notification.LanguageCode = string.IsNullOrEmpty(request.LanguageCode) ? request.Store.DefaultLanguage : request.LanguageCode;
-
-            notification.To = request.Contact.Emails.FirstOrDefault();
-            notification.FirstName = request.Contact.FirstName;
-            notification.LastName = request.Contact.LastName;
-            notification.Login = request.Contact.SecurityAccounts.FirstOrDefault()?.UserName;
-
-            return notification;
-        }
-
-        protected virtual Task SendVerifyEmailCommand(RegisterRequestCommand request, string email, CancellationTokenSource tokenSource)
+        protected virtual Task SendVerifyEmailCommandAsync(RegisterRequestCommand request, string email, CancellationTokenSource tokenSource)
         {
             return _mediator.Send(new SendVerifyEmailCommand(request.StoreId,
                 request.LanguageCode,
@@ -327,11 +315,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return role;
         }
 
-        protected virtual AccountCreationResult ToAccountCreationResult(IdentityResult identityResult, ApplicationUser account)
+        protected virtual AccountCreationResult ToAccountCreationResult(IdentityResult identityResult, ApplicationUser account, bool requireEmailVerification)
         {
             return new AccountCreationResult
             {
                 Succeeded = identityResult.Succeeded,
+                RequireEmailVerification = requireEmailVerification,
                 AccountName = account.UserName,
                 Errors = identityResult.Errors.Select(x => new RegistrationError
                 {
@@ -388,6 +377,5 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             source.Cancel();
         }
-
     }
 }
