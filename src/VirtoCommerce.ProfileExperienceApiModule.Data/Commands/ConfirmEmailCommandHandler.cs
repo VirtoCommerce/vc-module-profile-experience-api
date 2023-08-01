@@ -62,29 +62,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                         await userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MinValue.ToUniversalTime());
                     }
 
-                    var store = await _storeService.GetByIdAsync(user.StoreId);
-                    var emailVerificationFlow = store.GetEmailVerificationFlow();
-
-                    if (emailVerificationFlow == RegistrationFlows.EmailVerificationRequired)
-                    {
-                        var contact = (await _memberService.GetByIdAsync(user.MemberId)) as Contact;
-                        if (contact != null)
-                        {
-                            // try to find organization
-                            var organization = await GetOrganization(contact);
-
-                            var registrationNotificationRequest = new SendRegistrationNotificationCommand
-                            {
-                                Store = store,
-                                LanguageCode = contact.DefaultLanguage ?? store.DefaultLanguage,
-                                Contact = contact,
-                                Organization = organization,
-                            };
-
-                            var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                            await _mediator.Send(registrationNotificationRequest, cancellationTokenSource.Token);
-                        }
-                    }
+                    await SendRegistrationNotification(user, cancellationToken);
                 }
             }
 
@@ -92,6 +70,36 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             result.Succeeded = identityResult?.Succeeded ?? false;
 
             return result;
+        }
+
+        private async Task SendRegistrationNotification(ApplicationUser user, CancellationToken cancellationToken)
+        {
+            var store = await _storeService.GetByIdAsync(user.StoreId);
+            var emailVerificationFlow = store.GetEmailVerificationFlow();
+
+            if (emailVerificationFlow != RegistrationFlows.EmailVerificationRequired)
+            {
+                return;
+            }
+
+            var contact = (await _memberService.GetByIdAsync(user.MemberId)) as Contact;
+            if (contact == null)
+            {
+                return;
+            }
+
+            // try to find organization
+            var organization = await GetOrganization(contact);
+            var registrationNotificationRequest = new SendRegistrationNotificationCommand
+            {
+                Store = store,
+                LanguageCode = contact.DefaultLanguage ?? store.DefaultLanguage,
+                Contact = contact,
+                Organization = organization,
+            };
+
+            var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            await _mediator.Send(registrationNotificationRequest, cancellationTokenSource.Token);
         }
 
         private async Task<Organization> GetOrganization(Contact contact)
