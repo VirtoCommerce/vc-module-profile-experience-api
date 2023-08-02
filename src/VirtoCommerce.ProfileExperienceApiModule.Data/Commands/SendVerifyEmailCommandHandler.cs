@@ -40,17 +40,26 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         {
             using (var userManager = _userManagerFactory())
             {
-                var user = await userManager.FindByEmailAsync(request.Email);
+                ApplicationUser user = null;
+
+                if (!string.IsNullOrEmpty(request.UserId))
+                {
+                    user = await userManager.FindByIdAsync(request.UserId);
+                }
+                else if (!string.IsNullOrEmpty(request.Email))
+                {
+                    user = await userManager.FindByEmailAsync(request.Email);
+                }
 
                 if (user == null || user.StoreId != request.StoreId)
                 {
-                    return true;
+                    return false;
                 }
 
                 var store = await _storeService.GetByIdAsync(request.StoreId);
                 if (store == null)
                 {
-                    return true;
+                    return false;
                 }
 
                 var settingDescriptor = StoreSettings.EmailVerificationEnabled;
