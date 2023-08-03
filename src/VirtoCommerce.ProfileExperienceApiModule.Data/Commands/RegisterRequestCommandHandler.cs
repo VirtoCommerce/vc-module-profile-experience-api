@@ -301,7 +301,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         {
             return _mediator.Send(new SendVerifyEmailCommand(request.StoreId,
                 request.LanguageCode,
-                email), tokenSource.Token);
+                email,
+                string.Empty), tokenSource.Token);
         }
 
         private static string ResolveEmail(ApplicationUser account, IList<Address> orgAddresses)

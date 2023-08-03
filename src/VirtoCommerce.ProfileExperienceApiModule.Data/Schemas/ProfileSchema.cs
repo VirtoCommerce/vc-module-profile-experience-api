@@ -404,6 +404,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             var isAuthenticated = ((GraphQLUserContext)context.UserContext).User?.Identity?.IsAuthenticated ?? false;
                             if (isAuthenticated)
                             {
+                                command.UserId = context.GetCurrentUserId();
                                 command.Email = await GetUserEmailAsync(context.GetCurrentUserId());
                             }
 
