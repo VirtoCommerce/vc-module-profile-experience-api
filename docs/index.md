@@ -133,6 +133,7 @@ List of mutations:
 |12|[updateOrganization](#updateorganization)|`id!` `name` `memberType` `addresses` `phones` `emails` `groups`|Updates an organization|
 |13|[updateRole](#updaterole)|`concurrencyStamp` `id!` `name!` `description` `permissions!`|Updates a role|
 |14|[registrationRequest](#registrationRequest)|`storeId!` `company!` `contact` `account`|Registers customer or company|
+|15|[sendVerifyEmail](#sendVerifyEmail)|`storeId!` `languageCode!` `userId` `email`|Send email verification email by either userid or email|
 
 ### CreateContact
 #### Query:
@@ -570,5 +571,25 @@ mutation requestRegistration (command: InputRequestRegistrationType!) {
             "OrganizationMaintainerRole": "Organization maintainer"
         },
 ...
+}
+```
+
+### SendVerifyEmail
+Send email verification email. If userId is specified, the email property will be ignored. If a user is authorized then userId and email will be taken from the current profile.
+
+#### Query:
+```
+mutation($command: InputSendVerifyEmailType!) {
+  sendVerifyEmail(command: $command) 
+}
+```
+#### Variables:
+```
+{
+  "command": {
+     "storeId": "B2B-store", 
+     "languageCode": "EN-US",
+     "userId": "4162ff51-c880-4e42-bc4b-4bfd120a0bdf"
+  }
 }
 ```
