@@ -9,6 +9,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field<NonNullGraphType<StringGraphType>>("storeId", "Store ID");
             Field<StringGraphType>("languageCode", "Notification language code");
             Field<StringGraphType>("email");
+            Field<StringGraphType>("userId");
         }
     }
 }
