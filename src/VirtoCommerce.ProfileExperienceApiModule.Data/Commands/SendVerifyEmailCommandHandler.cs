@@ -53,13 +53,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
                 if (user == null || user.StoreId != request.StoreId)
                 {
-                    return false;
+                    return true;
                 }
 
                 var store = await _storeService.GetByIdAsync(request.StoreId);
                 if (store == null)
                 {
-                    return false;
+                    return true;
                 }
 
                 var settingDescriptor = StoreSettings.EmailVerificationEnabled;
