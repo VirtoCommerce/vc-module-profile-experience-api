@@ -14,8 +14,8 @@ Just like other xAPI modules, X-Profile module resides on a website's or applica
 * [View on GitHub](docs/index.md)
 
 ## References
-* Deployment: https://docs.virtocommerce.org/docs/latest/developer-guide/deploy-module-from-source-code/
-* Installation: https://docs.virtocommerce.org/docs/latest/user-guide/modules/
+* Deployment: https://docs.virtocommerce.org/developer-guide/deploy-module-from-source-code/
+* Installation: https://docs.virtocommerce.org/user-guide/modules/
 * Home: https://virtocommerce.com
 * Community: https://www.virtocommerce.org
 * [Download Latest Release](https://github.com/VirtoCommerce/vc-module-profile-experience-api/releases/latest)
