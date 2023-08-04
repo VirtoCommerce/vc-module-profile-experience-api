@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace VirtoCommerce.ProfileExperienceApiModule.Data
 {
     public static class ModuleConstants
@@ -22,6 +16,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data
         {
             public const string Locked = "Locked";
             public const string Approved = "Approved";
+        }
+
+        public static class RegistrationFlows
+        {
+            public const string NoEmailVerification = "NoEmailVerification";
+            public const string EmailVerificationOptional = "EmailVerificationOptional";
+            public const string EmailVerificationRequired = "EmailVerificationRequired";
         }
     }
 }

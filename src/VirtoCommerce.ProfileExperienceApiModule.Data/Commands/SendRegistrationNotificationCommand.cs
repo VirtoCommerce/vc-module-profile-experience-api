@@ -1,9 +1,10 @@
 using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
 using VirtoCommerce.StoreModule.Core.Model;
 
-namespace VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization
+namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
-    public class RegisterOrganizationNotificationRequest
+    public class SendRegistrationNotificationCommand : ICommand<bool>
     {
         public Contact Contact { get; set; }
         public Organization Organization { get; set; }
