@@ -134,9 +134,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         protected virtual async Task ProcessRequestAsync(RegisterRequestCommand request, RegisterOrganizationResult result, CancellationTokenSource tokenSource)
         {
             // Map incoming entities from request to Virto Commerce entities
+            var emailVerificationFlow = CurrentStore.GetEmailVerificationFlow();
+            var lockAccount = emailVerificationFlow == RegistrationFlows.EmailVerificationRequired;
+
             var account = ToApplicationUser(request.Account);
 
-            var contact = await ToContact(request.Contact, account, request.LanguageCode);
+            var contact = await ToContact(request.Contact, account, request.LanguageCode, lockAccount);
             account.MemberId = contact.Id;
 
             Organization organization = null;
@@ -166,16 +169,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             await _memberService.SaveChangesAsync(new Member[] { contact });
 
             // Create Security Account
-            var emailVerificationFlow = CurrentStore.GetEmailVerificationFlow();
-
             // make user with confirmed email immediately if no email verification flow is seleced
             // other two flows allow user to confirm email
             account.EmailConfirmed = emailVerificationFlow == RegistrationFlows.NoEmailVerification;
             // lock account before confirming email
-            account.LockoutEnd = emailVerificationFlow == RegistrationFlows.EmailVerificationRequired ? DateTime.MaxValue : null;
+            account.LockoutEnd = lockAccount ? DateTime.MaxValue : null;
 
             var identityResult = await _accountService.CreateAccountAsync(account);
-            result.AccountCreationResult = ToAccountCreationResult(identityResult, account, account.LockoutEnd.HasValue);
+            result.AccountCreationResult = ToAccountCreationResult(identityResult, account, lockAccount);
 
             if (!identityResult.Succeeded)
             {
@@ -264,14 +265,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return result;
         }
 
-        private async Task<Contact> ToContact(RegisteredContact contact, ApplicationUser account, string language)
+        private async Task<Contact> ToContact(RegisteredContact contact, ApplicationUser account, string language, bool requireEmailVerification)
         {
             var result = _mapper.Map<Contact>(contact);
 
             result.Id = Guid.NewGuid().ToString();
             result.FullName = $"{contact.FirstName} {contact.LastName}";
             result.Name = result.FullName;
-            result.Status = DefaultContactStatus;
+            result.Status = requireEmailVerification ? ModuleConstants.ContactStatuses.Locked : DefaultContactStatus;
             result.Emails = new List<string> { account.Email };
             result.DefaultLanguage = language;
 

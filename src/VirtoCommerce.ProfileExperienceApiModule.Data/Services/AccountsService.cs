@@ -54,5 +54,35 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services
             using var roleManager = _roleManagerFactory();
             return await roleManager.FindByNameAsync(roleName);
         }
+
+        public async Task<IdentityResult> LockAccountByIdAsync(string id)
+        {
+            using var userManager = _userManagerFactory();
+
+            var result = default(IdentityResult);
+
+            var user = await userManager.FindByIdAsync(id);
+            if (user != null)
+            {
+                result = await userManager.SetLockoutEndDateAsync(user, DateTime.MaxValue.ToUniversalTime());
+            }
+
+            return result;
+        }
+
+        public async Task<IdentityResult> UnlockAccountByIdAsync(string id)
+        {
+            using var userManager = _userManagerFactory();
+
+            var result = default(IdentityResult);
+
+            var user = await userManager.FindByIdAsync(id);
+            if (user != null && user.LockoutEnd != null)
+            {
+                result = await userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MinValue.ToUniversalTime());
+            }
+
+            return result;
+        }
     }
 }
