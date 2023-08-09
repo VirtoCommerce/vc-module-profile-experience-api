@@ -95,7 +95,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             await ProcessRequestAsync(request, result, cancellationTokenSource);
 
-            await AfterProcessRequestAsync(request, result, cancellationTokenSource);
+            if (!result.AccountCreationResult.Succeeded)
+            {
+                await RollBackMembersCreationAsync(result);
+            }
+            else
+            {
+                await AfterProcessRequestAsync(request, result, cancellationTokenSource);
+            }
 
             if (internalToken.IsCancellationRequested)
             {
@@ -165,6 +172,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             // Create Contact
             await _memberService.SaveChangesAsync(new Member[] { contact });
 
+            // Save contact/org to result
+            result.Organization = organization;
+            result.Contact = contact;
+
             // Create Security Account
             var emailVerificationFlow = CurrentStore.GetEmailVerificationFlow();
 
@@ -183,9 +194,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return;
             }
 
-            // Save data to result
-            result.Organization = organization;
-            result.Contact = contact;
+            // Save account to result
             result.Contact.SecurityAccounts = new List<ApplicationUser> { account };
 
             // Send email notifications
