@@ -95,14 +95,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             await ProcessRequestAsync(request, result, cancellationTokenSource);
 
-            if (!result.AccountCreationResult.Succeeded)
-            {
-                await RollBackMembersCreationAsync(result);
-            }
-            else
-            {
-                await AfterProcessRequestAsync(request, result, cancellationTokenSource);
-            }
+            await AfterProcessRequestAsync(request, result, cancellationTokenSource);
 
             if (internalToken.IsCancellationRequested)
             {
