@@ -165,6 +165,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             // Create Contact
             await _memberService.SaveChangesAsync(new Member[] { contact });
 
+            // Save contact/org to result
+            result.Organization = organization;
+            result.Contact = contact;
+
             // Create Security Account
             var emailVerificationFlow = CurrentStore.GetEmailVerificationFlow();
 
@@ -183,9 +187,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return;
             }
 
-            // Save data to result
-            result.Organization = organization;
-            result.Contact = contact;
+            // Save account to result
             result.Contact.SecurityAccounts = new List<ApplicationUser> { account };
 
             // Send email notifications
@@ -197,25 +199,42 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 Contact = contact,
             };
 
-            switch (emailVerificationFlow)
+            try
             {
-                case RegistrationFlows.NoEmailVerification:
-                    {
-                        await SendRegistrationEmailNotificationAsync(registrationNotificationRequest, tokenSource);
-                        break;
-                    }
+                switch (emailVerificationFlow)
+                {
+                    case RegistrationFlows.NoEmailVerification:
+                        {
+                            await SendRegistrationEmailNotificationAsync(registrationNotificationRequest, tokenSource);
+                            break;
+                        }
 
-                case RegistrationFlows.EmailVerificationOptional:
+                    case RegistrationFlows.EmailVerificationOptional:
+                        {
+                            await SendRegistrationEmailNotificationAsync(registrationNotificationRequest, tokenSource);
+                            await SendVerifyEmailCommandAsync(request, account.Email, tokenSource);
+                            break;
+                        }
+                    case RegistrationFlows.EmailVerificationRequired:
+                        {
+                            await SendVerifyEmailCommandAsync(request, account.Email, tokenSource);
+                            break;
+                        }
+                }
+            }
+            catch (Exception)
+            {
+                tokenSource.Cancel();
+
+                result.AccountCreationResult.Succeeded = false;
+                result.AccountCreationResult.Errors = new List<RegistrationError>
+                {
+                    new RegistrationError
                     {
-                        await SendRegistrationEmailNotificationAsync(registrationNotificationRequest, tokenSource);
-                        await SendVerifyEmailCommandAsync(request, account.Email, tokenSource);
-                        break;
+                        Code = "NotificationError",
+                        Description = "Cannot send registration notification",
                     }
-                case RegistrationFlows.EmailVerificationRequired:
-                    {
-                        await SendVerifyEmailCommandAsync(request, account.Email, tokenSource);
-                        break;
-                    }
+                };
             }
         }
 
@@ -322,6 +341,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             {
                 Succeeded = identityResult.Succeeded,
                 RequireEmailVerification = requireEmailVerification,
+                AccountId = account.Id,
                 AccountName = account.UserName,
                 Errors = identityResult.Errors.Select(x => new RegistrationError
                 {
@@ -351,6 +371,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             result.Organization = null;
             result.Contact = null;
+
+            if (result.AccountCreationResult?.AccountId != null)
+            {
+                var account = await _accountService.GetAccountByIdAsync(result.AccountCreationResult.AccountId);
+                if (account != null)
+                {
+                    await _accountService.DeleteAccountAsync(account);
+                }
+
+                result.AccountCreationResult.AccountId = null;
+                result.AccountCreationResult.AccountName = null;
+            }
         }
 
         private Task SetDynamicPropertiesAsync(IList<DynamicPropertyValue> dynamicProperties, IHasDynamicProperties entity)
