@@ -236,8 +236,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                         Description = "Cannot send registration notification",
                     }
                 };
-
-                return;
             }
         }
 
