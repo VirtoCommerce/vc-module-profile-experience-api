@@ -43,6 +43,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services
             return account;
         }
 
+        public async Task<ApplicationUser> GetAccountByIdAsync(string id)
+        {
+            using var userManager = _userManagerFactory();
+            return await userManager.FindByIdAsync(id);
+        }
+
         public async Task<Role> FindRoleById(string roleId)
         {
             using var roleManager = _roleManagerFactory();
@@ -53,6 +59,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services
         {
             using var roleManager = _roleManagerFactory();
             return await roleManager.FindByNameAsync(roleName);
+        }
+
+        public async Task<IdentityResult> DeleteAccountAsync(ApplicationUser account)
+        {
+            using var userManager = _userManagerFactory();
+            return await userManager.DeleteAsync(account);
         }
     }
 }

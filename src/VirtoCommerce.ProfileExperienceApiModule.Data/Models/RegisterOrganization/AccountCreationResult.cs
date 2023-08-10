@@ -4,6 +4,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganizat
 {
     public class AccountCreationResult
     {
+        public string AccountId { get; set; }
         public string AccountName { get; set; }
         public List<RegistrationError> Errors { get; set; }
         public bool Succeeded { get; set; }
