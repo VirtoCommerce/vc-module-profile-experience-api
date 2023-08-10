@@ -172,6 +172,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             // Create Contact
             await _memberService.SaveChangesAsync(new Member[] { contact });
 
+            // Save contact/org to result
+            result.Organization = organization;
+            result.Contact = contact;
+
             // Create Security Account
             var identityResult = await _accountService.CreateAccountAsync(account);
             result.AccountCreationResult = ToAccountCreationResult(identityResult, account);
@@ -182,9 +186,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return;
             }
 
-            // Save data to result
-            result.Organization = organization;
-            result.Contact = contact;
+            // Save account to result
             result.Contact.SecurityAccounts = new List<ApplicationUser> { account };
 
             // Send Notifications
@@ -195,10 +197,29 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 Organization = organization,
                 Contact = contact,
             };
-            await SendRegistrationEmailNotificationAsync(notificationRequest);
 
-            // Send Email Verification Command
-            await SendVerifyEmailCommand(request, account.Email, tokenSource);
+            try
+            {
+                await SendRegistrationEmailNotificationAsync(notificationRequest);
+
+                // Send Email Verification Command
+                await SendVerifyEmailCommand(request, account.Email, tokenSource);
+            }
+            catch (Exception)
+            {
+                tokenSource.Cancel();
+
+                result.AccountCreationResult.Succeeded = false;
+                result.AccountCreationResult.Errors = new List<RegistrationError>
+                {
+                    new RegistrationError
+                    {
+                        Code = "NotificationError",
+                        Description = "Cannot send registration notification",
+                    }
+                };
+            }
+
         }
 
         private async Task<bool> ValidateAsync(Organization organization, Contact contact, Account account, RegisterOrganizationResult result, CancellationTokenSource tokenSource)
@@ -333,6 +354,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return new AccountCreationResult
             {
                 Succeeded = identityResult.Succeeded,
+                AccountId = account.Id,
                 AccountName = account.UserName,
                 Errors = identityResult.Errors.Select(x => new RegistrationError
                 {
@@ -364,6 +386,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             result.Organization = null;
             result.Contact = null;
+
+            if (result.AccountCreationResult?.AccountId != null)
+            {
+                var account = await _accountService.GetAccountByIdAsync(result.AccountCreationResult.AccountId);
+                if (account != null)
+                {
+                    await _accountService.DeleteAccountAsync(account);
+                }
+
+                result.AccountCreationResult.AccountId = null;
+                result.AccountCreationResult.AccountName = null;
+            }
         }
 
         private Task SetDynamicPropertiesAsync(IList<DynamicPropertyValue> dynamicProperties, IHasDynamicProperties entity)
