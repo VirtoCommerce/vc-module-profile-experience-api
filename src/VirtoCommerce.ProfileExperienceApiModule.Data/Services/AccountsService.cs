@@ -54,5 +54,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services
             using var roleManager = _roleManagerFactory();
             return await roleManager.FindByNameAsync(roleName);
         }
+
+        public async Task<IdentityResult> DeleteAccountAsync(ApplicationUser account)
+        {
+            using var userManager = _userManagerFactory();
+            return await userManager.DeleteAsync(account);
+        }
     }
 }

@@ -15,6 +15,7 @@ using VirtoCommerce.ExperienceApiModule.Core.Services;
 using VirtoCommerce.NotificationsModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.DynamicProperties;
+using VirtoCommerce.Platform.Core.Exceptions;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.Platform.Security;
@@ -199,25 +200,44 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 Contact = contact,
             };
 
-            switch (emailVerificationFlow)
+            try
             {
-                case RegistrationFlows.NoEmailVerification:
-                    {
-                        await SendRegistrationEmailNotificationAsync(registrationNotificationRequest, tokenSource);
-                        break;
-                    }
+                switch (emailVerificationFlow)
+                {
+                    case RegistrationFlows.NoEmailVerification:
+                        {
+                            await SendRegistrationEmailNotificationAsync(registrationNotificationRequest, tokenSource);
+                            break;
+                        }
 
-                case RegistrationFlows.EmailVerificationOptional:
+                    case RegistrationFlows.EmailVerificationOptional:
+                        {
+                            await SendRegistrationEmailNotificationAsync(registrationNotificationRequest, tokenSource);
+                            await SendVerifyEmailCommandAsync(request, account.Email, tokenSource);
+                            break;
+                        }
+                    case RegistrationFlows.EmailVerificationRequired:
+                        {
+                            await SendVerifyEmailCommandAsync(request, account.Email, tokenSource);
+                            break;
+                        }
+                }
+            }
+            catch (PlatformException)
+            {
+                tokenSource.Cancel();
+
+                result.AccountCreationResult.Succeeded = false;
+                result.AccountCreationResult.Errors = new List<RegistrationError>
+                {
+                    new RegistrationError
                     {
-                        await SendRegistrationEmailNotificationAsync(registrationNotificationRequest, tokenSource);
-                        await SendVerifyEmailCommandAsync(request, account.Email, tokenSource);
-                        break;
+                        Code = "NotificationError",
+                        Description = "Cannot send registration notification",
                     }
-                case RegistrationFlows.EmailVerificationRequired:
-                    {
-                        await SendVerifyEmailCommandAsync(request, account.Email, tokenSource);
-                        break;
-                    }
+                };
+
+                return;
             }
         }
 
@@ -353,6 +373,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             result.Organization = null;
             result.Contact = null;
+
+            if (result.AccountCreationResult?.AccountName != null)
+            {
+                var account = await _accountService.GetAccountAsync(result.AccountCreationResult.AccountName);
+                if (account != null)
+                {
+                    await _accountService.DeleteAccountAsync(account);
+                }
+
+                result.AccountCreationResult.AccountName = null;
+            }
         }
 
         private Task SetDynamicPropertiesAsync(IList<DynamicPropertyValue> dynamicProperties, IHasDynamicProperties entity)
