@@ -341,6 +341,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             {
                 Succeeded = identityResult.Succeeded,
                 RequireEmailVerification = requireEmailVerification,
+                AccountId = account.Id,
                 AccountName = account.UserName,
                 Errors = identityResult.Errors.Select(x => new RegistrationError
                 {
@@ -371,14 +372,15 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             result.Organization = null;
             result.Contact = null;
 
-            if (result.AccountCreationResult?.AccountName != null)
+            if (result.AccountCreationResult?.AccountId != null)
             {
-                var account = await _accountService.GetAccountAsync(result.AccountCreationResult.AccountName);
+                var account = await _accountService.GetAccountByIdAsync(result.AccountCreationResult.AccountId);
                 if (account != null)
                 {
                     await _accountService.DeleteAccountAsync(account);
                 }
 
+                result.AccountCreationResult.AccountId = null;
                 result.AccountCreationResult.AccountName = null;
             }
         }
