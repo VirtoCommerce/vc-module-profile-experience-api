@@ -134,9 +134,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         protected virtual async Task ProcessRequestAsync(RegisterRequestCommand request, RegisterOrganizationResult result, CancellationTokenSource tokenSource)
         {
             // Map incoming entities from request to Virto Commerce entities
+            var emailVerificationFlow = CurrentStore.GetEmailVerificationFlow();
+            var requireAccoundLock = emailVerificationFlow == RegistrationFlows.EmailVerificationRequired;
+
             var account = ToApplicationUser(request.Account);
 
-            var contact = await ToContact(request.Contact, account, request.LanguageCode);
+            var contact = await ToContact(request.Contact, account, request.LanguageCode, requireAccoundLock);
             account.MemberId = contact.Id;
 
             Organization organization = null;
@@ -170,16 +173,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             result.Contact = contact;
 
             // Create Security Account
-            var emailVerificationFlow = CurrentStore.GetEmailVerificationFlow();
-
             // make user with confirmed email immediately if no email verification flow is seleced
             // other two flows allow user to confirm email
             account.EmailConfirmed = emailVerificationFlow == RegistrationFlows.NoEmailVerification;
             // lock account before confirming email
-            account.LockoutEnd = emailVerificationFlow == RegistrationFlows.EmailVerificationRequired ? DateTime.MaxValue : null;
+            LockAccount(account, requireAccoundLock);
 
             var identityResult = await _accountService.CreateAccountAsync(account);
-            result.AccountCreationResult = ToAccountCreationResult(identityResult, account, account.LockoutEnd.HasValue);
+            result.AccountCreationResult = ToAccountCreationResult(identityResult, account, requireAccoundLock);
 
             if (!identityResult.Succeeded)
             {
@@ -238,7 +239,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             }
         }
 
-        private async Task<bool> ValidateAsync(Organization organization, Contact contact, Account account, RegisterOrganizationResult result, CancellationTokenSource tokenSource)
+        protected virtual void LockAccount(ApplicationUser account, bool requireAccoundLock)
+        {
+            account.LockoutEnd = requireAccoundLock ? DateTime.MaxValue : null;
+        }
+
+        protected virtual async Task<bool> ValidateAsync(Organization organization, Contact contact, Account account, RegisterOrganizationResult result, CancellationTokenSource tokenSource)
         {
             var validationTasks = new List<Task<ValidationResult>>();
 
@@ -269,7 +275,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return true;
         }
 
-        private async Task<Organization> ToOrganization(RegisteredOrganization organization, Contact contact, ApplicationUser account)
+        protected virtual async Task<Organization> ToOrganization(RegisteredOrganization organization, Contact contact, ApplicationUser account)
         {
             var result = _mapper.Map<Organization>(organization);
 
@@ -279,18 +285,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             await SetDynamicPropertiesAsync(organization.DynamicProperties, result);
 
-
             return result;
         }
 
-        private async Task<Contact> ToContact(RegisteredContact contact, ApplicationUser account, string language)
+        protected virtual async Task<Contact> ToContact(RegisteredContact contact, ApplicationUser account, string language, bool requireEmailVerification)
         {
             var result = _mapper.Map<Contact>(contact);
 
             result.Id = Guid.NewGuid().ToString();
             result.FullName = $"{contact.FirstName} {contact.LastName}";
             result.Name = result.FullName;
-            result.Status = DefaultContactStatus;
+            result.Status = requireEmailVerification ? ModuleConstants.ContactStatuses.Locked : DefaultContactStatus;
             result.Emails = new List<string> { account.Email };
             result.DefaultLanguage = language;
 
@@ -385,22 +390,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             }
         }
 
-        private Task SetDynamicPropertiesAsync(IList<DynamicPropertyValue> dynamicProperties, IHasDynamicProperties entity)
-        {
-            if (dynamicProperties?.Any() ?? false)
-            {
-                _dynamicPropertyUpdater.UpdateDynamicPropertyValues(entity, dynamicProperties);
-            }
-
-            return Task.CompletedTask;
-        }
-
-        private static void SetErrorResult(RegisterOrganizationResult result, string errorCode, string errorMessage, CancellationTokenSource source)
+        protected static void SetErrorResult(RegisterOrganizationResult result, string errorCode, string errorMessage, CancellationTokenSource source)
         {
             SetErrorResult(result, new List<RegistrationError> { new() { Code = errorCode, Description = errorMessage } }, source);
         }
 
-        private static void SetErrorResult(RegisterOrganizationResult result, List<RegistrationError> errors, CancellationTokenSource source)
+        protected static void SetErrorResult(RegisterOrganizationResult result, List<RegistrationError> errors, CancellationTokenSource source)
         {
             result.AccountCreationResult = new AccountCreationResult
             {
@@ -409,6 +404,16 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             };
 
             source.Cancel();
+        }
+
+        private Task SetDynamicPropertiesAsync(IList<DynamicPropertyValue> dynamicProperties, IHasDynamicProperties entity)
+        {
+            if (dynamicProperties?.Any() ?? false)
+            {
+                _dynamicPropertyUpdater.UpdateDynamicPropertyValues(entity, dynamicProperties);
+            }
+
+            return Task.CompletedTask;
         }
     }
 }
