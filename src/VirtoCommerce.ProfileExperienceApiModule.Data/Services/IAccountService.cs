@@ -11,8 +11,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services
         public Task<ApplicationUser> GetAccountByIdAsync(string id);
         public Task<Role> FindRoleById(string roleId);
         public Task<Role> FindRoleByName(string roleName);
-        Task<IdentityResult> LockAccountByIdAsync(string id);
-        Task<IdentityResult> UnlockAccountByIdAsync(string id);
-        Task<IdentityResult> DeleteAccountAsync(ApplicationUser account);
+        public Task<IdentityResult> LockAccountByIdAsync(string id);
+        public Task<IdentityResult> UnlockAccountByIdAsync(string id);
+        public Task<IdentityResult> DeleteAccountAsync(ApplicationUser account);
     }
 }
