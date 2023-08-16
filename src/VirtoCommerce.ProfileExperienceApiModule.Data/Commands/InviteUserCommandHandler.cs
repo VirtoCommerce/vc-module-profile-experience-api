@@ -3,6 +3,24 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
+using MediatR;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Hosting;
+using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.NotificationsModule.Core.Extensions;
+using VirtoCommerce.NotificationsModule.Core.Services;
+using VirtoCommerce.NotificationsModule.Core.Types;
+using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.GenericCrud;
+using VirtoCommerce.Platform.Core.Security;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
+using VirtoCommerce.StoreModule.Core.Model;
+using VirtoCommerce.StoreModule.Core.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
