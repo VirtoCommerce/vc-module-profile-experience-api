@@ -6,8 +6,10 @@ using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
 using VirtoCommerce.NotificationsModule.Core.Extensions;
 using VirtoCommerce.NotificationsModule.Core.Services;
 using VirtoCommerce.NotificationsModule.Core.Types;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
+using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries
@@ -47,7 +49,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries
                 {
                     var token = await userManager.GeneratePasswordResetTokenAsync(user);
 
-                    var notification = await _notificationSearchService.GetNotificationAsync<ResetPasswordEmailNotification>();
+                    var notification = await _notificationSearchService.GetNotificationAsync<ResetPasswordEmailNotification>(new TenantIdentity(store.Id, nameof(Store)));
                     notification.Url = $"{store.Url.TrimLastSlash()}{request.UrlSuffix.NormalizeUrlSuffix()}?userId={user.Id}&token={Uri.EscapeDataString(token)}";
                     notification.To = user.Email;
                     notification.From = store.Email;
