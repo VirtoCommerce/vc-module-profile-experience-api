@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
-using VirtoCommerce.StoreModule.Core.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services
 {
@@ -11,14 +10,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services
     {
         private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
         private readonly Func<RoleManager<Role>> _roleManagerFactory;
-        private readonly IStoreNotificationSender _storeNotificationSender;
 
         public AccountsService(Func<UserManager<ApplicationUser>> userManagerFactory,
-            IStoreNotificationSender storeNotificationSender,
             Func<RoleManager<Role>> roleManagerFactory)
         {
             _userManagerFactory = userManagerFactory;
-            _storeNotificationSender = storeNotificationSender;
             _roleManagerFactory = roleManagerFactory;
         }
 
@@ -37,13 +33,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services
                 result = await userManager.CreateAsync(account, account.Password);
             }
 
-            if (result.Succeeded)
-            {
-                var user = await userManager.FindByNameAsync(account.UserName);
-
-                await _storeNotificationSender.SendUserEmailVerificationAsync(user);
-            }
-
             return result;
         }
 
@@ -52,6 +41,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services
             using var userManager = _userManagerFactory();
             var account = await userManager.FindByNameAsync(userName);
             return account;
+        }
+
+        public async Task<ApplicationUser> GetAccountByIdAsync(string id)
+        {
+            using var userManager = _userManagerFactory();
+            return await userManager.FindByIdAsync(id);
         }
 
         public async Task<Role> FindRoleById(string roleId)
@@ -64,6 +59,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services
         {
             using var roleManager = _roleManagerFactory();
             return await roleManager.FindByNameAsync(roleName);
+        }
+
+        public async Task<IdentityResult> DeleteAccountAsync(ApplicationUser account)
+        {
+            using var userManager = _userManagerFactory();
+            return await userManager.DeleteAsync(account);
         }
     }
 }
