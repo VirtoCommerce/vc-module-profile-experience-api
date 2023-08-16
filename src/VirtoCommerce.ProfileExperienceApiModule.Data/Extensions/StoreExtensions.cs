@@ -6,23 +6,22 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Extensions
 {
     public static class StoreExtensions
     {
-        public static string GetEmailVerificationFlow(this Store stroe)
+        public static string GetEmailVerificationFlow(this Store store)
         {
-            var emailVerificationEnabled = stroe.Settings.GetSettingValue(StoreSettings.EmailVerificationEnabled.Name, (bool)StoreSettings.EmailVerificationEnabled.DefaultValue);
-            var emailVerificationRequired = stroe.Settings.GetSettingValue(StoreSettings.EmailVerificationRequired.Name, (bool)StoreSettings.EmailVerificationRequired.DefaultValue);
+            var emailVerificationEnabled = store.Settings.GetSettingValue(StoreSettings.EmailVerificationEnabled.Name, (bool)StoreSettings.EmailVerificationEnabled.DefaultValue);
+            var emailVerificationRequired = store.Settings.GetSettingValue(StoreSettings.EmailVerificationRequired.Name, (bool)StoreSettings.EmailVerificationRequired.DefaultValue);
 
             if (!emailVerificationEnabled)
             {
                 return ModuleConstants.RegistrationFlows.NoEmailVerification;
             }
-            else if (emailVerificationRequired)
+
+            if (emailVerificationRequired)
             {
                 return ModuleConstants.RegistrationFlows.EmailVerificationRequired;
             }
-            else
-            {
-                return ModuleConstants.RegistrationFlows.EmailVerificationOptional;
-            }
+
+            return ModuleConstants.RegistrationFlows.EmailVerificationOptional;
         }
     }
 }
