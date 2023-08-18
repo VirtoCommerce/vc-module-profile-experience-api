@@ -26,7 +26,6 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
 using CustomerSettings = VirtoCommerce.CustomerModule.Core.ModuleConstants.Settings.General;
-using RegistrationFlows = VirtoCommerce.ProfileExperienceApiModule.Data.ModuleConstants.RegistrationFlows;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -47,6 +46,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly IMediator _mediator;
 
         protected Store CurrentStore { get; private set; }
+        protected string EmailVerificationFlow { get; private set; }
         protected string DefaultContactStatus { get; private set; }
         protected string DefaultOrganizationStatus { get; private set; }
         protected Role MaintainerRole { get; private set; }
@@ -121,6 +121,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return;
             }
 
+            EmailVerificationFlow = CurrentStore.GetEmailVerificationFlow();
+
             // Read Settings
             DefaultContactStatus = CurrentStore.Settings
                 .GetSettingValue<string>(CustomerSettings.ContactDefaultStatus.Name, null);
@@ -134,12 +136,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         protected virtual async Task ProcessRequestAsync(RegisterRequestCommand request, RegisterOrganizationResult result, CancellationTokenSource tokenSource)
         {
             // Map incoming entities from request to Virto Commerce entities
-            var emailVerificationFlow = CurrentStore.GetEmailVerificationFlow();
-            var requireAccoundLock = emailVerificationFlow == RegistrationFlows.EmailVerificationRequired;
+            var requireAccountLock = EmailVerificationFlow == ModuleConstants.RegistrationFlows.EmailVerificationRequired;
 
             var account = ToApplicationUser(request.Account);
 
-            var contact = await ToContact(request.Contact, account, request.LanguageCode, requireAccoundLock);
+            var contact = await ToContact(request.Contact, account, request.LanguageCode, requireAccountLock);
             account.MemberId = contact.Id;
 
             Organization organization = null;
@@ -175,12 +176,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             // Create Security Account
             // make user with confirmed email immediately if no email verification flow is seleced
             // other two flows allow user to confirm email
-            account.EmailConfirmed = emailVerificationFlow == RegistrationFlows.NoEmailVerification;
+            account.EmailConfirmed = EmailVerificationFlow == ModuleConstants.RegistrationFlows.NoEmailVerification;
             // lock account before confirming email
-            LockAccount(account, requireAccoundLock);
+            LockAccount(account, requireAccountLock);
 
             var identityResult = await _accountService.CreateAccountAsync(account);
-            result.AccountCreationResult = ToAccountCreationResult(identityResult, account, requireAccoundLock);
+            result.AccountCreationResult = ToAccountCreationResult(identityResult, account, requireAccountLock);
 
             if (!identityResult.Succeeded)
             {
@@ -192,56 +193,38 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             result.Contact.SecurityAccounts = new List<ApplicationUser> { account };
 
             // Send email notifications
-            var registrationNotificationRequest = new SendRegistrationNotificationCommand
-            {
-                Store = CurrentStore,
-                LanguageCode = request.LanguageCode,
-                Organization = organization,
-                Contact = contact,
-            };
-
             try
             {
-                switch (emailVerificationFlow)
+                switch (EmailVerificationFlow)
                 {
-                    case RegistrationFlows.NoEmailVerification:
+                    case ModuleConstants.RegistrationFlows.NoEmailVerification:
                         {
-                            await SendRegistrationEmailNotificationAsync(registrationNotificationRequest, tokenSource);
+                            await SendRegistrationEmailNotificationAsync(request, result, tokenSource);
                             break;
                         }
 
-                    case RegistrationFlows.EmailVerificationOptional:
+                    case ModuleConstants.RegistrationFlows.EmailVerificationOptional:
                         {
-                            await SendRegistrationEmailNotificationAsync(registrationNotificationRequest, tokenSource);
-                            await SendVerifyEmailCommandAsync(request, account.Email, tokenSource);
+                            await SendRegistrationEmailNotificationAsync(request, result, tokenSource);
+                            await SendVerifyEmailCommandAsync(request, result, tokenSource);
                             break;
                         }
-                    case RegistrationFlows.EmailVerificationRequired:
+                    case ModuleConstants.RegistrationFlows.EmailVerificationRequired:
                         {
-                            await SendVerifyEmailCommandAsync(request, account.Email, tokenSource);
+                            await SendVerifyEmailCommandAsync(request, result, tokenSource);
                             break;
                         }
                 }
             }
             catch (Exception)
             {
-                tokenSource.Cancel();
-
-                result.AccountCreationResult.Succeeded = false;
-                result.AccountCreationResult.Errors = new List<RegistrationError>
-                {
-                    new RegistrationError
-                    {
-                        Code = "NotificationError",
-                        Description = "Cannot send registration notification",
-                    }
-                };
+                SetErrorResult(result, "NotificationError", "Cannot send registration notification", tokenSource);
             }
         }
 
-        protected virtual void LockAccount(ApplicationUser account, bool requireAccoundLock)
+        protected virtual void LockAccount(ApplicationUser account, bool requireAccountLock)
         {
-            account.LockoutEnd = requireAccoundLock ? DateTime.MaxValue : null;
+            account.LockoutEnd = requireAccountLock ? DateTime.MaxValue : null;
         }
 
         protected virtual async Task<bool> ValidateAsync(Organization organization, Contact contact, Account account, RegisterOrganizationResult result, CancellationTokenSource tokenSource)
@@ -304,22 +287,27 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return result;
         }
 
-        protected virtual Task SendRegistrationEmailNotificationAsync(SendRegistrationNotificationCommand request, CancellationTokenSource tokenSource)
+        protected virtual Task SendRegistrationEmailNotificationAsync(RegisterRequestCommand request, RegisterOrganizationResult result, CancellationTokenSource tokenSource)
         {
-            return _mediator.Send(request, tokenSource.Token);
+            var registrationNotificationRequest = new SendRegistrationNotificationCommand
+            {
+                Store = CurrentStore,
+                LanguageCode = request.LanguageCode,
+                Organization = result.Organization,
+                Contact = result.Contact,
+            };
+
+            return _mediator.Send(registrationNotificationRequest, tokenSource.Token);
         }
 
-        protected virtual Task SendVerifyEmailCommandAsync(RegisterRequestCommand request, string email, CancellationTokenSource tokenSource)
+        protected virtual Task SendVerifyEmailCommandAsync(RegisterRequestCommand request, RegisterOrganizationResult result, CancellationTokenSource tokenSource)
         {
-            return _mediator.Send(new SendVerifyEmailCommand(request.StoreId,
+            var sendVerifyEmailRequest = new SendVerifyEmailCommand(request.StoreId,
                 request.LanguageCode,
-                email,
-                string.Empty), tokenSource.Token);
-        }
+                result.AccountCreationResult.Email,
+                result.AccountCreationResult.AccountId);
 
-        private static string ResolveEmail(ApplicationUser account, IList<Address> orgAddresses)
-        {
-            return orgAddresses.FirstOrDefault()?.Email ?? account.Email;
+            return _mediator.Send(sendVerifyEmailRequest, tokenSource.Token);
         }
 
         protected virtual async Task<Role> GetMaintainerRole(RegisterOrganizationResult result, CancellationTokenSource tokenSource)
@@ -348,12 +336,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 RequireEmailVerification = requireEmailVerification,
                 AccountId = account.Id,
                 AccountName = account.UserName,
+                Email = account.Email,
                 Errors = identityResult.Errors.Select(x => new RegistrationError
                 {
                     Code = x.Code,
                     Description = x.Description,
-                    Parameter = x is CustomIdentityError error ? error.Parameter : null
-                }).ToList()
+                    Parameter = x is CustomIdentityError error ? error.Parameter : null,
+                }).ToList(),
             };
         }
 
@@ -392,18 +381,22 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         protected static void SetErrorResult(RegisterOrganizationResult result, string errorCode, string errorMessage, CancellationTokenSource source)
         {
-            SetErrorResult(result, new List<RegistrationError> { new() { Code = errorCode, Description = errorMessage } }, source);
+            SetErrorResult(result, new[] { new RegistrationError { Code = errorCode, Description = errorMessage } }, source);
         }
 
-        protected static void SetErrorResult(RegisterOrganizationResult result, List<RegistrationError> errors, CancellationTokenSource source)
+        protected static void SetErrorResult(RegisterOrganizationResult result, IList<RegistrationError> errors, CancellationTokenSource source)
         {
-            result.AccountCreationResult = new AccountCreationResult
-            {
-                Succeeded = false,
-                Errors = errors
-            };
+            result.AccountCreationResult ??= new AccountCreationResult();
+            result.AccountCreationResult.Succeeded = false;
+            result.AccountCreationResult.Errors ??= new List<RegistrationError>();
+            result.AccountCreationResult.Errors.AddRange(errors);
 
             source.Cancel();
+        }
+
+        private static string ResolveEmail(ApplicationUser account, IList<Address> orgAddresses)
+        {
+            return orgAddresses.FirstOrDefault()?.Email ?? account.Email;
         }
 
         private Task SetDynamicPropertiesAsync(IList<DynamicPropertyValue> dynamicProperties, IHasDynamicProperties entity)

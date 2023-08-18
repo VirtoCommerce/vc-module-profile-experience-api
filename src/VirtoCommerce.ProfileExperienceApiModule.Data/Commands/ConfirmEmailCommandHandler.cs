@@ -12,7 +12,6 @@ using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 using VirtoCommerce.StoreModule.Core.Services;
-using RegistrationFlows = VirtoCommerce.ProfileExperienceApiModule.Data.ModuleConstants.RegistrationFlows;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -70,17 +69,21 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return result;
         }
 
-        private async Task SendRegistrationNotification(ApplicationUser user, CancellationToken cancellationToken)
+        protected virtual async Task SendRegistrationNotification(ApplicationUser user, CancellationToken cancellationToken)
         {
             var store = await _storeService.GetByIdAsync(user.StoreId);
-            var emailVerificationFlow = store.GetEmailVerificationFlow();
-
-            if (emailVerificationFlow != RegistrationFlows.EmailVerificationRequired)
+            if (store == null)
             {
                 return;
             }
 
-            var contact = (await _memberService.GetByIdAsync(user.MemberId)) as Contact;
+            var emailVerificationFlow = store.GetEmailVerificationFlow();
+            if (emailVerificationFlow != ModuleConstants.RegistrationFlows.EmailVerificationRequired)
+            {
+                return;
+            }
+
+            var contact = await _memberService.GetByIdAsync(user.MemberId) as Contact;
             if (contact == null)
             {
                 return;
@@ -100,14 +103,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             await _mediator.Send(registrationNotificationRequest, cancellationTokenSource.Token);
         }
 
-        private async Task<Organization> GetOrganization(Contact contact)
+        protected virtual async Task<Organization> GetOrganization(Contact contact)
         {
             var organization = default(Organization);
 
-            var organizationid = contact.Organizations?.FirstOrDefault();
-            if (organizationid != null)
+            var organizationId = contact.Organizations?.FirstOrDefault();
+            if (organizationId != null)
             {
-                organization = await _memberService.GetByIdAsync(organizationid) as Organization;
+                organization = await _memberService.GetByIdAsync(organizationId) as Organization;
             }
 
             return organization;
