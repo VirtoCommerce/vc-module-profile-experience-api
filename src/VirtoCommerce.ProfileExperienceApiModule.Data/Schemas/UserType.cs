@@ -43,15 +43,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field(x => x.UserName);
             Field(x => x.UserType, true);
             Field<BooleanGraphType>("forcePasswordChange", resolve: x => x.Source.PasswordExpired, description: "Make this user change their password when they sign in next time");
-
-            Field(
-                type: typeof(IntGraphType),
-                name: "PasswordExpiryInDays",
-                description: "Password expiry in days",
-                resolve: context =>
-                {
-                    return GetPasswordExpiryInDays(userOptionsExtended.Value, context.Source);
-                });
+            Field<IntGraphType>("passwordExpiryInDays", resolve: x => GetPasswordExpiryInDays(userOptionsExtended.Value, x.Source), description: "Password expiry in days");
 
             AddField(new FieldType
             {
