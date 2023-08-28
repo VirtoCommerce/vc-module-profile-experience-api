@@ -1,8 +1,10 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using GraphQL.Resolvers;
 using GraphQL.Types;
 using MediatR;
+using Microsoft.Extensions.Options;
 using VirtoCommerce.ExperienceApiModule.Core.Helpers;
 using VirtoCommerce.ExperienceApiModule.Core.Services;
 using VirtoCommerce.Platform.Core.Security;
@@ -13,7 +15,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
     public class UserType : ObjectGraphType<ApplicationUser>
     {
-        public UserType(IContactAggregateRepository contactAggregateRepository, IUserManagerCore userManagerCore, IMediator mediator)
+        public UserType(IContactAggregateRepository contactAggregateRepository, IUserManagerCore userManagerCore, IMediator mediator, IOptions<UserOptionsExtended> userOptionsExtended)
         {
             Field(x => x.AccessFailedCount);
             Field(x => x.CreatedBy, true);
@@ -41,6 +43,32 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field(x => x.UserName);
             Field(x => x.UserType, true);
             Field<BooleanGraphType>("forcePasswordChange", resolve: x => x.Source.PasswordExpired, description: "Make this user change their password when they sign in next time");
+
+            Field(
+                type: typeof(IntGraphType),
+                name: "PasswordExpiryInDays",
+                description: "Password expiry in days",
+                resolve: context =>
+                {
+                    var result = -1;
+
+                    if (!context.Source.PasswordExpired &&
+                        userOptionsExtended.Value.RemindPasswordExpiryInDays > 0 &&
+                        userOptionsExtended.Value.MaxPasswordAge != null &&
+                        userOptionsExtended.Value.MaxPasswordAge.Value > TimeSpan.Zero)
+                    {
+                        var lastPasswordChangeDate = context.Source.LastPasswordChangedDate ?? context.Source.CreatedDate;
+                        var timeTillExpiry = lastPasswordChangeDate.Add(userOptionsExtended.Value.MaxPasswordAge.Value) - DateTime.UtcNow;
+
+                        if (timeTillExpiry > TimeSpan.Zero &&
+                            timeTillExpiry < TimeSpan.FromDays(userOptionsExtended.Value.RemindPasswordExpiryInDays))
+                        {
+                            result = timeTillExpiry.Days;
+                        }
+                    }
+
+                    return result;
+                });
 
             AddField(new FieldType
             {
