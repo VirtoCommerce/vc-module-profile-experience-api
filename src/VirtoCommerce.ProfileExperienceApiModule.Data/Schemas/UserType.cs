@@ -91,9 +91,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             });
         }
 
-        private static object GetPasswordExpiryInDays(UserOptionsExtended userOptionsExtended, ApplicationUser user)
+        private static int? GetPasswordExpiryInDays(UserOptionsExtended userOptionsExtended, ApplicationUser user)
         {
-            var result = -1;
+            var result = (int?)null;
 
             if (!user.PasswordExpired &&
                 userOptionsExtended.RemindPasswordExpiryInDays > 0 &&
