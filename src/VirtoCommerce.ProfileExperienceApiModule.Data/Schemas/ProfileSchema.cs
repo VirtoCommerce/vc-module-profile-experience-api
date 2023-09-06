@@ -779,7 +779,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             null, new PermissionAuthorizationRequirement(permission));
                         if (!permissionAuthorizationResult.Succeeded)
                         {
-                            throw AuthorizationError.Forbidden($"User doesn't have the required permission '{permission}'.");
+                            throw AuthorizationError.PermissionRequired(permission);
                         }
                     }
                 }
