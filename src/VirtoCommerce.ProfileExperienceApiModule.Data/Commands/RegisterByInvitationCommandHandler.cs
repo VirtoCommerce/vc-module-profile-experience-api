@@ -9,25 +9,34 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Hosting;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
+using VirtoCommerce.StoreModule.Core.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
     public class RegisterByInvitationCommandHandler : IRequestHandler<RegisterByInvitationCommand, IdentityResultResponse>
     {
         private readonly IWebHostEnvironment _environment;
-        private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
         private readonly IMemberService _memberService;
+        private readonly IStoreService _storeService;
+        private readonly IMediator _mediator;
+        private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
 
         public RegisterByInvitationCommandHandler(
             IWebHostEnvironment environment,
-            Func<UserManager<ApplicationUser>> userManager, IMemberService memberService)
+            Func<UserManager<ApplicationUser>> userManager,
+            IMemberService memberService,
+            IStoreService storeService,
+            IMediator mediator)
         {
             _environment = environment;
             _userManagerFactory = userManager;
             _memberService = memberService;
+            _storeService = storeService;
+            _mediator = mediator;
         }
 
         public virtual async Task<IdentityResultResponse> Handle(RegisterByInvitationCommand request, CancellationToken cancellationToken)
@@ -78,6 +87,20 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 }
 
                 await _memberService.SaveChangesAsync(new Member[] { contact });
+
+                var store = await _storeService.GetByIdAsync(user.StoreId);
+                if (store == null)
+                {
+                    var registrationNotificationRequest = new SendRegistrationNotificationCommand
+                    {
+                        Store = store,
+                        LanguageCode = contact.DefaultLanguage ?? store.DefaultLanguage,
+                        Contact = contact,
+                    };
+
+                    var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    await _mediator.Send(registrationNotificationRequest, cancellationTokenSource.Token);
+                }
             }
 
             return SetResponse(identityResult);
