@@ -88,19 +88,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
                 await _memberService.SaveChangesAsync(new Member[] { contact });
 
-                var store = await _storeService.GetByIdAsync(user.StoreId);
-                if (store == null)
-                {
-                    var registrationNotificationRequest = new SendRegistrationNotificationCommand
-                    {
-                        Store = store,
-                        LanguageCode = contact.DefaultLanguage ?? store.DefaultLanguage,
-                        Contact = contact,
-                    };
-
-                    var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                    await _mediator.Send(registrationNotificationRequest, cancellationTokenSource.Token);
-                }
+                await SendRegistrationNotification(user, contact, cancellationToken);
             }
 
             return SetResponse(identityResult);
@@ -111,5 +99,25 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             Errors = identityResult.Errors.Select(x => x.MapToIdentityErrorInfo()).ToList(),
             Succeeded = identityResult.Succeeded,
         };
+
+        private async Task SendRegistrationNotification(ApplicationUser user, Contact contact, CancellationToken cancellationToken)
+        {
+            var store = await _storeService.GetByIdAsync(user.StoreId);
+            if (store == null)
+            {
+                return;
+            }
+
+            var registrationNotificationRequest = new SendRegistrationNotificationCommand
+            {
+                Store = store,
+                LanguageCode = contact.DefaultLanguage ?? store.DefaultLanguage,
+                Contact = contact,
+            };
+
+            var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            await _mediator.Send(registrationNotificationRequest, cancellationTokenSource.Token);
+        }
+
     }
 }
