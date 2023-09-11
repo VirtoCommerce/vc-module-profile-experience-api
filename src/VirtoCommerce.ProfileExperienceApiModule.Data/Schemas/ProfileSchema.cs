@@ -761,7 +761,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
                 if (checkPasswordExpired && user.PasswordExpired)
                 {
-                    throw new AuthorizationError($"This user has their password expired. Please change the password using 'changePassword' command.");
+                    throw AuthorizationError.PasswordExpired();
                 }
 
                 var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
@@ -770,7 +770,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 {
                     if (user.Logins is null)
                     {
-                        throw new AuthorizationError($"Can't run the operation under anonymous user or the token expired or invalid.");
+                        throw AuthorizationError.AnonymousAccessDenied();
                     }
 
                     foreach (var permission in permissions)
@@ -779,7 +779,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             null, new PermissionAuthorizationRequirement(permission));
                         if (!permissionAuthorizationResult.Succeeded)
                         {
-                            throw new ForbiddenError($"User doesn't have the required permission '{permission}'.");
+                            throw AuthorizationError.PermissionRequired(permission);
                         }
                     }
                 }
@@ -789,7 +789,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
                 if (!authorizationResult.Succeeded)
                 {
-                    throw new ForbiddenError($"Access denied");
+                    throw AuthorizationError.Forbidden();
                 }
             }
             catch (AuthorizationError ex)
