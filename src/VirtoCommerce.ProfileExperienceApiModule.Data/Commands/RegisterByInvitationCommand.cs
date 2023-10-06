@@ -18,5 +18,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         public string Username { get; set; }
 
         public string Password { get; set; }
+
+        public string CustomerOrderId { get; set; }
     }
 }

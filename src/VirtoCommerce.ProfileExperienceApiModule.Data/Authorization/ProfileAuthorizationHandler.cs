@@ -170,7 +170,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             else if (context.Resource is InviteUserCommand inviteUserCommand && currentContact != null)
             {
                 var currentUser = await userManager.FindByIdAsync(currentUserId);
-                result = currentContact.Organizations.Contains(inviteUserCommand.OrganizationId) && currentUser.StoreId.EqualsInvariant(inviteUserCommand.StoreId);
+
+                result = currentUser.StoreId.EqualsInvariant(inviteUserCommand.StoreId);
+                if (result && inviteUserCommand.OrganizationId != null)
+                {
+                    result = currentContact.Organizations.Contains(inviteUserCommand.OrganizationId);
+                }
             }
             else if (context.Resource is LockOrganizationContactCommand lockOrganizationContact)
             {

@@ -14,6 +14,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field<StringGraphType>(nameof(RegisterByInvitationCommand.Phone), "Phone");
             Field<NonNullGraphType<StringGraphType>>(nameof(RegisterByInvitationCommand.Username), "Username");
             Field<NonNullGraphType<StringGraphType>>(nameof(RegisterByInvitationCommand.Password), "Password");
+            Field<StringGraphType>(nameof(RegisterByInvitationCommand.CustomerOrderId), "Customer order Id to be associated with this user.");
         }
     }
 }

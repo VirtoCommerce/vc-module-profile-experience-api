@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Hosting;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.ExperienceApiModule.XOrder.Commands;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
@@ -88,7 +89,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
                 await _memberService.SaveChangesAsync(new Member[] { contact });
 
-                await SendRegistrationNotification(user, contact, cancellationToken);
+                // associate order
+                if (!string.IsNullOrEmpty(request.CustomerOrderId))
+                {
+                    await TransferOrderAsync(request.CustomerOrderId, user.Id, contact.FullName, cancellationToken);
+                }
+
+                await SendRegistrationNotificationAsync(user, contact, cancellationToken);
             }
 
             return SetResponse(identityResult);
@@ -100,7 +107,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             Succeeded = identityResult.Succeeded,
         };
 
-        private async Task SendRegistrationNotification(ApplicationUser user, Contact contact, CancellationToken cancellationToken)
+        private async Task SendRegistrationNotificationAsync(ApplicationUser user, Contact contact, CancellationToken cancellationToken)
         {
             var store = await _storeService.GetByIdAsync(user.StoreId);
             if (store == null)
@@ -119,5 +126,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             await _mediator.Send(registrationNotificationRequest, cancellationTokenSource.Token);
         }
 
+        private async Task TransferOrderAsync(string customerOrderId, string userId, string userName, CancellationToken cancellationToken)
+        {
+            var transferOrderCommand = new TransferOrderCommand
+            {
+                CustomerOrderId = customerOrderId,
+                ToUserId = userId,
+                UserName = userName,
+            };
+
+            var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            await _mediator.Send(transferOrderCommand, cancellationTokenSource.Token);
+        }
     }
 }

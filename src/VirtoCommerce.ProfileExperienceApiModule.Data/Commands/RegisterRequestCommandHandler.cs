@@ -124,11 +124,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             EmailVerificationFlow = CurrentStore.GetEmailVerificationFlow();
 
             // Read Settings
-            DefaultContactStatus = CurrentStore.Settings
-                .GetSettingValue<string>(CustomerSettings.ContactDefaultStatus.Name, null);
+            DefaultContactStatus = CurrentStore.Settings.GetValue<string>(CustomerSettings.ContactDefaultStatus);
 
-            DefaultOrganizationStatus = CurrentStore.Settings
-                .GetSettingValue<string>(CustomerSettings.OrganizationDefaultStatus.Name, null);
+            DefaultOrganizationStatus = CurrentStore.Settings.GetValue<string>(CustomerSettings.OrganizationDefaultStatus);
 
             MaintainerRole = await GetMaintainerRole(result, tokenSource);
         }
