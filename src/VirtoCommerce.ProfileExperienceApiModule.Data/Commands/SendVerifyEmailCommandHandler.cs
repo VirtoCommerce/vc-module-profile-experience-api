@@ -62,7 +62,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                     return true;
                 }
 
-                if (store.Settings.GetSettingValue(StoreSettings.EmailVerificationEnabled.Name, (bool)StoreSettings.EmailVerificationEnabled.DefaultValue))
+                if (store.Settings.GetValue<bool>(StoreSettings.EmailVerificationEnabled))
                 {
                     await SendConfirmationEmailNotificationAsync(store, user, request.LanguageCode);
                 }

@@ -66,9 +66,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                     FirstName = string.Empty,
                     LastName = string.Empty,
                     FullName = string.Empty,
-                    Organizations = new List<string> { request.OrganizationId },
                     Emails = new List<string> { email }
                 };
+
+                if (!string.IsNullOrEmpty(request.OrganizationId))
+                {
+                    contact.Organizations = new List<string> { request.OrganizationId };
+                }
+
                 await _memberService.SaveChangesAsync(new Member[] { contact });
 
                 var user = new ApplicationUser { UserName = email, Email = email, MemberId = contact.Id, StoreId = request.StoreId };
@@ -153,8 +158,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             var user = await userManager.FindByEmailAsync(email);
             var token = await userManager.GeneratePasswordResetTokenAsync(user);
 
-            var notification = await _notificationSearchService.GetNotificationAsync<RegistrationInvitationEmailNotification>(new TenantIdentity(store.Id, nameof(Store)));
+            // take notification
+            RegistrationInvitationNotificationBase notification = !string.IsNullOrEmpty(request.OrganizationId)
+                ? await _notificationSearchService.GetNotificationAsync<RegistrationInvitationEmailNotification>(new TenantIdentity(store.Id, nameof(Store)))
+                : await _notificationSearchService.GetNotificationAsync<RegistrationInvitationCustomerEmailNotification>(new TenantIdentity(store.Id, nameof(Store)));
+
             notification.InviteUrl = $"{store.Url.TrimLastSlash()}{request.UrlSuffix.NormalizeUrlSuffix()}?userId={user.Id}&email={HttpUtility.UrlEncode(user.Email)}&token={Uri.EscapeDataString(token)}";
+
+            if (!string.IsNullOrEmpty(request.CustomerOrderId))
+            {
+                notification.InviteUrl = $"{notification.InviteUrl}&customerOrderId={request.CustomerOrderId}";
+            }
+
             notification.Message = request.Message;
             notification.To = user.Email;
             notification.From = store.Email;

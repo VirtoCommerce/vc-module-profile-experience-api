@@ -8,8 +8,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Extensions
     {
         public static string GetEmailVerificationFlow(this Store store)
         {
-            var emailVerificationEnabled = store.Settings.GetSettingValue(StoreSettings.EmailVerificationEnabled.Name, (bool)StoreSettings.EmailVerificationEnabled.DefaultValue);
-            var emailVerificationRequired = store.Settings.GetSettingValue(StoreSettings.EmailVerificationRequired.Name, (bool)StoreSettings.EmailVerificationRequired.DefaultValue);
+            var emailVerificationEnabled = store.Settings.GetValue<bool>(StoreSettings.EmailVerificationEnabled);
+            var emailVerificationRequired = store.Settings.GetValue<bool>(StoreSettings.EmailVerificationRequired);
 
             if (!emailVerificationEnabled)
             {
