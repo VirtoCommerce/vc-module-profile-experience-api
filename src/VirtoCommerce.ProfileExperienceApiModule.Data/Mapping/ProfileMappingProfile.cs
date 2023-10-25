@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
 using VirtoCommerce.TaxModule.Core.Model;
@@ -13,16 +14,19 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Mapping
         {
             CreateMap<Contact, Customer>();
 
-            CreateMap<CustomerModule.Core.Model.Address, TaxModule.Core.Model.Address>();
+            CreateMap<Address, TaxModule.Core.Model.Address>();
 
-            CreateMap<CreateOrganizationCommand, CustomerModule.Core.Model.Organization>()
-                .ConvertUsing((command, org, context) =>
+            CreateMap<CreateOrganizationCommand, Organization>()
+                .ConvertUsing((command, organization, context) =>
                 {
-                    org = new CustomerModule.Core.Model.Organization { Name = command.Name, Addresses = command.Addresses };
-                    return org;
+                    organization = AbstractTypeFactory<Organization>.TryCreateInstance();
+                    organization.Name = command.Name;
+                    organization.Addresses = command.Addresses;
+
+                    return organization;
                 });
 
-            CreateMap<UpdateOrganizationCommand, CustomerModule.Core.Model.Organization>()
+            CreateMap<UpdateOrganizationCommand, Organization>()
                 .ForMember(x => x.DynamicProperties, opt => opt.Ignore());
 
             CreateMap<CreateContactCommand, Contact>()
@@ -34,14 +38,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Mapping
             CreateMap<RegisteredOrganization, Organization>()
                 .ConvertUsing((input, result) =>
                 {
-                    result = new Organization()
-                    {
-                        Name = input.Name,
-                        Description = input.Description,
-                        Addresses = input.Address == null ?
+                    result = AbstractTypeFactory<Organization>.TryCreateInstance();
+                    result.Name = input.Name;
+                    result.Description = input.Description;
+
+                    result.Addresses = input.Address == null ?
                             null :
-                            new List<Address> { input.Address }
-                    };
+                            new List<Address> { input.Address };
 
                     return result;
                 });
@@ -49,20 +52,20 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Mapping
             CreateMap<RegisteredContact, Contact>()
                 .ConvertUsing((input, result) =>
                 {
-                    result = new Contact()
-                    {
-                        FirstName = input.FirstName,
-                        LastName = input.LastName,
-                        MiddleName = input.MiddleName,
-                        BirthDate = input.Birthdate,
-                        About = input.About,
-                        Phones = input.PhoneNumber == null ?
+                    result = AbstractTypeFactory<Contact>.TryCreateInstance();
+                    result.FirstName = input.FirstName;
+                    result.LastName = input.LastName;
+                    result.MiddleName = input.MiddleName;
+                    result.BirthDate = input.Birthdate;
+                    result.About = input.About;
+
+                    result.Phones = input.PhoneNumber == null ?
                             null :
-                            new List<string> { input.PhoneNumber },
-                        Addresses = input.Address == null ?
+                            new List<string> { input.PhoneNumber };
+
+                    result.Addresses = input.Address == null ?
                             null :
-                            new List<Address> { input.Address }
-                    };
+                            new List<Address> { input.Address };
 
                     return result;
                 });
