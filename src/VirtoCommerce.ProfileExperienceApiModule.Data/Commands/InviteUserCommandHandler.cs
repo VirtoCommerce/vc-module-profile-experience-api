@@ -62,7 +62,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 using var userManager = _userManagerFactory();
 
                 var contact = AbstractTypeFactory<Contact>.TryCreateInstance();
-                contact.FullName = string.Empty;
+                contact.FirstName = string.Empty;
                 contact.LastName = string.Empty;
                 contact.FullName = string.Empty;
                 contact.Emails = new List<string> { email };
