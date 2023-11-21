@@ -79,6 +79,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             }
             else
             {
+                contact.Status = ModuleConstants.ContactStatuses.Approved;
                 contact.FirstName = request.FirstName;
                 contact.LastName = request.LastName;
                 contact.FullName = $"{request.FirstName} {request.LastName}";

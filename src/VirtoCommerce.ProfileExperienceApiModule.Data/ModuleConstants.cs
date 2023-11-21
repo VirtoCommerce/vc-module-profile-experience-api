@@ -15,6 +15,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data
         public static class ContactStatuses
         {
             public const string Locked = "Locked";
+            public const string Invited = "Invited";
             public const string Approved = "Approved";
         }
 
