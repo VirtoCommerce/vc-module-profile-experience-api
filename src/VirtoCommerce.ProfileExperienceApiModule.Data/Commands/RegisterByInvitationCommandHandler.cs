@@ -79,14 +79,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             }
             else
             {
-                contact.Status = ModuleConstants.ContactStatuses.Approved;
-                contact.FirstName = request.FirstName;
-                contact.LastName = request.LastName;
-                contact.FullName = $"{request.FirstName} {request.LastName}";
-                if (!string.IsNullOrEmpty(request.Phone))
-                {
-                    contact.Phones = new List<string> { request.Phone };
-                }
+                UpdateContact(contact, request);
 
                 await _memberService.SaveChangesAsync(new Member[] { contact });
 
@@ -100,6 +93,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             }
 
             return SetResponse(identityResult);
+        }
+
+        protected virtual void UpdateContact(Contact contact, RegisterByInvitationCommand request)
+        {
+            contact.Status = ModuleConstants.ContactStatuses.Approved;
+            contact.FirstName = request.FirstName;
+            contact.LastName = request.LastName;
+            contact.FullName = $"{request.FirstName} {request.LastName}";
+            if (!string.IsNullOrEmpty(request.Phone))
+            {
+                contact.Phones = new List<string> { request.Phone };
+            }
         }
 
         private static IdentityResultResponse SetResponse(IdentityResult identityResult) => new()
