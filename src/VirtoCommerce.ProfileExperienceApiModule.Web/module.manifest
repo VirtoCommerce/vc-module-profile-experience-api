@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <module>
   <id>VirtoCommerce.ProfileExperienceApiModule</id>
-  <version>3.417.0</version>
+  <version>3.800.0</version>
   <version-tag />
-  <platformVersion>3.413.0</platformVersion>
+  <platformVersion>3.800.0</platformVersion>
   <dependencies>
-    <dependency id="VirtoCommerce.Core" version="3.400.0" />
-    <dependency id="VirtoCommerce.Customer" version="3.400.0" />
-    <dependency id="VirtoCommerce.ExperienceApi" version="3.422.0" />
-    <dependency id="VirtoCommerce.Marketing" version="3.400.0" />
-    <dependency id="VirtoCommerce.Notifications" version="3.403.0" />
-    <dependency id="VirtoCommerce.Pricing" version="3.400.0" />
-    <dependency id="VirtoCommerce.Store" version="3.401.0" />
-    <dependency id="VirtoCommerce.Tax" version="3.400.0" />
+    <dependency id="VirtoCommerce.Core" version="3.800.0" />
+    <dependency id="VirtoCommerce.Customer" version="3.800.0" />
+    <dependency id="VirtoCommerce.ExperienceApi" version="3.800.0" />
+    <dependency id="VirtoCommerce.Marketing" version="3.800.0" />
+    <dependency id="VirtoCommerce.Notifications" version="3.800.0" />
+    <dependency id="VirtoCommerce.Pricing" version="3.800.0" />
+    <dependency id="VirtoCommerce.Store" version="3.800.0" />
+    <dependency id="VirtoCommerce.Tax" version="3.800.0" />
   </dependencies>
   <title>Commerce Profile Experience API</title>
   <description />
@@ -25,7 +25,7 @@
   </owners>
   <requireLicenseAcceptance>false</requireLicenseAcceptance>
   <releaseNotes />
-  <copyright>Copyright © 2021–2023 VirtoCommerce. All rights reserved</copyright>
+  <copyright>Copyright © 2011-2024 Virto Commerce. All rights reserved</copyright>
   <tags>extension module</tags>
   <assemblyFile>VirtoCommerce.ProfileExperienceApiModule.Web.dll</assemblyFile>
   <moduleType>VirtoCommerce.ProfileExperienceApiModule.Web.Module, VirtoCommerce.ProfileExperienceApiModule.Web</moduleType>
