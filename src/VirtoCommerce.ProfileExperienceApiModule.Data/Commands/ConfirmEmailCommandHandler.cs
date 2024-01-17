@@ -99,7 +99,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 Organization = organization,
             };
 
-            var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            using var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             await _mediator.Send(registrationNotificationRequest, cancellationTokenSource.Token);
         }
 
