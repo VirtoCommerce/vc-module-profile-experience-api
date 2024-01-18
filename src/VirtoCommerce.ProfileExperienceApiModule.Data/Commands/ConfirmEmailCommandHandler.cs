@@ -99,7 +99,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 Organization = organization,
             };
 
-            await _mediator.Send(registrationNotificationRequest);
+            await _mediator.Send(registrationNotificationRequest, cancellationToken);
         }
 
         protected virtual async Task<Organization> GetOrganization(Contact contact)
