@@ -128,8 +128,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 Contact = contact,
             };
 
-            var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            await _mediator.Send(registrationNotificationRequest, cancellationTokenSource.Token);
+            await _mediator.Send(registrationNotificationRequest, cancellationToken);
         }
 
         private async Task TransferOrderAsync(string customerOrderId, string userId, string userName, CancellationToken cancellationToken)
@@ -141,8 +140,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 UserName = userName,
             };
 
-            var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            await _mediator.Send(transferOrderCommand, cancellationTokenSource.Token);
+            await _mediator.Send(transferOrderCommand, cancellationToken);
         }
     }
 }
