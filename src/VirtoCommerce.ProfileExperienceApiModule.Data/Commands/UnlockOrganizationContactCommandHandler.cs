@@ -18,7 +18,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _accountService = accountService;
         }
 
-        public async Task<ContactAggregate> Handle(UnlockOrganizationContactCommand request, CancellationToken cancellationToken)
+        public virtual async Task<ContactAggregate> Handle(UnlockOrganizationContactCommand request, CancellationToken cancellationToken)
         {
             var contactAggregate = await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.UserId);
 
