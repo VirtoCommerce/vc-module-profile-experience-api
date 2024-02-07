@@ -1,11 +1,11 @@
 using System.Linq;
 using GraphQL.Types;
+using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ExperienceApiModule.Core.Extensions;
 using VirtoCommerce.ExperienceApiModule.Core.Helpers;
 using VirtoCommerce.ExperienceApiModule.Core.Schemas;
 using VirtoCommerce.ExperienceApiModule.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Vendor;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 

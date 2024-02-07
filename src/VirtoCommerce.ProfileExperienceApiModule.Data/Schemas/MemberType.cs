@@ -1,6 +1,6 @@
+using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ExperienceApiModule.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {

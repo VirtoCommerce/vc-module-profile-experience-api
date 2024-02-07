@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
+using VirtoCommerce.CustomerModule.Core.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 

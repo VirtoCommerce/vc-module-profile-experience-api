@@ -1,6 +1,7 @@
 using System.Linq;
 using GraphQL.Types;
 using MediatR;
+using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ExperienceApiModule.Core.Helpers;
 using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
 using VirtoCommerce.ExperienceApiModule.Core.Services;
@@ -9,7 +10,6 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 

@@ -68,7 +68,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
             });
 
             serviceCollection.AddPipeline<VendorAggregate>();
-            serviceCollection.AddSingleton<IFavoriteAddressService, FavoriteAddressService>();
         }
 
         public void PostInitialize(IApplicationBuilder appBuilder)

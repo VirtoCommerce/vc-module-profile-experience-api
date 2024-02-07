@@ -6,6 +6,7 @@ using GraphQL.Builders;
 using GraphQL.Types;
 using VirtoCommerce.CoreModule.Core.Seo;
 using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ExperienceApiModule.Core.Extensions;
 using VirtoCommerce.ExperienceApiModule.Core.Helpers;
 using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
@@ -14,7 +15,6 @@ using VirtoCommerce.ExperienceApiModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 
