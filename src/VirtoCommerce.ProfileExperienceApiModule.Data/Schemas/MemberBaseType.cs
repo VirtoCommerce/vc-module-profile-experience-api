@@ -1,8 +1,10 @@
-using GraphQL.Builders;
-using GraphQL.Types;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using GraphQL;
+using GraphQL.Builders;
+using GraphQL.Types;
+using VirtoCommerce.CoreModule.Core.Seo;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.ExperienceApiModule.Core.Extensions;
 using VirtoCommerce.ExperienceApiModule.Core.Helpers;
@@ -11,16 +13,21 @@ using VirtoCommerce.ExperienceApiModule.Core.Schemas;
 using VirtoCommerce.ExperienceApiModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
-using VirtoCommerce.CoreModule.Core.Seo;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 
 public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregate>
-    where TAggregate: MemberAggregateRootBase
+    where TAggregate : MemberAggregateRootBase
 {
-    protected MemberBaseType(IDynamicPropertyResolverService dynamicPropertyResolverService)
+    private readonly IFavoriteAddressService _favoriteAddressService;
+
+    protected MemberBaseType(
+        IDynamicPropertyResolverService dynamicPropertyResolverService,
+        IFavoriteAddressService favoriteAddressService)
     {
+        _favoriteAddressService = favoriteAddressService;
         Field(x => x.Member.Id);
         Field(x => x.Member.OuterId, true).Description("Outer ID");
         Field(x => x.Member.MemberType).Description("Member type");
@@ -68,7 +75,7 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
 
         #region Addresses
 
-        var addressesConnectionBuilder = GraphTypeExtenstionHelper.CreateConnection<MemberAddressType, MemberAggregateRootBase>()
+        var addressesConnectionBuilder = GraphTypeExtenstionHelper.CreateConnection<MemberAddressType, TAggregate>()
             .Name("addresses")
             .Argument<StringGraphType>("sort", "Sort expression")
             .PageSize(20);
@@ -85,21 +92,67 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
             context => dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source.Member, context.GetArgumentOrValue<string>("cultureName")));
     }
 
-    protected virtual object ResolveAddressesConnection(IResolveConnectionContext<MemberAggregateRootBase> context)
+    protected virtual object ResolveAddressesConnection(IResolveConnectionContext<TAggregate> context)
     {
         var take = context.First ?? 20;
         var skip = Convert.ToInt32(context.After ?? 0.ToString());
         var sort = context.GetArgument<string>("sort");
-        var addresses = context.Source.Member.Addresses.AsEnumerable();
+        var addresses = context.Source.Member.Addresses;
 
-        if (!string.IsNullOrEmpty(sort))
-        {
-            var sortInfos = SortInfo.Parse(sort);
-            addresses = addresses
-                .AsQueryable()
-                .OrderBySortInfos(sortInfos);
-        }
+        var userId = context.GetCurrentUserId();
+        var favoriteAddressIds = _favoriteAddressService.GetFavoriteAddressIdsAsync(userId).GetAwaiter().GetResult();
 
-        return new PagedConnection<Address>(addresses.Skip(skip).Take(take), skip, take, addresses.Count());
+        var page = addresses
+            .Select(x => ToMemberAddress(x, favoriteAddressIds))
+            .AsQueryable()
+            .OrderBySortInfos(BuildSortExpression(sort))
+            .Skip(skip)
+            .Take(take);
+
+        return new PagedConnection<MemberAddress>(page, skip, take, addresses.Count);
+    }
+
+    private static MemberAddress ToMemberAddress(Address address, IList<string> favoriteAddressIds)
+    {
+        var result = AbstractTypeFactory<MemberAddress>.TryCreateInstance();
+
+        result.Key = address.Key;
+        result.IsDefault = address.IsDefault;
+        result.IsFavorite = favoriteAddressIds.Contains(address.Key);
+        result.City = address.City;
+        result.CountryCode = address.CountryCode;
+        result.CountryName = address.CountryName;
+        result.Email = address.Email;
+        result.FirstName = address.FirstName;
+        result.MiddleName = address.MiddleName;
+        result.LastName = address.LastName;
+        result.Line1 = address.Line1;
+        result.Line2 = address.Line2;
+        result.Name = address.Name;
+        result.Organization = address.Organization;
+        result.Phone = address.Phone;
+        result.PostalCode = address.PostalCode;
+        result.RegionId = address.RegionId;
+        result.RegionName = address.RegionName;
+        result.Zip = address.Zip;
+        result.OuterId = address.OuterId;
+        result.Description = address.Description;
+        result.AddressType = address.AddressType;
+
+        return result;
+    }
+
+    private static IEnumerable<SortInfo> BuildSortExpression(string sort)
+    {
+        const string isFavorite = nameof(MemberAddress.IsFavorite);
+        const string sortByFavorite = $"{isFavorite}:desc";
+
+        sort = string.IsNullOrEmpty(sort)
+            ? sortByFavorite
+            : $"{sortByFavorite};{sort}";
+
+        var sortInfos = SortInfo.Parse(sort);
+
+        return sortInfos;
     }
 }

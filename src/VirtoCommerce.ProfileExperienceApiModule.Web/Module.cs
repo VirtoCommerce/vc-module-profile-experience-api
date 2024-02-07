@@ -19,7 +19,6 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Vendor;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Authorization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Configuration;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Middlewares;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.TaxModule.Core.Model;
@@ -33,12 +32,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
 
         public void Initialize(IServiceCollection serviceCollection)
         {
-            serviceCollection.AddSchemaBuilder<ProfileSchema>();
-
+            var assemblyMarker = typeof(AssemblyMarker);
             var graphQlBuilder = new CustomGraphQLBuilder(serviceCollection);
-            graphQlBuilder.AddGraphTypes(typeof(XProfileAnchor));
+            graphQlBuilder.AddGraphTypes(assemblyMarker);
+            serviceCollection.AddMediatR(assemblyMarker);
+            serviceCollection.AddAutoMapper(assemblyMarker);
+            serviceCollection.AddSchemaBuilders(assemblyMarker);
 
-            serviceCollection.AddMediatR(typeof(XProfileAnchor));
             serviceCollection.AddSingleton<IMemberAggregateFactory, MemberAggregateFactory>();
             serviceCollection.AddTransient<NewContactValidator>();
             serviceCollection.AddTransient<AccountValidator>();
@@ -51,8 +51,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
             serviceCollection.AddTransient<IAccountService, AccountsService>();
             serviceCollection.AddSingleton<IAuthorizationHandler, ProfileAuthorizationHandler>();
             serviceCollection.AddOptions<FrontendSecurityOptions>().Bind(Configuration.GetSection("FrontendSecurity")).ValidateDataAnnotations();
-
-            serviceCollection.AddAutoMapper(typeof(XProfileAnchor));
 
             serviceCollection.AddPipeline<PromotionEvaluationContext>(builder =>
             {
@@ -70,6 +68,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
             });
 
             serviceCollection.AddPipeline<VendorAggregate>();
+            serviceCollection.AddSingleton<IFavoriteAddressService, FavoriteAddressService>();
         }
 
         public void PostInitialize(IApplicationBuilder appBuilder)
