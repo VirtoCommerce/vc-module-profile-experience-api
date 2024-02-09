@@ -1,9 +1,9 @@
 using GraphQL.Types;
-using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class InputMemberAddressType : InputObjectGraphType<Address>
+    public class InputMemberAddressType : InputObjectGraphType<MemberAddress>
     {
         public InputMemberAddressType()
         {
@@ -27,7 +27,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field(x => x.Zip, true).Description("Zip");
             Field(x => x.OuterId, true).Description("Outer id");
             Field(x => x.Description, true).Description("Description");
-            Field<IntGraphType>(nameof(Address.AddressType));
+            Field<IntGraphType>(nameof(MemberAddress.AddressType));
         }
     }
 }
