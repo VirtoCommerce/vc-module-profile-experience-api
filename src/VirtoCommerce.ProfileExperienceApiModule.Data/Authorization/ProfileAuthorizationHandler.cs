@@ -45,9 +45,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             var currentMember = await GetCustomerAsync(currentUserId, userManager);
             var currentContact = currentMember as Contact;
 
+            // PT-6083: reduce complexity
             switch (context.Resource)
             {
-                // PT-6083: reduce complexity
                 case ContactAggregate contactAggregate when currentContact != null:
                     result = currentContact.Id == contactAggregate.Contact.Id;
                     result = result || await HasSameOrganizationAsync(currentContact, contactAggregate.Contact.Id, userManager);
