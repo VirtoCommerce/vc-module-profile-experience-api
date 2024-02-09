@@ -4,8 +4,8 @@ using System.Linq;
 using GraphQL;
 using GraphQL.Builders;
 using GraphQL.Types;
+using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Seo;
-using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ExperienceApiModule.Core.Extensions;
 using VirtoCommerce.ExperienceApiModule.Core.Helpers;
@@ -14,6 +14,7 @@ using VirtoCommerce.ExperienceApiModule.Core.Schemas;
 using VirtoCommerce.ExperienceApiModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
@@ -67,10 +68,10 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
         #region Default addresses
 
         Field<MemberAddressType>("defaultBillingAddress", description: "Default billing address",
-            resolve: context => context.Source.Member.Addresses.FirstOrDefault(address => address.AddressType == CoreModule.Core.Common.AddressType.Billing && address.IsDefault));
+            resolve: context => ResolveDefaultAddress(context, AddressType.Billing));
 
         Field<MemberAddressType>("defaultShippingAddress", description: "Default shipping address",
-            resolve: context => context.Source.Member.Addresses.FirstOrDefault(address => address.AddressType == CoreModule.Core.Common.AddressType.Shipping && address.IsDefault));
+            resolve: context => ResolveDefaultAddress(context, AddressType.Shipping));
 
         #endregion
 
@@ -93,6 +94,13 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
             context => dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source.Member, context.GetArgumentOrValue<string>("cultureName")));
     }
 
+
+    protected virtual object ResolveDefaultAddress(IResolveFieldContext<TAggregate> context, AddressType addressType)
+    {
+        var address = context.Source.Member.Addresses.FirstOrDefault(x => x.IsDefault && x.AddressType == addressType);
+        return address?.ToMemberAddress(GetFavoriteAddressIds(context));
+    }
+
     protected virtual object ResolveAddressesConnection(IResolveConnectionContext<TAggregate> context)
     {
         var take = context.First ?? 20;
@@ -100,11 +108,10 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
         var sort = context.GetArgument<string>("sort");
         var addresses = context.Source.Member.Addresses;
 
-        var userId = context.GetCurrentUserId();
-        var favoriteAddressIds = _favoriteAddressService.GetFavoriteAddressIdsAsync(userId).GetAwaiter().GetResult();
+        var favoriteAddressIds = GetFavoriteAddressIds(context);
 
         var page = addresses
-            .Select(x => ToMemberAddress(x, favoriteAddressIds))
+            .Select(x => x.ToMemberAddress(favoriteAddressIds))
             .AsQueryable()
             .OrderBySortInfos(BuildSortExpression(sort))
             .Skip(skip)
@@ -113,34 +120,10 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
         return new PagedConnection<MemberAddress>(page, skip, take, addresses.Count);
     }
 
-    private static MemberAddress ToMemberAddress(Address address, IList<string> favoriteAddressIds)
+    protected IList<string> GetFavoriteAddressIds(IResolveFieldContext<TAggregate> context)
     {
-        var result = AbstractTypeFactory<MemberAddress>.TryCreateInstance();
-
-        result.Key = address.Key;
-        result.IsDefault = address.IsDefault;
-        result.IsFavorite = favoriteAddressIds.Contains(address.Key);
-        result.City = address.City;
-        result.CountryCode = address.CountryCode;
-        result.CountryName = address.CountryName;
-        result.Email = address.Email;
-        result.FirstName = address.FirstName;
-        result.MiddleName = address.MiddleName;
-        result.LastName = address.LastName;
-        result.Line1 = address.Line1;
-        result.Line2 = address.Line2;
-        result.Name = address.Name;
-        result.Organization = address.Organization;
-        result.Phone = address.Phone;
-        result.PostalCode = address.PostalCode;
-        result.RegionId = address.RegionId;
-        result.RegionName = address.RegionName;
-        result.Zip = address.Zip;
-        result.OuterId = address.OuterId;
-        result.Description = address.Description;
-        result.AddressType = address.AddressType;
-
-        return result;
+        var userId = context.GetCurrentUserId();
+        return _favoriteAddressService.GetFavoriteAddressIdsAsync(userId).GetAwaiter().GetResult();
     }
 
     private static IEnumerable<SortInfo> BuildSortExpression(string sort)
