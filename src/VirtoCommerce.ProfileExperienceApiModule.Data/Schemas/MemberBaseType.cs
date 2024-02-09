@@ -126,17 +126,12 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
         return _favoriteAddressService.GetFavoriteAddressIdsAsync(userId).GetAwaiter().GetResult();
     }
 
-    private static IEnumerable<SortInfo> BuildSortExpression(string sort)
+    protected static IEnumerable<SortInfo> BuildSortExpression(string sort)
     {
         const string isFavorite = nameof(MemberAddress.IsFavorite);
-        const string sortByFavorite = $"{isFavorite}:desc";
+        const string name = nameof(MemberAddress.Name);
+        const string defaultSorting = $"{isFavorite}:desc;{name}";
 
-        sort = string.IsNullOrEmpty(sort)
-            ? sortByFavorite
-            : $"{sortByFavorite};{sort}";
-
-        var sortInfos = SortInfo.Parse(sort);
-
-        return sortInfos;
+        return SortInfo.Parse(sort.EmptyToNull() ?? defaultSorting);
     }
 }
