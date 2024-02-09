@@ -19,6 +19,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Vendor;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Authorization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Configuration;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Middlewares;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.TaxModule.Core.Model;
@@ -50,6 +51,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
             serviceCollection.AddTransient<IVendorAggregateRepository, VendorAggregateRepository>();
             serviceCollection.AddTransient<IAccountService, AccountsService>();
             serviceCollection.AddSingleton<IAuthorizationHandler, ProfileAuthorizationHandler>();
+            serviceCollection.AddSingleton<IProfileAuthorizationService, ProfileSchema>();
+
             serviceCollection.AddOptions<FrontendSecurityOptions>().Bind(Configuration.GetSection("FrontendSecurity")).ValidateDataAnnotations();
 
             serviceCollection.AddPipeline<PromotionEvaluationContext>(builder =>

@@ -28,6 +28,7 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
         IFavoriteAddressService favoriteAddressService)
     {
         _favoriteAddressService = favoriteAddressService;
+
         Field(x => x.Member.Id);
         Field(x => x.Member.OuterId, true).Description("Outer ID");
         Field(x => x.Member.MemberType).Description("Member type");
