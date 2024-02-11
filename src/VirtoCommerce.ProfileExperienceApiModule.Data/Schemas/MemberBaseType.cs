@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.Builders;
 using GraphQL.Types;
@@ -70,11 +71,11 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
 
         #region Default addresses
 
-        Field<MemberAddressType>("defaultBillingAddress", description: "Default billing address",
-            resolve: context => ResolveDefaultAddress(context, AddressType.Billing));
+        FieldAsync<MemberAddressType>("defaultBillingAddress", description: "Default billing address",
+            resolve: context => ResolveDefaultAddressAsync(context, AddressType.Billing));
 
-        Field<MemberAddressType>("defaultShippingAddress", description: "Default shipping address",
-            resolve: context => ResolveDefaultAddress(context, AddressType.Shipping));
+        FieldAsync<MemberAddressType>("defaultShippingAddress", description: "Default shipping address",
+            resolve: context => ResolveDefaultAddressAsync(context, AddressType.Shipping));
 
         #endregion
 
@@ -85,7 +86,7 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
             .Argument<StringGraphType>("sort", "Sort expression")
             .PageSize(20);
 
-        addressesConnectionBuilder.Resolve(ResolveAddressesConnection);
+        addressesConnectionBuilder.ResolveAsync(ResolveAddressesConnectionAsync);
         AddField(addressesConnectionBuilder.FieldType);
 
         #endregion
@@ -98,38 +99,38 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
     }
 
 
-    protected virtual object ResolveDefaultAddress(IResolveFieldContext<TAggregate> context, AddressType addressType)
+    protected virtual async Task<object> ResolveDefaultAddressAsync(IResolveFieldContext<TAggregate> context, AddressType addressType)
     {
         var address = context.Source.Member.Addresses.FirstOrDefault(x => x.IsDefault && x.AddressType == addressType);
-        return address is null ? null : _memberAddressService.ToMemberAddress(address, GetFavoriteAddressIds(context));
+        return address is null ? null : _memberAddressService.ToMemberAddress(address, await GetFavoriteAddressIdsAsync(context));
     }
 
-    protected virtual object ResolveAddressesConnection(IResolveConnectionContext<TAggregate> context)
+    protected virtual async Task<object> ResolveAddressesConnectionAsync(IResolveConnectionContext<TAggregate> context)
     {
         var take = context.First ?? 20;
         var skip = Convert.ToInt32(context.After ?? 0.ToString());
         var sort = context.GetArgument<string>("sort");
         var addresses = context.Source.Member.Addresses;
 
-        var favoriteAddressIds = GetFavoriteAddressIds(context);
+        var favoriteAddressIds = await GetFavoriteAddressIdsAsync(context);
 
         var page = addresses
             .Select(x => _memberAddressService.ToMemberAddress(x, favoriteAddressIds))
             .AsQueryable()
-            .OrderBySortInfos(BuildSortExpression(sort))
+            .OrderBySortInfos(BuildAddressSortExpression(sort))
             .Skip(skip)
             .Take(take);
 
         return new PagedConnection<MemberAddress>(page, skip, take, addresses.Count);
     }
 
-    protected IList<string> GetFavoriteAddressIds(IResolveFieldContext<TAggregate> context)
+    protected Task<IList<string>> GetFavoriteAddressIdsAsync(IResolveFieldContext<TAggregate> context)
     {
         var userId = context.GetCurrentUserId();
-        return _favoriteAddressService.GetFavoriteAddressIdsAsync(userId).GetAwaiter().GetResult();
+        return _favoriteAddressService.GetFavoriteAddressIdsAsync(userId);
     }
 
-    protected static IEnumerable<SortInfo> BuildSortExpression(string sort)
+    protected static IEnumerable<SortInfo> BuildAddressSortExpression(string sort)
     {
         const string isFavorite = nameof(MemberAddress.IsFavorite);
         const string name = nameof(MemberAddress.Name);
