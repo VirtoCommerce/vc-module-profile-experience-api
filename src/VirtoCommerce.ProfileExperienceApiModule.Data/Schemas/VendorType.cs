@@ -6,13 +6,17 @@ using VirtoCommerce.ExperienceApiModule.Core.Helpers;
 using VirtoCommerce.ExperienceApiModule.Core.Schemas;
 using VirtoCommerce.ExperienceApiModule.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Vendor;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 
 public class VendorType : MemberBaseType<VendorAggregate>
 {
-    public VendorType(IDynamicPropertyResolverService dynamicPropertyResolverService, IFavoriteAddressService favoriteAddressService)
-        : base(dynamicPropertyResolverService, favoriteAddressService)
+    public VendorType(
+        IDynamicPropertyResolverService dynamicPropertyResolverService,
+        IMemberAddressService memberAddressService,
+        IFavoriteAddressService favoriteAddressService)
+        : base(dynamicPropertyResolverService, memberAddressService, favoriteAddressService)
     {
         Name = "Vendor";
         Description = "Vendor Info";

@@ -52,6 +52,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
             serviceCollection.AddTransient<IAccountService, AccountsService>();
             serviceCollection.AddSingleton<IAuthorizationHandler, ProfileAuthorizationHandler>();
             serviceCollection.AddSingleton<IProfileAuthorizationService, ProfileSchema>();
+            serviceCollection.AddSingleton<IMemberAddressService, MemberAddressService>();
 
             serviceCollection.AddOptions<FrontendSecurityOptions>().Bind(Configuration.GetSection("FrontendSecurity")).ValidateDataAnnotations();
 

@@ -10,6 +10,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 
@@ -17,10 +18,11 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
 {
     public OrganizationType(
         IDynamicPropertyResolverService dynamicPropertyResolverService,
+        IMemberAddressService memberAddressService,
         IFavoriteAddressService favoriteAddressService,
         IMediator mediator,
         IMemberAggregateFactory factory)
-        : base(dynamicPropertyResolverService, favoriteAddressService)
+        : base(dynamicPropertyResolverService, memberAddressService, favoriteAddressService)
     {
         Name = "Organization";
         Description = "Organization info";

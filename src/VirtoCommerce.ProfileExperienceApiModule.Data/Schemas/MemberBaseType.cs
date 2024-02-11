@@ -14,20 +14,23 @@ using VirtoCommerce.ExperienceApiModule.Core.Schemas;
 using VirtoCommerce.ExperienceApiModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 
 public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregate>
     where TAggregate : MemberAggregateRootBase
 {
+    private readonly IMemberAddressService _memberAddressService;
     private readonly IFavoriteAddressService _favoriteAddressService;
 
     protected MemberBaseType(
         IDynamicPropertyResolverService dynamicPropertyResolverService,
+        IMemberAddressService memberAddressService,
         IFavoriteAddressService favoriteAddressService)
     {
+        _memberAddressService = memberAddressService;
         _favoriteAddressService = favoriteAddressService;
 
         Field(x => x.Member.Id);
@@ -98,7 +101,7 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
     protected virtual object ResolveDefaultAddress(IResolveFieldContext<TAggregate> context, AddressType addressType)
     {
         var address = context.Source.Member.Addresses.FirstOrDefault(x => x.IsDefault && x.AddressType == addressType);
-        return address?.ToMemberAddress(GetFavoriteAddressIds(context));
+        return address is null ? null : _memberAddressService.ToMemberAddress(address, GetFavoriteAddressIds(context));
     }
 
     protected virtual object ResolveAddressesConnection(IResolveConnectionContext<TAggregate> context)
@@ -111,7 +114,7 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
         var favoriteAddressIds = GetFavoriteAddressIds(context);
 
         var page = addresses
-            .Select(x => x.ToMemberAddress(favoriteAddressIds))
+            .Select(x => _memberAddressService.ToMemberAddress(x, favoriteAddressIds))
             .AsQueryable()
             .OrderBySortInfos(BuildSortExpression(sort))
             .Skip(skip)
