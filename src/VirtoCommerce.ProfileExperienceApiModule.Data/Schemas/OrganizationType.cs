@@ -1,7 +1,6 @@
 using System.Linq;
 using GraphQL.Types;
 using MediatR;
-using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ExperienceApiModule.Core.Helpers;
 using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
 using VirtoCommerce.ExperienceApiModule.Core.Services;
@@ -19,10 +18,9 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
     public OrganizationType(
         IDynamicPropertyResolverService dynamicPropertyResolverService,
         IMemberAddressService memberAddressService,
-        IFavoriteAddressService favoriteAddressService,
         IMediator mediator,
         IMemberAggregateFactory factory)
-        : base(dynamicPropertyResolverService, memberAddressService, favoriteAddressService)
+        : base(dynamicPropertyResolverService, memberAddressService)
     {
         Name = "Organization";
         Description = "Organization info";

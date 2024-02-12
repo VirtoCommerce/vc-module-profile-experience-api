@@ -7,7 +7,6 @@ using GraphQL.Builders;
 using GraphQL.Types;
 using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Seo;
-using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ExperienceApiModule.Core.Extensions;
 using VirtoCommerce.ExperienceApiModule.Core.Helpers;
 using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
@@ -24,15 +23,12 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
     where TAggregate : MemberAggregateRootBase
 {
     private readonly IMemberAddressService _memberAddressService;
-    private readonly IFavoriteAddressService _favoriteAddressService;
 
     protected MemberBaseType(
         IDynamicPropertyResolverService dynamicPropertyResolverService,
-        IMemberAddressService memberAddressService,
-        IFavoriteAddressService favoriteAddressService)
+        IMemberAddressService memberAddressService)
     {
         _memberAddressService = memberAddressService;
-        _favoriteAddressService = favoriteAddressService;
 
         Field(x => x.Member.Id);
         Field(x => x.Member.OuterId, true).Description("Outer ID");
@@ -102,7 +98,7 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
     protected virtual async Task<object> ResolveDefaultAddressAsync(IResolveFieldContext<TAggregate> context, AddressType addressType)
     {
         var address = context.Source.Member.Addresses.FirstOrDefault(x => x.IsDefault && x.AddressType == addressType);
-        return address is null ? null : _memberAddressService.ToMemberAddress(address, await GetFavoriteAddressIdsAsync(context));
+        return address is null ? null : await _memberAddressService.ToMemberAddressAsync(address, context.GetCurrentUserId());
     }
 
     protected virtual async Task<object> ResolveAddressesConnectionAsync(IResolveConnectionContext<TAggregate> context)
@@ -112,22 +108,13 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
         var sort = context.GetArgument<string>("sort");
         var addresses = context.Source.Member.Addresses;
 
-        var favoriteAddressIds = await GetFavoriteAddressIdsAsync(context);
-
-        var page = addresses
-            .Select(x => _memberAddressService.ToMemberAddress(x, favoriteAddressIds))
+        var page = (await _memberAddressService.ToMemberAddressesAsync(addresses, context.GetCurrentUserId()))
             .AsQueryable()
             .OrderBySortInfos(BuildAddressSortExpression(sort))
             .Skip(skip)
             .Take(take);
 
         return new PagedConnection<MemberAddress>(page, skip, take, addresses.Count);
-    }
-
-    protected Task<IList<string>> GetFavoriteAddressIdsAsync(IResolveFieldContext<TAggregate> context)
-    {
-        var userId = context.GetCurrentUserId();
-        return _favoriteAddressService.GetFavoriteAddressIdsAsync(userId);
     }
 
     protected static IEnumerable<SortInfo> BuildAddressSortExpression(string sort)

@@ -2,7 +2,6 @@ using System.Linq;
 using GraphQL.Types;
 using MediatR;
 using VirtoCommerce.CustomerModule.Core.Model.Search;
-using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ExperienceApiModule.Core.Helpers;
 using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
 using VirtoCommerce.ExperienceApiModule.Core.Services;
@@ -21,10 +20,9 @@ public class ContactType : MemberBaseType<ContactAggregate>
     public ContactType(
         IDynamicPropertyResolverService dynamicPropertyResolverService,
         IMemberAddressService memberAddressService,
-        IFavoriteAddressService favoriteAddressService,
         IMediator mediator,
         IMemberAggregateFactory memberAggregateFactory)
-        : base(dynamicPropertyResolverService, memberAddressService, favoriteAddressService)
+        : base(dynamicPropertyResolverService, memberAddressService)
     {
         Field(x => x.Contact.FirstName);
         Field(x => x.Contact.LastName);

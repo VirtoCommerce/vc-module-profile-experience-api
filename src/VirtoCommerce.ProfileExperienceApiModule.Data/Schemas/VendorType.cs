@@ -1,6 +1,5 @@
 using System.Linq;
 using GraphQL.Types;
-using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ExperienceApiModule.Core.Extensions;
 using VirtoCommerce.ExperienceApiModule.Core.Helpers;
 using VirtoCommerce.ExperienceApiModule.Core.Schemas;
@@ -14,9 +13,8 @@ public class VendorType : MemberBaseType<VendorAggregate>
 {
     public VendorType(
         IDynamicPropertyResolverService dynamicPropertyResolverService,
-        IMemberAddressService memberAddressService,
-        IFavoriteAddressService favoriteAddressService)
-        : base(dynamicPropertyResolverService, memberAddressService, favoriteAddressService)
+        IMemberAddressService memberAddressService)
+        : base(dynamicPropertyResolverService, memberAddressService)
     {
         Name = "Vendor";
         Description = "Vendor Info";
