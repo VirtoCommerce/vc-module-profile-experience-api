@@ -1,9 +1,12 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using GraphQL;
 using GraphQL.Builders;
 using GraphQL.Types;
-using System;
-using System.Linq;
-using GraphQL;
-using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.CoreModule.Core.Common;
+using VirtoCommerce.CoreModule.Core.Seo;
 using VirtoCommerce.ExperienceApiModule.Core.Extensions;
 using VirtoCommerce.ExperienceApiModule.Core.Helpers;
 using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
@@ -11,16 +14,22 @@ using VirtoCommerce.ExperienceApiModule.Core.Schemas;
 using VirtoCommerce.ExperienceApiModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
-using VirtoCommerce.CoreModule.Core.Seo;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 
 public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregate>
-    where TAggregate: MemberAggregateRootBase
+    where TAggregate : MemberAggregateRootBase
 {
-    protected MemberBaseType(IDynamicPropertyResolverService dynamicPropertyResolverService)
+    private readonly IMemberAddressService _memberAddressService;
+
+    protected MemberBaseType(
+        IDynamicPropertyResolverService dynamicPropertyResolverService,
+        IMemberAddressService memberAddressService)
     {
+        _memberAddressService = memberAddressService;
+
         Field(x => x.Member.Id);
         Field(x => x.Member.OuterId, true).Description("Outer ID");
         Field(x => x.Member.MemberType).Description("Member type");
@@ -58,22 +67,22 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
 
         #region Default addresses
 
-        Field<MemberAddressType>("defaultBillingAddress", description: "Default billing address",
-            resolve: context => context.Source.Member.Addresses.FirstOrDefault(address => address.AddressType == CoreModule.Core.Common.AddressType.Billing && address.IsDefault));
+        FieldAsync<MemberAddressType>("defaultBillingAddress", description: "Default billing address",
+            resolve: context => ResolveDefaultAddressAsync(context, AddressType.Billing));
 
-        Field<MemberAddressType>("defaultShippingAddress", description: "Default shipping address",
-            resolve: context => context.Source.Member.Addresses.FirstOrDefault(address => address.AddressType == CoreModule.Core.Common.AddressType.Shipping && address.IsDefault));
+        FieldAsync<MemberAddressType>("defaultShippingAddress", description: "Default shipping address",
+            resolve: context => ResolveDefaultAddressAsync(context, AddressType.Shipping));
 
         #endregion
 
         #region Addresses
 
-        var addressesConnectionBuilder = GraphTypeExtenstionHelper.CreateConnection<MemberAddressType, MemberAggregateRootBase>()
+        var addressesConnectionBuilder = GraphTypeExtenstionHelper.CreateConnection<MemberAddressType, TAggregate>()
             .Name("addresses")
             .Argument<StringGraphType>("sort", "Sort expression")
             .PageSize(20);
 
-        addressesConnectionBuilder.Resolve(ResolveAddressesConnection);
+        addressesConnectionBuilder.ResolveAsync(ResolveAddressesConnectionAsync);
         AddField(addressesConnectionBuilder.FieldType);
 
         #endregion
@@ -85,21 +94,35 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
             context => dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source.Member, context.GetArgumentOrValue<string>("cultureName")));
     }
 
-    protected virtual object ResolveAddressesConnection(IResolveConnectionContext<MemberAggregateRootBase> context)
+
+    protected virtual async Task<object> ResolveDefaultAddressAsync(IResolveFieldContext<TAggregate> context, AddressType addressType)
+    {
+        var address = context.Source.Member.Addresses.FirstOrDefault(x => x.IsDefault && x.AddressType == addressType);
+        return address is null ? null : await _memberAddressService.ToMemberAddressAsync(address, context.GetCurrentUserId());
+    }
+
+    protected virtual async Task<object> ResolveAddressesConnectionAsync(IResolveConnectionContext<TAggregate> context)
     {
         var take = context.First ?? 20;
         var skip = Convert.ToInt32(context.After ?? 0.ToString());
         var sort = context.GetArgument<string>("sort");
-        var addresses = context.Source.Member.Addresses.AsEnumerable();
+        var addresses = context.Source.Member.Addresses;
 
-        if (!string.IsNullOrEmpty(sort))
-        {
-            var sortInfos = SortInfo.Parse(sort);
-            addresses = addresses
-                .AsQueryable()
-                .OrderBySortInfos(sortInfos);
-        }
+        var page = (await _memberAddressService.ToMemberAddressesAsync(addresses, context.GetCurrentUserId()))
+            .AsQueryable()
+            .OrderBySortInfos(BuildAddressSortExpression(sort))
+            .Skip(skip)
+            .Take(take);
 
-        return new PagedConnection<Address>(addresses.Skip(skip).Take(take), skip, take, addresses.Count());
+        return new PagedConnection<MemberAddress>(page, skip, take, addresses.Count);
+    }
+
+    protected static IEnumerable<SortInfo> BuildAddressSortExpression(string sort)
+    {
+        const string isFavorite = nameof(MemberAddress.IsFavorite);
+        const string name = nameof(MemberAddress.Name);
+        const string defaultSorting = $"{isFavorite}:desc;{name}";
+
+        return SortInfo.Parse(sort.EmptyToNull() ?? defaultSorting);
     }
 }

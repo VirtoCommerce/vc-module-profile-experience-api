@@ -1,15 +1,16 @@
 using GraphQL.Types;
-using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class MemberAddressType : ObjectGraphType<Address>
+    public class MemberAddressType : ObjectGraphType<MemberAddress>
     {
         public MemberAddressType()
         {
             Field<StringGraphType>("id", resolve: context => context.Source.Key, description: "Id");
             Field(x => x.Key, true).Description("Id");
             Field(x => x.IsDefault, nullable: false).Description("Is default address or not");
+            Field(x => x.IsFavorite, nullable: false).Description("Is favorite address or not");
             Field(x => x.City, nullable: true).Description("City");
             Field(x => x.CountryCode, nullable: true).Description("Country code");
             Field(x => x.CountryName, nullable: true).Description("Country name");
@@ -28,7 +29,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field(x => x.Zip, nullable: true).Description("Zip");
             Field(x => x.OuterId, nullable: true).Description("Outer id");
             Field(x => x.Description, nullable: true).Description("Description");
-            Field<IntGraphType>(nameof(Address.AddressType), resolve: context => (int)context.Source.AddressType);
+            Field<IntGraphType>(nameof(MemberAddress.AddressType), resolve: context => (int)context.Source.AddressType);
         }
     }
 }

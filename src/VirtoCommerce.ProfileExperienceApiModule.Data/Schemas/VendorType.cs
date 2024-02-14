@@ -5,19 +5,23 @@ using VirtoCommerce.ExperienceApiModule.Core.Helpers;
 using VirtoCommerce.ExperienceApiModule.Core.Schemas;
 using VirtoCommerce.ExperienceApiModule.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Vendor;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 
-public class VendorType: MemberBaseType<VendorAggregate>
+public class VendorType : MemberBaseType<VendorAggregate>
 {
-    public VendorType(IDynamicPropertyResolverService dynamicPropertyResolverService) : base(dynamicPropertyResolverService)
+    public VendorType(
+        IDynamicPropertyResolverService dynamicPropertyResolverService,
+        IMemberAddressService memberAddressService)
+        : base(dynamicPropertyResolverService, memberAddressService)
     {
         Name = "Vendor";
         Description = "Vendor Info";
-        
+
         Field<StringGraphType>("about", description: "About vendor",
             resolve: context =>
-                context.Source.Contact?.About ?? 
+                context.Source.Contact?.About ??
                 context.Source.Organization?.Description ??
                 context.Source.Vendor?.Description);
         Field<StringGraphType>("iconUrl", description: "Icon URL",

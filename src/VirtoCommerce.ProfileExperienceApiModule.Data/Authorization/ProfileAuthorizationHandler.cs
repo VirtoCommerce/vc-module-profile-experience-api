@@ -46,161 +46,132 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             var currentContact = currentMember as Contact;
 
             // PT-6083: reduce complexity
-            if (context.Resource is ContactAggregate contactAggregate && currentContact != null)
+            switch (context.Resource)
             {
-                result = currentContact.Id == contactAggregate.Contact.Id;
-                if (!result)
-                {
-                    result = await HasSameOrganizationAsync(currentContact, contactAggregate.Contact.Id, userManager);
-                }
-            }
-            else if (context.Resource is ApplicationUser applicationUser)
-            {
-                result = currentUserId == applicationUser.Id;
-                if (!result)
-                {
-                    result = await HasSameOrganizationAsync(currentContact, applicationUser.Id, userManager);
-                }
-            }
-            else if (context.Resource is OrganizationAggregate organizationAggregate && currentContact != null)
-            {
-                result = currentContact.Organizations.Contains(organizationAggregate.Organization.Id);
-            }
-            else if (context.Resource is VendorAggregate)
-            {
-                result = true;
-            }
-
-            else if (context.Resource is Role role)
-            {
-                //Can be checked only with platform permission
-                result = true;
-            }
-            else if (context.Resource is CreateContactCommand createContactCommand)
-            {
-                //Anonymous user can create contact
-                result = true;
-            }
-            else if (context.Resource is CreateOrganizationCommand createOrganizationCommand)
-            {
-                //New user can create organization on b2b-theme
-                result = true;
-            }
-            else if (context.Resource is CreateUserCommand createUserCommand)
-            {
-                //Anonymous user can create customer users only
-                result = !createUserCommand.ApplicationUser.IsAdministrator && createUserCommand.ApplicationUser.UserType.EqualsInvariant("Customer");
-            }
-            else if (context.Resource is SendVerifyEmailCommand)
-            {
-                //Anonymous user request verification email
-                result = true;
-            }
-            else if (context.Resource is DeleteContactCommand deleteContactCommand && currentContact != null)
-            {
-                result = await HasSameOrganizationAsync(currentContact, deleteContactCommand.ContactId, userManager);
-            }
-            else if (context.Resource is DeleteUserCommand deleteUserCommand && currentContact != null)
-            {
-                var allowDelete = true;
-                foreach (var userName in deleteUserCommand.UserNames)
-                {
-                    if (allowDelete)
+                case ContactAggregate contactAggregate when currentContact != null:
+                    result = currentContact.Id == contactAggregate.Contact.Id;
+                    result = result || await HasSameOrganizationAsync(currentContact, contactAggregate.Contact.Id, userManager);
+                    break;
+                case ApplicationUser applicationUser:
+                    result = currentUserId == applicationUser.Id;
+                    result = result || await HasSameOrganizationAsync(currentContact, applicationUser.Id, userManager);
+                    break;
+                case OrganizationAggregate organizationAggregate when currentContact != null:
+                    result = currentContact.Organizations.Contains(organizationAggregate.Organization.Id);
+                    break;
+                case VendorAggregate:
+                    result = true;
+                    break;
+                case Role:
+                    //Can be checked only with platform permission
+                    result = true;
+                    break;
+                case CreateContactCommand:
+                    //Anonymous user can create contact
+                    result = true;
+                    break;
+                case CreateOrganizationCommand:
+                    //New user can create organization on b2b-theme
+                    result = true;
+                    break;
+                case CreateUserCommand createUserCommand:
+                    //Anonymous user can create customer users only
+                    result = !createUserCommand.ApplicationUser.IsAdministrator && createUserCommand.ApplicationUser.UserType.EqualsInvariant("Customer");
+                    break;
+                case SendVerifyEmailCommand:
+                    //Anonymous user request verification email
+                    result = true;
+                    break;
+                case DeleteContactCommand deleteContactCommand when currentContact != null:
+                    result = await HasSameOrganizationAsync(currentContact, deleteContactCommand.ContactId, userManager);
+                    break;
+                case DeleteUserCommand deleteUserCommand when currentContact != null:
+                    var allowDelete = true;
+                    foreach (var userName in deleteUserCommand.UserNames)
                     {
-                        var user = await userManager.FindByNameAsync(userName);
-                        allowDelete = await HasSameOrganizationAsync(currentContact, user.MemberId, userManager);
+                        if (allowDelete)
+                        {
+                            var user = await userManager.FindByNameAsync(userName);
+                            allowDelete = await HasSameOrganizationAsync(currentContact, user?.MemberId, userManager);
+                        }
                     }
-                }
-
-                result = allowDelete;
-            }
-            else if (context.Resource is MemberCommand memberCommand)
-            {
-                result = memberCommand.MemberId == currentMember?.Id;
-                if (!result && currentContact != null)
-                {
-                    var memberId = memberCommand.MemberId;
-                    var member = await _memberService.GetByIdAsync(memberId);
-
-                    if (member.MemberType.EqualsInvariant("Organization") && currentContact.Organizations.Any(x => x.EqualsInvariant(member.Id)))
+                    result = allowDelete;
+                    break;
+                case MemberCommand memberCommand:
+                    result = memberCommand.MemberId == currentMember?.Id;
+                    if (!result && currentContact != null)
                     {
-                        result = true;
+                        var memberId = memberCommand.MemberId;
+                        var member = await _memberService.GetByIdAsync(memberId);
+                        if (member.MemberType.EqualsInvariant("Organization") && currentContact.Organizations.Any(x => x.EqualsInvariant(member.Id)))
+                        {
+                            result = true;
+                        }
+                        else
+                        {
+                            result = await HasSameOrganizationAsync(currentContact, memberId, userManager);
+                        }
                     }
-                    else
+                    break;
+                case UpdateContactCommand updateContactCommand when currentContact != null:
+                    result = updateContactCommand.Id == currentContact.Id;
+                    result = result || await HasSameOrganizationAsync(currentContact, updateContactCommand.Id, userManager);
+                    break;
+                case UpdateOrganizationCommand updateOrganizationCommand when currentContact != null:
+                    result = currentContact.Organizations.Contains(updateOrganizationCommand.Id);
+                    break;
+                case UpdateMemberDynamicPropertiesCommand:
+                    //Can be checked only with platform permission
+                    result = true;
+                    break;
+                case UpdateRoleCommand:
+                    //Can be checked only with platform permission
+                    result = true;
+                    break;
+                case UpdateUserCommand updateUserCommand when currentContact != null:
+                    result = updateUserCommand.ApplicationUser.Id == currentContact.Id;
+                    result = result || await HasSameOrganizationAsync(currentContact, updateUserCommand.ApplicationUser.Id, userManager);
+                    break;
+                case UpdatePersonalDataCommand updatePersonalDataCommand:
+                    updatePersonalDataCommand.UserId = currentUserId;
+                    result = true;
+                    break;
+                case InviteUserCommand inviteUserCommand:
+                    var currentUser = await userManager.FindByIdAsync(currentUserId);
+                    if (!string.IsNullOrEmpty(inviteUserCommand.OrganizationId) && currentContact != null && currentUser != null)
                     {
-                        result = await HasSameOrganizationAsync(currentContact, memberId, userManager);
+                        result = currentContact.Organizations.Contains(inviteUserCommand.OrganizationId)
+                                 && currentUser.StoreId.EqualsInvariant(inviteUserCommand.StoreId);
                     }
-                }
+                    else if (currentUser != null)
+                    {
+                        result = currentUser.StoreId.EqualsInvariant(inviteUserCommand.StoreId);
+                    }
+                    break;
+                case LockOrganizationContactCommand lockOrganizationContact:
+                    result = await HasSameOrganizationAsync(currentContact, lockOrganizationContact.UserId, userManager);
+                    break;
+                case UnlockOrganizationContactCommand unlockOrganizationContact:
+                    result = await HasSameOrganizationAsync(currentContact, unlockOrganizationContact.UserId, userManager);
+                    break;
+                case ChangeOrganizationContactRoleCommand changeOrganizationContactRoleCommand:
+                    result = await HasSameOrganizationAsync(currentContact, changeOrganizationContactRoleCommand.UserId, userManager);
+                    break;
+                case RemoveMemberFromOrganizationCommand removeMemberFromOrganizationCommand:
+                    result = await HasSameOrganizationAsync(currentContact, removeMemberFromOrganizationCommand.ContactId, userManager);
+                    break;
+                case ChangePasswordCommand changePasswordCommand:
+                    result = changePasswordCommand.UserId == currentUserId;
+                    break;
+                case AddAddressToFavoritesCommand command:
+                    result = await CanAccessAddressAsync(currentContact, command.AddressId);
+                    break;
+                case RemoveAddressFromFavoritesCommand:
+                    // Can remove any address from favorites if user is not anonymous
+                    result = currentContact != null;
+                    break;
             }
-            else if (context.Resource is UpdateContactCommand updateContactCommand && currentContact != null)
-            {
-                result = updateContactCommand.Id == currentContact.Id;
-                if (!result)
-                {
-                    result = await HasSameOrganizationAsync(currentContact, updateContactCommand.Id, userManager);
-                }
-            }
-            else if (context.Resource is UpdateOrganizationCommand updateOrganizationCommand && currentContact != null)
-            {
-                result = currentContact.Organizations.Contains(updateOrganizationCommand.Id);
-            }
-            else if (context.Resource is UpdateMemberDynamicPropertiesCommand)
-            {
-                //Can be checked only with platform permission
-                result = true;
-            }
-            else if (context.Resource is UpdateRoleCommand updateRoleCommand)
-            {
-                //Can be checked only with platform permission
-                result = true;
-            }
-            else if (context.Resource is UpdateUserCommand updateUserCommand && currentContact != null)
-            {
-                result = updateUserCommand.ApplicationUser.Id == currentContact.Id;
-                if (!result)
-                {
-                    result = await HasSameOrganizationAsync(currentContact, updateUserCommand.ApplicationUser.Id, userManager);
-                }
-            }
-            else if (context.Resource is UpdatePersonalDataCommand updatePersonalDataCommand)
-            {
-                updatePersonalDataCommand.UserId = currentUserId;
-                result = true;
-            }
-            else if (context.Resource is InviteUserCommand inviteUserCommand)
-            {
-                var currentUser = await userManager.FindByIdAsync(currentUserId);
 
-                if (!string.IsNullOrEmpty(inviteUserCommand.OrganizationId) && currentContact != null && currentUser != null)
-                {
-                    result = currentContact.Organizations.Contains(inviteUserCommand.OrganizationId)
-                        && currentUser.StoreId.EqualsInvariant(inviteUserCommand.StoreId);
-                }
-                else if (currentUser != null)
-                {
-                    result = currentUser.StoreId.EqualsInvariant(inviteUserCommand.StoreId);
-                }
-            }
-            else if (context.Resource is LockOrganizationContactCommand lockOrganizationContact)
-            {
-                result = await HasSameOrganizationAsync(currentContact, lockOrganizationContact.UserId, userManager);
-            }
-            else if (context.Resource is UnlockOrganizationContactCommand unlockOrganizationContact)
-            {
-                result = await HasSameOrganizationAsync(currentContact, unlockOrganizationContact.UserId, userManager);
-            }
-            else if (context.Resource is ChangeOrganizationContactRoleCommand changeOrganizationContactRoleCommand)
-            {
-                result = await HasSameOrganizationAsync(currentContact, changeOrganizationContactRoleCommand.UserId, userManager);
-            }
-            else if (context.Resource is RemoveMemberFromOrganizationCommand removeMemberFromOrganizationCommand)
-            {
-                result = await HasSameOrganizationAsync(currentContact, removeMemberFromOrganizationCommand.ContactId, userManager);
-            }
-            else if (context.Resource is ChangePasswordCommand changePasswordCommand)
-            {
-                result = changePasswordCommand.UserId == currentUserId;
-            }
             if (result)
             {
                 context.Succeed(requirement);
@@ -248,6 +219,32 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             }
 
             return result;
+        }
+
+        protected virtual async Task<bool> CanAccessAddressAsync(Contact contact, string addressId)
+        {
+            if (contact is null)
+            {
+                return false;
+            }
+
+            if (contact.Addresses != null && contact.Addresses.Any(x => x.Key == addressId))
+            {
+                return true;
+            }
+
+            var organizationId = contact.Organizations?.FirstOrDefault();
+            if (string.IsNullOrEmpty(organizationId))
+            {
+                return false;
+            }
+
+            var organization = await _memberService.GetByIdAsync(organizationId);
+
+            return
+                organization != null &&
+                organization.Addresses != null &&
+                organization.Addresses.Any(x => x.Key == addressId);
         }
     }
 }
