@@ -7,17 +7,20 @@ using VirtoCommerce.ExperienceApiModule.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 
 public class OrganizationType : MemberBaseType<OrganizationAggregate>
 {
     public OrganizationType(
-        IMediator mediator,
         IDynamicPropertyResolverService dynamicPropertyResolverService,
-        IMemberAggregateFactory factory) : base(dynamicPropertyResolverService)
+        IMemberAddressService memberAddressService,
+        IMediator mediator,
+        IMemberAggregateFactory factory)
+        : base(dynamicPropertyResolverService, memberAddressService)
     {
         Name = "Organization";
         Description = "Organization info";

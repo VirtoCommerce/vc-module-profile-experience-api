@@ -11,6 +11,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 
@@ -18,8 +19,10 @@ public class ContactType : MemberBaseType<ContactAggregate>
 {
     public ContactType(
         IDynamicPropertyResolverService dynamicPropertyResolverService,
+        IMemberAddressService memberAddressService,
         IMediator mediator,
-        IMemberAggregateFactory memberAggregateFactory) : base(dynamicPropertyResolverService)
+        IMemberAggregateFactory memberAggregateFactory)
+        : base(dynamicPropertyResolverService, memberAddressService)
     {
         Field(x => x.Contact.FirstName);
         Field(x => x.Contact.LastName);

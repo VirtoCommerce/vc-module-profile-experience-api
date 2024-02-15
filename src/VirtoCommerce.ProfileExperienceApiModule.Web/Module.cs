@@ -33,12 +33,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
 
         public void Initialize(IServiceCollection serviceCollection)
         {
-            serviceCollection.AddSchemaBuilder<ProfileSchema>();
-
+            var assemblyMarker = typeof(AssemblyMarker);
             var graphQlBuilder = new CustomGraphQLBuilder(serviceCollection);
-            graphQlBuilder.AddGraphTypes(typeof(XProfileAnchor));
+            graphQlBuilder.AddGraphTypes(assemblyMarker);
+            serviceCollection.AddMediatR(assemblyMarker);
+            serviceCollection.AddAutoMapper(assemblyMarker);
+            serviceCollection.AddSchemaBuilders(assemblyMarker);
 
-            serviceCollection.AddMediatR(typeof(XProfileAnchor));
             serviceCollection.AddSingleton<IMemberAggregateFactory, MemberAggregateFactory>();
             serviceCollection.AddTransient<NewContactValidator>();
             serviceCollection.AddTransient<AccountValidator>();
@@ -50,9 +51,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
             serviceCollection.AddTransient<IVendorAggregateRepository, VendorAggregateRepository>();
             serviceCollection.AddTransient<IAccountService, AccountsService>();
             serviceCollection.AddSingleton<IAuthorizationHandler, ProfileAuthorizationHandler>();
-            serviceCollection.AddOptions<FrontendSecurityOptions>().Bind(Configuration.GetSection("FrontendSecurity")).ValidateDataAnnotations();
+            serviceCollection.AddSingleton<IProfileAuthorizationService, ProfileSchema>();
+            serviceCollection.AddSingleton<IMemberAddressService, MemberAddressService>();
 
-            serviceCollection.AddAutoMapper(typeof(XProfileAnchor));
+            serviceCollection.AddOptions<FrontendSecurityOptions>().Bind(Configuration.GetSection("FrontendSecurity")).ValidateDataAnnotations();
 
             serviceCollection.AddPipeline<PromotionEvaluationContext>(builder =>
             {
