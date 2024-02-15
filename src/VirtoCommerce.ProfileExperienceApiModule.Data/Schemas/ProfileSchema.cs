@@ -68,8 +68,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 Type = GraphTypeExtenstionHelper.GetActualType<UserType>(),
                 Resolver = new AsyncFieldResolver<object>(async context =>
                 {
-                    var user = ((GraphQLUserContext)context.UserContext).User;
-                    var userName = user?.Identity.Name;
+                    var principal = context.GetCurrentPrincipal();
+                    var userName = principal?.Identity?.Name;
                     if (!string.IsNullOrEmpty(userName))
                     {
                         var result = await _mediator.Send(new GetUserQuery
@@ -81,7 +81,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
                     var anonymousUser = AnonymousUser.Instance;
 
-                    var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+                    var userId = principal?.FindFirstValue(ClaimTypes.NameIdentifier);
                     if (!string.IsNullOrEmpty(userId))
                     {
                         anonymousUser.Id = userId;
