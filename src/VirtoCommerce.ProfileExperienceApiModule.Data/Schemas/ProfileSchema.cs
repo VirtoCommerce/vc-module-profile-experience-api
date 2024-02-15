@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.Builders;
@@ -67,7 +68,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 Type = GraphTypeExtenstionHelper.GetActualType<UserType>(),
                 Resolver = new AsyncFieldResolver<object>(async context =>
                 {
-                    var userName = ((GraphQLUserContext)context.UserContext).User?.Identity?.Name;
+                    var principal = context.GetCurrentPrincipal();
+                    var userName = principal?.Identity?.Name;
                     if (!string.IsNullOrEmpty(userName))
                     {
                         var result = await _mediator.Send(new GetUserQuery
@@ -76,7 +78,16 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         });
                         return result;
                     }
-                    return AnonymousUser.Instance;
+
+                    var anonymousUser = AnonymousUser.Instance;
+
+                    var userId = principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                    if (!string.IsNullOrEmpty(userId))
+                    {
+                        anonymousUser.Id = userId;
+                    }
+
+                    return anonymousUser;
                 })
             });
 
