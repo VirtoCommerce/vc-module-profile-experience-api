@@ -43,19 +43,22 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
         private readonly Func<SignInManager<ApplicationUser>> _signInManagerFactory;
         private readonly IMemberAggregateFactory _factory;
         private readonly ILogger<ProfileSchema> _logger;
+        private readonly IDistributedLockService _distributedLockService;
 
         public ProfileSchema(
             IMediator mediator,
             IAuthorizationService authorizationService,
             Func<SignInManager<ApplicationUser>> signInManagerFactory,
             IMemberAggregateFactory factory,
-            ILogger<ProfileSchema> logger)
+            ILogger<ProfileSchema> logger,
+            IDistributedLockService distributedLockService)
         {
             _mediator = mediator;
             _authorizationService = authorizationService;
             _signInManagerFactory = signInManagerFactory;
             _factory = factory;
             _logger = logger;
+            _distributedLockService = distributedLockService;
         }
 
         public void Build(ISchema schema)
@@ -330,7 +333,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             .Create<RegisterOrganizationResult, RegisterOrganizationResult>(GraphTypeExtenstionHelper.GetActualType<RequestRegistrationType>())
                             .Name("requestRegistration")
                             .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRequestRegistrationType>>(), _commandName)
-                            .ResolveAsync(async context =>
+                            .ResolveSynchronizedAsync("requestRegistration", "account:username", _distributedLockService, async context =>
                             {
                                 var type = GenericTypeHelper.GetActualType<RegisterRequestCommand>();
                                 var command = (RegisterRequestCommand)context.GetArgument(type, _commandName);
