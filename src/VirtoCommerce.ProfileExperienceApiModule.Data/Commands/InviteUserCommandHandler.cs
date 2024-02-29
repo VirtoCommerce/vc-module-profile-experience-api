@@ -96,7 +96,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
                 if (!identityResult.Succeeded)
                 {
-                    await _memberService.DeleteAsync(new[] { contact.Id });
+                    await _memberService.DeleteAsync(new[] { contact?.Id });
 
                     if (user.Id != null)
                     {
