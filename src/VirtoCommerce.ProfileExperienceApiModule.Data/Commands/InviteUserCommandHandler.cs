@@ -61,11 +61,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             {
                 using var userManager = _userManagerFactory();
 
-                var contact = CreateContact(email, request);
+                var contact = CreateContact(request, email);
                 
                 await _memberService.SaveChangesAsync(new Member[] { contact });
 
-                var user = new ApplicationUser { UserName = email, Email = email, MemberId = contact.Id, StoreId = request.StoreId };
+                var user = CreateUser(request, email, contact?.Id);
                 var identityResult = await userManager.CreateAsync(user);
 
                 if (identityResult.Succeeded)
@@ -108,7 +108,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return result;
         }
 
-        protected virtual Contact CreateContact(string email, InviteUserCommand request)
+        protected virtual Contact CreateContact(InviteUserCommand request, string email)
         {
             var contact = AbstractTypeFactory<Contact>.TryCreateInstance();
             contact.Status = ModuleConstants.ContactStatuses.Invited;
@@ -123,6 +123,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             }
 
             return contact;
+        }
+
+        protected virtual ApplicationUser CreateUser(InviteUserCommand request, string email, string contactId)
+        {
+            return new ApplicationUser
+            {
+                UserName = email,
+                Email = email,
+                MemberId = contactId,
+                StoreId = request.StoreId
+            };
         }
 
         protected virtual async Task<List<IdentityErrorInfo>> AssignUserRoles(ApplicationUser user, string[] roleIds)
