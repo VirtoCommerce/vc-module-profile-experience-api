@@ -65,7 +65,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 
                 await _memberService.SaveChangesAsync(new Member[] { contact });
 
-                var user = CreateUser(request, email, contact?.Id);
+                var user = CreateUser(request, contact, email);
                 var identityResult = await userManager.CreateAsync(user);
 
                 if (identityResult.Succeeded)
@@ -96,7 +96,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
                 if (!identityResult.Succeeded)
                 {
-                    await _memberService.DeleteAsync(new[] { contact?.Id });
+                    await _memberService.DeleteAsync(new[] { contact.Id });
 
                     if (user.Id != null)
                     {
@@ -125,13 +125,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return contact;
         }
 
-        protected virtual ApplicationUser CreateUser(InviteUserCommand request, string email, string contactId)
+        protected virtual ApplicationUser CreateUser(InviteUserCommand request, Contact contact, string email)
         {
             return new ApplicationUser
             {
                 UserName = email,
                 Email = email,
-                MemberId = contactId,
+                MemberId = contact.Id,
                 StoreId = request.StoreId
             };
         }
