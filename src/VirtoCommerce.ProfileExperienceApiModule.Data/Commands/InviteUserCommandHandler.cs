@@ -61,21 +61,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             {
                 using var userManager = _userManagerFactory();
 
-                var contact = AbstractTypeFactory<Contact>.TryCreateInstance();
-                contact.Status = ModuleConstants.ContactStatuses.Invited;
-                contact.FirstName = string.Empty;
-                contact.LastName = string.Empty;
-                contact.FullName = string.Empty;
-                contact.Emails = new List<string> { email };
-
-                if (!string.IsNullOrEmpty(request.OrganizationId))
-                {
-                    contact.Organizations = new List<string> { request.OrganizationId };
-                }
-
+                var contact = CreateContact(request, email);
+                
                 await _memberService.SaveChangesAsync(new Member[] { contact });
 
-                var user = new ApplicationUser { UserName = email, Email = email, MemberId = contact.Id, StoreId = request.StoreId };
+                var user = CreateUser(request, contact, email);
                 var identityResult = await userManager.CreateAsync(user);
 
                 if (identityResult.Succeeded)
@@ -116,6 +106,34 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             }
 
             return result;
+        }
+
+        protected virtual Contact CreateContact(InviteUserCommand request, string email)
+        {
+            var contact = AbstractTypeFactory<Contact>.TryCreateInstance();
+            contact.Status = ModuleConstants.ContactStatuses.Invited;
+            contact.FirstName = string.Empty;
+            contact.LastName = string.Empty;
+            contact.FullName = string.Empty;
+            contact.Emails = new List<string> { email };
+
+            if (!string.IsNullOrEmpty(request.OrganizationId))
+            {
+                contact.Organizations = new List<string> { request.OrganizationId };
+            }
+
+            return contact;
+        }
+
+        protected virtual ApplicationUser CreateUser(InviteUserCommand request, Contact contact, string email)
+        {
+            return new ApplicationUser
+            {
+                UserName = email,
+                Email = email,
+                MemberId = contact.Id,
+                StoreId = request.StoreId
+            };
         }
 
         protected virtual async Task<List<IdentityErrorInfo>> AssignUserRoles(ApplicationUser user, string[] roleIds)
