@@ -52,6 +52,20 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return SetResponse(IdentityResult.Failed(errors));
             }
 
+            var contact = await _memberService.GetByIdAsync(user.MemberId) as Contact;
+            if (contact == null)
+            {
+                var errors = _environment.IsDevelopment() ? new[] { new IdentityError { Code = "ContactNotFound", Description = "Contact not found" } } : null;
+                return SetResponse(IdentityResult.Failed(errors));
+            }
+
+            // check lockout
+            if (contact.Status == ModuleConstants.ContactStatuses.Locked)
+            {
+                var errors = _environment.IsDevelopment() ? new[] { new IdentityError { Code = "ContactLocked", Description = "Contact locked" } } : null;
+                return SetResponse(IdentityResult.Failed(errors));
+            }
+
             var identityResult = await userManager.ResetPasswordAsync(user, Uri.UnescapeDataString(request.Token), request.Password);
             if (!identityResult.Succeeded)
             {
@@ -71,26 +85,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return SetResponse(identityResult);
             }
 
-            var contact = await _memberService.GetByIdAsync(user.MemberId) as Contact;
-            if (contact == null)
+            UpdateContact(contact, request);
+
+            await _memberService.SaveChangesAsync([contact]);
+
+            // associate order
+            if (!string.IsNullOrEmpty(request.CustomerOrderId))
             {
-                var errors = _environment.IsDevelopment() ? new[] { new IdentityError { Code = "ContactNotFound", Description = "Contact not found" } } : null;
-                identityResult = IdentityResult.Failed(errors);
+                await TransferOrderAsync(request.CustomerOrderId, user.Id, contact.FullName, cancellationToken);
             }
-            else
-            {
-                UpdateContact(contact, request);
 
-                await _memberService.SaveChangesAsync(new Member[] { contact });
-
-                // associate order
-                if (!string.IsNullOrEmpty(request.CustomerOrderId))
-                {
-                    await TransferOrderAsync(request.CustomerOrderId, user.Id, contact.FullName, cancellationToken);
-                }
-
-                await SendRegistrationNotificationAsync(user, contact, cancellationToken);
-            }
+            await SendRegistrationNotificationAsync(user, contact, cancellationToken);
 
             return SetResponse(identityResult);
         }
