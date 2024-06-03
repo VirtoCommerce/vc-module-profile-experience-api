@@ -169,16 +169,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             }
             else if (context.Resource is InviteUserCommand inviteUserCommand)
             {
-                var currentUser = await userManager.FindByIdAsync(currentUserId);
-
-                if (!string.IsNullOrEmpty(inviteUserCommand.OrganizationId) && currentContact != null && currentUser != null)
+                if (!string.IsNullOrEmpty(inviteUserCommand.OrganizationId))
                 {
-                    result = currentContact.Organizations.Contains(inviteUserCommand.OrganizationId)
-                        && currentUser.StoreId.EqualsInvariant(inviteUserCommand.StoreId);
+                    var currentUser = await userManager.FindByIdAsync(currentUserId);
+                    if (currentContact != null && currentUser != null)
+                    {
+                        result = currentContact.Organizations.Contains(inviteUserCommand.OrganizationId)
+                            && currentUser.StoreId.EqualsInvariant(inviteUserCommand.StoreId);
+                    }
                 }
-                else if (currentUser != null)
+                else
                 {
-                    result = currentUser.StoreId.EqualsInvariant(inviteUserCommand.StoreId);
+                    result = true;
                 }
             }
             else if (context.Resource is LockOrganizationContactCommand lockOrganizationContact)
