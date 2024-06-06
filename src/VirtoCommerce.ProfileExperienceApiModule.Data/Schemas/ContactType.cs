@@ -31,8 +31,8 @@ public class ContactType : MemberBaseType<ContactAggregate>
 
         Field(x => x.Contact.About);
 
-        Field(x => x.Contact.DefaultLanguage);
-        Field(x => x.Contact.CurrencyCode);
+        Field(x => x.Contact.DefaultLanguage, nullable: true);
+        Field(x => x.Contact.CurrencyCode, nullable: true);
 
         Field<DateGraphType>("birthDate",
             resolve: context =>
