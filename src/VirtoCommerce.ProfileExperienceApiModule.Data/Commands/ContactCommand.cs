@@ -19,6 +19,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         public string PhotoUrl { get; set; }
         public string TimeZone { get; set; }
         public string DefaultLanguage { get; set; }
+        public string CurrencyCode { get; set; }
         public string LastName { get; set; }
         public string MiddleName { get; set; }
         public string FirstName { get; set; }
