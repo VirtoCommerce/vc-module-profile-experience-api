@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using VirtoCommerce.CustomerModule.Core.Model;
-using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
-using VirtoCommerce.ExperienceApiModule.Core.Models;
+using VirtoCommerce.Xapi.Core.Infrastructure;
+using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands

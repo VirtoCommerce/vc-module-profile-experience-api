@@ -1,4 +1,4 @@
-using VirtoCommerce.ExperienceApiModule.Core.Schemas;
+using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 

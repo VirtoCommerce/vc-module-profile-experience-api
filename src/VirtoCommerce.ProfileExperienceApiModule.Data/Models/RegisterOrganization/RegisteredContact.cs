@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using VirtoCommerce.CustomerModule.Core.Model;
-using VirtoCommerce.ExperienceApiModule.Core.Models;
+using VirtoCommerce.Xapi.Core.Models;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization
 {

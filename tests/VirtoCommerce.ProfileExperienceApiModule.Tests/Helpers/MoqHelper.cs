@@ -5,7 +5,7 @@ using Moq;
 using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
 
-namespace VirtoCommerce.ExperienceApiModule.Tests.Helpers
+namespace VirtoCommerce.Xapi.Tests.Helpers
 {
     public class MoqHelper
     {

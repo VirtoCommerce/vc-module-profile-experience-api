@@ -19,15 +19,12 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-    <PackageReference Include="VirtoCommerce.CoreModule.Core" Version="3.800.0" />
+    <PackageReference Include="VirtoCommerce.Xapi.Core" Version="3.800.0-alpha.3-vcst-1352" />
+    <PackageReference Include="VirtoCommerce.XOrder.Core" Version="3.800.0-alpha.2-vcst-1352" />
     <PackageReference Include="VirtoCommerce.CustomerModule.Core" Version="3.809.0" />
-    <PackageReference Include="VirtoCommerce.ExperienceApiModule.Core" Version="3.800.0" />
-    <PackageReference Include="VirtoCommerce.ExperienceApiModule.XOrder" Version="3.800.0" />
     <PackageReference Include="VirtoCommerce.MarketingModule.Core" Version="3.800.0" />
     <PackageReference Include="VirtoCommerce.NotificationsModule.Core" Version="3.800.0" />
-    <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.800.0" />
     <PackageReference Include="VirtoCommerce.PricingModule.Core" Version="3.800.0" />
-    <PackageReference Include="VirtoCommerce.StoreModule.Core" Version="3.800.0" />
-    <PackageReference Include="VirtoCommerce.TaxModule.Core" Version="3.800.0" />
+
   </ItemGroup>
 </Project>
