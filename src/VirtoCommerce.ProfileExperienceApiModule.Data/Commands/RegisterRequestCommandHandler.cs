@@ -320,7 +320,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             var role = await _accountService.FindRoleByName(maintainerRoleId) ?? await _accountService.FindRoleById(maintainerRoleId);
             if (role == null)
             {
-                SetErrorResult(result, "Role not found", $"Organization maintainer role {maintainerRoleId} not found", tokenSource);
+                SetErrorResult(result, "Role not found", $"The system could not find a role with the name '{maintainerRoleId}'. Create and configure a role with the name '{maintainerRoleId}'. Alternatively, change the role in the OrganizationMaintainerRole section to match an existing role.", tokenSource);
             }
 
             return role;
