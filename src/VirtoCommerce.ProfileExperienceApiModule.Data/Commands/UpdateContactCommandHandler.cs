@@ -2,7 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using MediatR;
-using VirtoCommerce.ExperienceApiModule.Core.Services;
+using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands

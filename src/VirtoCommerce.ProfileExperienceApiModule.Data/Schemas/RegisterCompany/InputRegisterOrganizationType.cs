@@ -1,6 +1,6 @@
 using GraphQL.Types;
 using VirtoCommerce.CustomerModule.Core.Model;
-using VirtoCommerce.ExperienceApiModule.Core.Schemas;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
 {

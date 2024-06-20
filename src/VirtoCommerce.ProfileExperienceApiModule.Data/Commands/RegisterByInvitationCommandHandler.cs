@@ -9,12 +9,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Hosting;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
-using VirtoCommerce.ExperienceApiModule.XOrder.Commands;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 using VirtoCommerce.StoreModule.Core.Services;
+using VirtoCommerce.XOrder.Core.Commands;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {

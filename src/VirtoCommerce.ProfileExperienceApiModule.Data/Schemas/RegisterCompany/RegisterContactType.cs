@@ -1,10 +1,10 @@
 using System.Linq;
 using GraphQL.Types;
 using VirtoCommerce.CustomerModule.Core.Model;
-using VirtoCommerce.ExperienceApiModule.Core.Extensions;
-using VirtoCommerce.ExperienceApiModule.Core.Helpers;
-using VirtoCommerce.ExperienceApiModule.Core.Schemas;
-using VirtoCommerce.ExperienceApiModule.Core.Services;
+using VirtoCommerce.Xapi.Core.Extensions;
+using VirtoCommerce.Xapi.Core.Helpers;
+using VirtoCommerce.Xapi.Core.Schemas;
+using VirtoCommerce.Xapi.Core.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
 {

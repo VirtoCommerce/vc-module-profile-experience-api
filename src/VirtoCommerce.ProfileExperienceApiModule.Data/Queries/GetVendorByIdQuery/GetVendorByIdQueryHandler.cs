@@ -1,6 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using VirtoCommerce.ExperienceApiModule.Core.Pipelines;
+using VirtoCommerce.Xapi.Core.Pipelines;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Vendor;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries;

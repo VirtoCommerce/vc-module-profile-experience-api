@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
-using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
+using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands

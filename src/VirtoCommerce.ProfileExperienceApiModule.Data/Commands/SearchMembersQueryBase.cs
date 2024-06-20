@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using VirtoCommerce.CustomerModule.Core.Model.Search;
-using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
+using VirtoCommerce.Xapi.Core.Infrastructure;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {

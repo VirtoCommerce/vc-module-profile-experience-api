@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using VirtoCommerce.ExperienceApiModule.Core.Services;
+using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 

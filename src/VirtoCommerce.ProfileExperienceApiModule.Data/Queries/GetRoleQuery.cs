@@ -1,4 +1,4 @@
-using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
+using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Platform.Core.Security;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries

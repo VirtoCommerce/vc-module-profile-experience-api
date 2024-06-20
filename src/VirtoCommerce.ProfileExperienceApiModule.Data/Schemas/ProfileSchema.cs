@@ -10,10 +10,6 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
-using VirtoCommerce.ExperienceApiModule.Core.Extensions;
-using VirtoCommerce.ExperienceApiModule.Core.Helpers;
-using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
-using VirtoCommerce.ExperienceApiModule.Core.Infrastructure.Authorization;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Security.Authorization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
@@ -28,6 +24,10 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
+using VirtoCommerce.Xapi.Core.Extensions;
+using VirtoCommerce.Xapi.Core.Helpers;
+using VirtoCommerce.Xapi.Core.Infrastructure;
+using VirtoCommerce.Xapi.Core.Infrastructure.Authorization;
 using CustomerPermissions = VirtoCommerce.CustomerModule.Core.ModuleConstants.Security.Permissions;
 using PlatformPermissions = VirtoCommerce.Platform.Core.PlatformConstants.Security.Permissions;
 using ProfilePermissions = VirtoCommerce.ProfileExperienceApiModule.Data.ModuleConstants.Security.Permissions;
@@ -764,7 +764,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 var user = await signInManager.UserManager.FindByIdAsync(userId) ?? new ApplicationUser
                 {
                     Id = userId,
-                    UserName = ExperienceApiModule.Core.AnonymousUser.UserName,
+                    UserName = Xapi.Core.ModuleConstants.AnonymousUser.UserName,
                 };
 
                 if (checkPasswordExpired && user.PasswordExpired)
