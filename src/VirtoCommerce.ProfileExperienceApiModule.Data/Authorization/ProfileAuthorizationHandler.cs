@@ -236,18 +236,16 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                 return true;
             }
 
-            var organizationId = contact.Organizations?.FirstOrDefault();
-            if (string.IsNullOrEmpty(organizationId))
+            if (contact.Organizations.IsNullOrEmpty())
             {
                 return false;
             }
 
-            var organization = await _memberService.GetByIdAsync(organizationId);
+            var organizations = await _memberService.GetByIdsAsync(contact.Organizations.ToArray());
 
-            return
-                organization != null &&
-                organization.Addresses != null &&
-                organization.Addresses.Any(x => x.Key == addressId);
+            return organizations
+                .SelectMany(x => x.Addresses)
+                .Any(x => x.Key == addressId);
         }
     }
 }
