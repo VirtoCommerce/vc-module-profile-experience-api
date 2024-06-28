@@ -2,6 +2,7 @@ using System.Linq;
 using GraphQL.Types;
 using MediatR;
 using VirtoCommerce.CustomerModule.Core.Model.Search;
+using VirtoCommerce.ExperienceApiModule.Core.Extensions;
 using VirtoCommerce.ExperienceApiModule.Core.Helpers;
 using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
 using VirtoCommerce.ExperienceApiModule.Core.Services;
@@ -41,7 +42,7 @@ public class ContactType : MemberBaseType<ContactAggregate>
         Field<ListGraphType<UserType>>("securityAccounts", resolve: context => context.Source.Contact.SecurityAccounts);
 
         Field<StringGraphType>("organizationId",
-            resolve: context => context.Source.Contact.Organizations?.FirstOrDefault());
+            resolve: context => context.GetCurrentOrganizationId());
 
         #region Organizations
 
