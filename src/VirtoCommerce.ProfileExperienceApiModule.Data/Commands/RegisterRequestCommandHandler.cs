@@ -10,8 +10,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
-using VirtoCommerce.Xapi.Core.Models;
-using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.NotificationsModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.DynamicProperties;
@@ -25,6 +23,8 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
+using VirtoCommerce.Xapi.Core.Models;
+using VirtoCommerce.Xapi.Core.Services;
 using CustomerSettings = VirtoCommerce.CustomerModule.Core.ModuleConstants.Settings.General;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
@@ -320,7 +320,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             var role = await _accountService.FindRoleByName(maintainerRoleId) ?? await _accountService.FindRoleById(maintainerRoleId);
             if (role == null)
             {
-                SetErrorResult(result, "Role not found", $"Organization maintainer role {maintainerRoleId} not found", tokenSource);
+                SetErrorResult(result, "Role not found", $"The system could not find a role with the name '{maintainerRoleId}'. Create and configure a role with the name '{maintainerRoleId}'. Alternatively, change the role in the OrganizationMaintainerRole section to match an existing role.", tokenSource);
             }
 
             return role;
