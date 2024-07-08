@@ -9,6 +9,9 @@ GraphQL.Relay.dll
 GraphQL.Server.Core.dll
 GraphQL.Server.Transports.AspNetCore.dll
 GraphQL.Server.Transports.AspNetCore.NewtonsoftJson.dll
+GraphQL.Server.Transports.Subscriptions.Abstractions.dll
+GraphQL.Server.Transports.Subscriptions.WebSockets.dll
+GraphQL.SystemReactive.dll
 GraphQL-Parser.dll
 MediatR.dll
 MediatR.Extensions.Microsoft.DependencyInjection.dll
@@ -16,6 +19,10 @@ Microsoft.Data.SqlClient.SNI.dll
 Nager.Country.dll
 PipelineNet.dll
 SixLabors.ImageSharp.dll
+System.Reactive.Core.dll
+System.Reactive.dll
+System.Reactive.Linq.dll
+System.Reactive.xml
 TimeZoneConverter.dll
 VirtoCommerce.ImageTools.ImageAbstractions.dll
 VirtoCommerce.Tools.dll
