@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentValidation;
 using Microsoft.AspNetCore.Identity;
-using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
+using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;

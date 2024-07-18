@@ -2,10 +2,6 @@ using System.Linq;
 using GraphQL.Types;
 using MediatR;
 using VirtoCommerce.CustomerModule.Core.Model.Search;
-using VirtoCommerce.ExperienceApiModule.Core.Extensions;
-using VirtoCommerce.ExperienceApiModule.Core.Helpers;
-using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
-using VirtoCommerce.ExperienceApiModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
@@ -13,6 +9,10 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
+using VirtoCommerce.Xapi.Core.Extensions;
+using VirtoCommerce.Xapi.Core.Helpers;
+using VirtoCommerce.Xapi.Core.Infrastructure;
+using VirtoCommerce.Xapi.Core.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 

@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
-using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
+using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Platform.Core.Security;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries

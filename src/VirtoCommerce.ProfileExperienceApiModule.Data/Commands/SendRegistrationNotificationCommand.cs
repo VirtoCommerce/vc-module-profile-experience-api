@@ -1,5 +1,5 @@
 using VirtoCommerce.CustomerModule.Core.Model;
-using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
+using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.StoreModule.Core.Model;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands

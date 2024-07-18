@@ -1,4 +1,4 @@
-using VirtoCommerce.ExperienceApiModule.Core.Infrastructure;
+using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands

@@ -10,8 +10,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
-using VirtoCommerce.ExperienceApiModule.Core.Models;
-using VirtoCommerce.ExperienceApiModule.Core.Services;
 using VirtoCommerce.NotificationsModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.DynamicProperties;
@@ -25,6 +23,8 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
+using VirtoCommerce.Xapi.Core.Models;
+using VirtoCommerce.Xapi.Core.Services;
 using CustomerSettings = VirtoCommerce.CustomerModule.Core.ModuleConstants.Settings.General;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands

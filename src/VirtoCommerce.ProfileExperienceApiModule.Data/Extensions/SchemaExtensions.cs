@@ -4,7 +4,7 @@ using GraphQL;
 using GraphQL.Resolvers;
 using GraphQL.Types;
 using MediatR;
-using VirtoCommerce.ExperienceApiModule.Core.Helpers;
+using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
