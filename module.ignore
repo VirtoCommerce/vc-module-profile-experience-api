@@ -26,3 +26,5 @@ System.Reactive.xml
 TimeZoneConverter.dll
 VirtoCommerce.ImageTools.ImageAbstractions.dll
 VirtoCommerce.Tools.dll
+VirtoCommerce.XDigitalCatalog.dll
+VirtoCommerce.XPurchase.dll
