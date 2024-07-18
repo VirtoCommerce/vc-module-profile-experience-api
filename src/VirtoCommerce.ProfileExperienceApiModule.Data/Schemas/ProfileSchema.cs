@@ -27,7 +27,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.Xapi.Core.Infrastructure;
-using VirtoCommerce.Xapi.Core.Infrastructure.Authorization;
+using VirtoCommerce.Xapi.Core.Security.Authorization;
 using CustomerPermissions = VirtoCommerce.CustomerModule.Core.ModuleConstants.Security.Permissions;
 using PlatformPermissions = VirtoCommerce.Platform.Core.PlatformConstants.Security.Permissions;
 using ProfilePermissions = VirtoCommerce.ProfileExperienceApiModule.Data.ModuleConstants.Security.Permissions;
