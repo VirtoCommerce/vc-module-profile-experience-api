@@ -25,6 +25,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
     public class InviteUserCommandHandler : IRequestHandler<InviteUserCommand, IdentityResultResponse>
     {
+        private const string _userType = "Customer";
+
         private readonly IWebHostEnvironment _environment;
         private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
         private readonly Func<RoleManager<Role>> _roleManagerFactory;
@@ -62,7 +64,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 using var userManager = _userManagerFactory();
 
                 var contact = CreateContact(request, email);
-                
+
                 await _memberService.SaveChangesAsync(new Member[] { contact });
 
                 var user = CreateUser(request, contact, email);
@@ -132,7 +134,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 UserName = email,
                 Email = email,
                 MemberId = contact.Id,
-                StoreId = request.StoreId
+                StoreId = request.StoreId,
+                UserType = _userType,
             };
         }
 
