@@ -4,10 +4,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using VirtoCommerce.Xapi.Core.Extensions;
-using VirtoCommerce.Xapi.Core.Infrastructure;
-using VirtoCommerce.Xapi.Core.Pipelines;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
+using VirtoCommerce.Platform.Core.Extensions;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.PricingModule.Core.Model;
@@ -23,13 +21,21 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.TaxModule.Core.Model;
+using VirtoCommerce.Xapi.Core.Extensions;
+using VirtoCommerce.Xapi.Core.Infrastructure;
+using VirtoCommerce.Xapi.Core.Pipelines;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Web
 {
-    public class Module : IModule, IHasConfiguration
+    public class Module : IModule, IHasConfiguration, IHasModuleCatalog
     {
         public ManifestModuleInfo ModuleInfo { get; set; }
         public IConfiguration Configuration { get; set; }
+        public IModuleCatalog ModuleCatalog { get; set; }
+
+        // optional modules
+        private const string PricingModuleId = "VirtoCommerce.Pricing";
+        private const string MarketingModuleId = "VirtoCommerce.Marketing";
 
         public void Initialize(IServiceCollection serviceCollection)
         {
@@ -56,17 +62,23 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
 
             serviceCollection.AddOptions<FrontendSecurityOptions>().Bind(Configuration.GetSection("FrontendSecurity")).ValidateDataAnnotations();
 
-            serviceCollection.AddPipeline<PromotionEvaluationContext>(builder =>
+            if (ModuleCatalog.IsModuleInstalled(MarketingModuleId))
             {
-                builder.AddMiddleware(typeof(LoadUserToEvalContextMiddleware));
-            });
+                serviceCollection.AddPipeline<PromotionEvaluationContext>(builder =>
+                {
+                    builder.AddMiddleware(typeof(LoadUserToEvalContextMiddleware));
+                });
+            }
+
+            if (ModuleCatalog.IsModuleInstalled(PricingModuleId))
+            {
+                serviceCollection.AddPipeline<PriceEvaluationContext>(builder =>
+                {
+                    builder.AddMiddleware(typeof(LoadUserToEvalContextMiddleware));
+                });
+            }
 
             serviceCollection.AddPipeline<TaxEvaluationContext>(builder =>
-            {
-                builder.AddMiddleware(typeof(LoadUserToEvalContextMiddleware));
-            });
-
-            serviceCollection.AddPipeline<PriceEvaluationContext>(builder =>
             {
                 builder.AddMiddleware(typeof(LoadUserToEvalContextMiddleware));
             });
