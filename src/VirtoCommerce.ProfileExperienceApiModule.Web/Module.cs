@@ -4,9 +4,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using VirtoCommerce.Xapi.Core.Extensions;
-using VirtoCommerce.Xapi.Core.Infrastructure;
-using VirtoCommerce.Xapi.Core.Pipelines;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Security;
@@ -23,6 +20,9 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.TaxModule.Core.Model;
+using VirtoCommerce.Xapi.Core.Extensions;
+using VirtoCommerce.Xapi.Core.Infrastructure;
+using VirtoCommerce.Xapi.Core.Pipelines;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Web
 {
