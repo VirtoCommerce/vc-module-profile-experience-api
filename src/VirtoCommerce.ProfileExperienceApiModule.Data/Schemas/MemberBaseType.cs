@@ -7,15 +7,15 @@ using GraphQL.Builders;
 using GraphQL.Types;
 using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Seo;
+using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.Xapi.Core.Services;
-using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 
@@ -67,10 +67,10 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
 
         #region Default addresses
 
-        FieldAsync<MemberAddressType>("defaultBillingAddress", description: "Default billing address",
+        ExtendableFieldAsync<MemberAddressType>("defaultBillingAddress", description: "Default billing address",
             resolve: context => ResolveDefaultAddressAsync(context, AddressType.Billing));
 
-        FieldAsync<MemberAddressType>("defaultShippingAddress", description: "Default shipping address",
+        ExtendableFieldAsync<MemberAddressType>("defaultShippingAddress", description: "Default shipping address",
             resolve: context => ResolveDefaultAddressAsync(context, AddressType.Shipping));
 
         #endregion
