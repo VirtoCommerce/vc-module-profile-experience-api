@@ -15,7 +15,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
             Field<NonNullGraphType<StringGraphType>>("id");
             Field<NonNullGraphType<StringGraphType>>("name");
             Field<StringGraphType>("description");
-            Field<MemberAddressType>("address", resolve: context => (context.Source).Addresses?.FirstOrDefault());
+            ExtendableField<MemberAddressType>("address", resolve: context => (context.Source).Addresses?.FirstOrDefault());
             Field<StringGraphType>("status");
             Field<StringGraphType>("createdBy");
             Field<StringGraphType>("ownerId");
