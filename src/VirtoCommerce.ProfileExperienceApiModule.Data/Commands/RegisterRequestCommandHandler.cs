@@ -344,15 +344,19 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             };
         }
 
-        protected virtual ApplicationUser ToApplicationUser(Account account) => new()
+        protected virtual ApplicationUser ToApplicationUser(Account account)
         {
-            UserName = account.UserName,
-            Email = account.Email,
-            Password = account.Password,
-            StoreId = CurrentStore.Id,
-            Status = DefaultContactStatus,
-            UserType = _userType,
-        };
+            var user = AbstractTypeFactory<ApplicationUser>.TryCreateInstance();
+
+            user.UserName = account.UserName;
+            user.Email = account.Email;
+            user.Password = account.Password;
+            user.StoreId = CurrentStore.Id;
+            user.Status = DefaultContactStatus;
+            user.UserType = _userType;
+
+            return user;
+        }
 
         protected virtual async Task RollBackMembersCreationAsync(RegisterOrganizationResult result)
         {
