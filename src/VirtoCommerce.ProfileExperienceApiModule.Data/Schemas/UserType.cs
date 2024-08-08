@@ -45,9 +45,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field(x => x.UserName);
             Field(x => x.UserType, true);
 
-            Field<BooleanGraphType>("PasswordExpired", resolve: x => IsExternalSignIn(x) ? false : x.Source.PasswordExpired);
-            Field<BooleanGraphType>("forcePasswordChange", resolve: x => IsExternalSignIn(x) ? false : x.Source.PasswordExpired, description: "Make this user change their password when they sign in next time");
-            Field<IntGraphType>("passwordExpiryInDays", resolve: x => IsExternalSignIn(x) ? null : GetPasswordExpiryInDays(userOptionsExtended.Value, x.Source), description: "Password expiry in days");
+            Field<BooleanGraphType>("passwordExpired", resolve: x => GetPasswordExpired(x));
+            Field<BooleanGraphType>("forcePasswordChange", resolve: x => GetPasswordExpired(x), description: "Make this user change their password when they sign in next time");
+            Field<IntGraphType>("passwordExpiryInDays", resolve: x => GetPasswordExpiryInDays(x, userOptionsExtended.Value), description: "Password expiry in days");
 
 
             AddField(new FieldType
@@ -96,16 +96,19 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             });
         }
 
-        private static bool IsExternalSignIn(IResolveFieldContext<ApplicationUser> context)
+        private static bool GetPasswordExpired(IResolveFieldContext<ApplicationUser> context)
         {
-            return context.Source.Id == context.GetCurrentUserId() && context.GetCurrentPrincipal().IsExternalSignIn();
+            return context.Source.PasswordExpired && !IsExternalSignIn(context);
         }
 
-        private static int? GetPasswordExpiryInDays(UserOptionsExtended userOptionsExtended, ApplicationUser user)
+        private static int? GetPasswordExpiryInDays(IResolveFieldContext<ApplicationUser> context, UserOptionsExtended userOptionsExtended)
         {
             var result = (int?)null;
 
+            var user = context.Source;
+
             if (!user.PasswordExpired &&
+                !IsExternalSignIn(context) &&
                 userOptionsExtended.RemindPasswordExpiryInDays > 0 &&
                 userOptionsExtended.MaxPasswordAge != null &&
                 userOptionsExtended.MaxPasswordAge.Value > TimeSpan.Zero)
@@ -121,6 +124,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             }
 
             return result;
+        }
+
+        private static bool IsExternalSignIn(IResolveFieldContext<ApplicationUser> context)
+        {
+            return context.Source.Id == context.GetCurrentUserId() && context.GetCurrentPrincipal().IsExternalSignIn();
         }
     }
 }
