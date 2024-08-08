@@ -1,15 +1,18 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using GraphQL;
 using GraphQL.Resolvers;
 using GraphQL.Types;
 using MediatR;
 using Microsoft.Extensions.Options;
-using VirtoCommerce.Xapi.Core.Helpers;
-using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.Platform.Core.Security;
+using VirtoCommerce.Platform.Security.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
+using VirtoCommerce.Xapi.Core.Extensions;
+using VirtoCommerce.Xapi.Core.Helpers;
+using VirtoCommerce.Xapi.Core.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
@@ -31,7 +34,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field(x => x.ModifiedDate, true);
             Field(x => x.NormalizedEmail, true);
             Field(x => x.NormalizedUserName, true);
-            Field(x => x.PasswordExpired);
             Field(x => x.PhoneNumber, true);
             Field(x => x.PhoneNumberConfirmed);
             Field(x => x.PhotoUrl, true);
@@ -42,8 +44,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field(x => x.TwoFactorEnabled);
             Field(x => x.UserName);
             Field(x => x.UserType, true);
-            Field<BooleanGraphType>("forcePasswordChange", resolve: x => x.Source.PasswordExpired, description: "Make this user change their password when they sign in next time");
-            Field<IntGraphType>("passwordExpiryInDays", resolve: x => GetPasswordExpiryInDays(userOptionsExtended.Value, x.Source), description: "Password expiry in days");
+
+            Field<BooleanGraphType>("PasswordExpired", resolve: x => IsExternalSignIn(x) ? false : x.Source.PasswordExpired);
+            Field<BooleanGraphType>("forcePasswordChange", resolve: x => IsExternalSignIn(x) ? false : x.Source.PasswordExpired, description: "Make this user change their password when they sign in next time");
+            Field<IntGraphType>("passwordExpiryInDays", resolve: x => IsExternalSignIn(x) ? null : GetPasswordExpiryInDays(userOptionsExtended.Value, x.Source), description: "Password expiry in days");
+
 
             AddField(new FieldType
             {
@@ -89,6 +94,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                     return null;
                 })
             });
+        }
+
+        private static bool IsExternalSignIn(IResolveFieldContext<ApplicationUser> context)
+        {
+            return context.Source.Id == context.GetCurrentUserId() && context.GetCurrentPrincipal().IsExternalSignIn();
         }
 
         private static int? GetPasswordExpiryInDays(UserOptionsExtended userOptionsExtended, ApplicationUser user)
