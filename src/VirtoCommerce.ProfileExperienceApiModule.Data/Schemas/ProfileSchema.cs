@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Security.Authorization;
+using VirtoCommerce.Platform.Security.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
@@ -756,7 +757,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
         // PT-1654: Fix Authentication
         public async Task CheckAuthAsync(IResolveFieldContext context, object resource, string permission = null, bool checkPasswordExpired = true)
         {
-            var userId = context.GetCurrentUserId();
+            var principal = context.GetCurrentPrincipal();
+            var userId = principal.GetCurrentUserId();
+            var isExternalSignIn = principal.IsExternalSignIn();
             var signInManager = _signInManagerFactory();
 
             try
@@ -767,11 +770,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                     UserName = Xapi.Core.ModuleConstants.AnonymousUser.UserName,
                 };
 
-                if (checkPasswordExpired && user.PasswordExpired)
+                if (checkPasswordExpired && user.PasswordExpired && !isExternalSignIn)
                 {
                     throw AuthorizationError.PasswordExpired();
                 }
 
+                // Why do we create a new principal???
                 var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
 
                 if (!string.IsNullOrEmpty(permission) && PermissionRequired(user, resource))
