@@ -31,7 +31,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
     public class RegisterRequestCommandHandler : IRequestHandler<RegisterRequestCommand, RegisterOrganizationResult>
     {
-        private const string _userType = "Manager";
+        private const string _userType = "Customer";
 
         private readonly IMapper _mapper;
         private readonly IDynamicPropertyUpdaterService _dynamicPropertyUpdater;
