@@ -129,8 +129,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     result = true;
                     break;
                 case UpdateUserCommand updateUserCommand when currentContact != null:
-                    result = updateUserCommand.ApplicationUser.Id == currentContact.Id;
-                    result = result || await HasSameOrganizationAsync(currentContact, updateUserCommand.ApplicationUser.Id, userManager);
+                    result = updateUserCommand.ApplicationUser.Id == currentUserId;
+                    result = result || await HasSameOrganizationAsync(currentContact, updateUserCommand.ApplicationUser.MemberId, userManager);
                     break;
                 case UpdatePersonalDataCommand updatePersonalDataCommand:
                     updatePersonalDataCommand.UserId = currentUserId;
