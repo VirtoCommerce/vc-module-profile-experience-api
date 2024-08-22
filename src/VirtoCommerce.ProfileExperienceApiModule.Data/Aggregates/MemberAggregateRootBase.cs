@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using VirtoCommerce.CustomerModule.Core.Model;
+using static VirtoCommerce.CoreModule.Core.Common.AddressType;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
 {
@@ -36,10 +37,27 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
             {
                 var addressToDelete = Member.Addresses.FirstOrDefault(x => x.Key == address.Key);
 
-                if (addressToDelete != null)
+                if (addressToDelete != null && addressToDelete.AddressType != BillingAndShipping)
                 {
                     Member.Addresses.Remove(addressToDelete);
                 }
+            }
+
+            return this;
+        }
+
+        public virtual MemberAggregateRootBase MakeAddressDefault(string addressKey)
+        {
+            var addressToDefault = Member.Addresses.FirstOrDefault(x => x.Key == addressKey);
+
+            if (addressToDefault != null)
+            {
+                foreach (var address in Member.Addresses.Where(x => x.AddressType == addressToDefault.AddressType))
+                {
+                    address.IsDefault = false;
+                }
+
+                addressToDefault.IsDefault = true;
             }
 
             return this;
