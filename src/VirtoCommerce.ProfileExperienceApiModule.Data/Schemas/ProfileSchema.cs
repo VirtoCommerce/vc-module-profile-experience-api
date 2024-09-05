@@ -66,6 +66,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             schema.Query.AddField(new FieldType
             {
                 Name = "me",
+                Arguments = new QueryArguments(new QueryArgument<StringGraphType> { Name = "userId" }),
                 Type = GraphTypeExtenstionHelper.GetActualType<UserType>(),
                 Resolver = new AsyncFieldResolver<object>(async context =>
                 {
@@ -82,8 +83,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
                     var anonymousUser = AnonymousUser.Instance;
 
-                    var userId = principal?.FindFirstValue(ClaimTypes.NameIdentifier);
-                    if (!string.IsNullOrEmpty(userId))
+                    var userId = principal?.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                                 context.GetArgument<string>("userId");
+
+                    if (!string.IsNullOrEmpty(userId) && !await UserExistsAsync(userId))
                     {
                         anonymousUser.Id = userId;
                     }
@@ -831,6 +834,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             var user = await signInManager.UserManager.FindByIdAsync(userId);
 
             return user?.Email;
+        }
+
+        private async Task<bool> UserExistsAsync(string userId)
+        {
+            var signInManager = _signInManagerFactory();
+            var user = await signInManager.UserManager.FindByIdAsync(userId);
+
+            return user != null;
         }
     }
 }
