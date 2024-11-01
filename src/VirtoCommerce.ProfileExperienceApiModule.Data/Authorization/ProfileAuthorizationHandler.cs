@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -41,7 +40,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
 
             using var userManager = _userManagerFactory();
 
-            var currentUserId = GetUserId(context);
+            var currentUserId = GetCurrentUserId(context);
             var currentMember = await GetCustomerAsync(currentUserId, userManager);
             var currentContact = currentMember as Contact;
 
@@ -185,10 +184,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             }
         }
 
-        private static string GetUserId(AuthorizationHandlerContext context)
+        private static string GetCurrentUserId(AuthorizationHandlerContext context)
         {
-            //PT-5375 use ClaimTypes instead of "name"
-            return context.User.FindFirstValue("name");
+            return context.User.GetUserId();
         }
 
         private async Task<bool> HasSameOrganizationAsync(Contact currentContact, string contactId, UserManager<ApplicationUser> userManager)
