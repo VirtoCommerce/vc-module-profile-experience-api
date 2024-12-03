@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Security;
@@ -22,6 +23,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.TaxModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Infrastructure;
+using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.Xapi.Core.Pipelines;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Web
@@ -39,6 +41,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
             serviceCollection.AddMediatR(assemblyMarker);
             serviceCollection.AddAutoMapper(assemblyMarker);
             serviceCollection.AddSchemaBuilders(assemblyMarker);
+
+            serviceCollection.AddSingleton<ScopedSchemaFactory<AssemblyMarker>>();
 
             serviceCollection.AddSingleton<IMemberAggregateFactory, MemberAggregateFactory>();
             serviceCollection.AddTransient<NewContactValidator>();
@@ -78,6 +82,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
         {
             var permissionsRegistrar = appBuilder.ApplicationServices.GetRequiredService<IPermissionsRegistrar>();
             permissionsRegistrar.RegisterPermissions(ModuleInfo.Id, "XAPI", ModuleConstants.Security.Permissions.AllPermissions);
+
+            var playgroundOptions = appBuilder.ApplicationServices.GetService<IOptions<GraphQLPlaygroundOptions>>();
+            appBuilder.UseSchemaGraphQL<ScopedSchemaFactory<AssemblyMarker>>(playgroundOptions?.Value?.Enable ?? true, "profile");
         }
 
         public void Uninstall()
