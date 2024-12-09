@@ -40,6 +40,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
             serviceCollection.AddAutoMapper(assemblyMarker);
             serviceCollection.AddSchemaBuilders(assemblyMarker);
 
+            serviceCollection.AddSingleton<ScopedSchemaFactory<AssemblyMarker>>();
+
             serviceCollection.AddSingleton<IMemberAggregateFactory, MemberAggregateFactory>();
             serviceCollection.AddTransient<NewContactValidator>();
             serviceCollection.AddTransient<AccountValidator>();
@@ -78,6 +80,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
         {
             var permissionsRegistrar = appBuilder.ApplicationServices.GetRequiredService<IPermissionsRegistrar>();
             permissionsRegistrar.RegisterPermissions(ModuleInfo.Id, "XAPI", ModuleConstants.Security.Permissions.AllPermissions);
+
+            appBuilder.UseScopedSchema<AssemblyMarker>("profile");
         }
 
         public void Uninstall()
