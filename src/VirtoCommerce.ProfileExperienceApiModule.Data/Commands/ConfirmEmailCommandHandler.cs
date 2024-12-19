@@ -50,6 +50,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             {
                 identityResult = IdentityResult.Failed(new IdentityError { Code = "UserNotEditable", Description = "It is forbidden to edit this user." });
             }
+            else if (user.EmailConfirmed)
+            {
+                identityResult = IdentityResult.Success;
+            }
             else
             {
                 identityResult = await userManager.ConfirmEmailAsync(user, Uri.UnescapeDataString(request.Token));
