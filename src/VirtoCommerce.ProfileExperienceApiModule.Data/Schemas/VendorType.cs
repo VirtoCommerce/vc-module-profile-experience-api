@@ -1,11 +1,10 @@
 using System.Linq;
 using GraphQL.Types;
-using VirtoCommerce.Xapi.Core.Extensions;
-using VirtoCommerce.Xapi.Core.Helpers;
-using VirtoCommerce.Xapi.Core.Schemas;
-using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Vendor;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
+using VirtoCommerce.Xapi.Core.Extensions;
+using VirtoCommerce.Xapi.Core.Schemas;
+using VirtoCommerce.Xapi.Core.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 
@@ -31,8 +30,7 @@ public class VendorType : MemberBaseType<VendorAggregate>
                 context.Source.Vendor?.LogoUrl);
         Field<StringGraphType>("siteUrl", description: "Site URL", resolve: context => context.Source.Vendor?.SiteUrl);
 
-        Field(
-            GraphTypeExtenstionHelper.GetActualType<RatingType>(),
+        ExtendableField<RatingType>(
             "rating",
             "Vendor rating",
             arguments: new QueryArguments(new QueryArgument<StringGraphType>

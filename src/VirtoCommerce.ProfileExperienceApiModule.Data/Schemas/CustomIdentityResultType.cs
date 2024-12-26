@@ -1,9 +1,10 @@
 using GraphQL.Types;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class CustomIdentityResultType : ObjectGraphType<IdentityResultResponse>
+    public class CustomIdentityResultType : ExtendableGraphType<IdentityResultResponse>
     {
         public CustomIdentityResultType()
         {

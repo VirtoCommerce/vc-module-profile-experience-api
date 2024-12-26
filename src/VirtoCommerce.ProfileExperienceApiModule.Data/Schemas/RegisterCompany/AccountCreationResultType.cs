@@ -1,9 +1,10 @@
 using GraphQL.Types;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
 {
-    public class AccountCreationResultType : ObjectGraphType<AccountCreationResult>
+    public class AccountCreationResultType : ExtendableGraphType<AccountCreationResult>
     {
         public AccountCreationResultType()
         {

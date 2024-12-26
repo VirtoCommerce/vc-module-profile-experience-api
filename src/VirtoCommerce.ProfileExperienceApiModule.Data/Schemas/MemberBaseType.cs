@@ -77,8 +77,7 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
 
         #region Addresses
 
-        var addressesConnectionBuilder = GraphTypeExtenstionHelper.CreateConnection<MemberAddressType, TAggregate>()
-            .Name("addresses")
+        var addressesConnectionBuilder = GraphTypeExtensionHelper.CreateConnection<MemberAddressType, TAggregate>("addresses")
             .Argument<StringGraphType>("sort", "Sort expression")
             .PageSize(20);
 

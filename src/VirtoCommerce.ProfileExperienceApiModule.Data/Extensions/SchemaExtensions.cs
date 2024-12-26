@@ -4,10 +4,10 @@ using GraphQL;
 using GraphQL.Resolvers;
 using GraphQL.Types;
 using MediatR;
-using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
+using VirtoCommerce.Xapi.Core.Helpers;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 
@@ -25,8 +25,8 @@ public static class SchemaExtensions
                 new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "id" },
                 new QueryArgument<StringGraphType> { Name = "userId" }
             ),
-            Type = GraphTypeExtenstionHelper.GetActualType<TType>(),
-            Resolver = new AsyncFieldResolver<object>(async context =>
+            Type = GraphTypeExtensionHelper.GetActualType<TType>(),
+            Resolver = new FuncFieldResolver<object>(async context =>
             {
                 var query = new TQuery { Id = context.GetArgument<string>("id") };
                 var aggregate = await mediator.Send(query);

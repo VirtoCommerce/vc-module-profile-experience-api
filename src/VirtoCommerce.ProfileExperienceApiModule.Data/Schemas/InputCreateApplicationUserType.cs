@@ -1,9 +1,10 @@
 using GraphQL.Types;
 using VirtoCommerce.Platform.Core.Security;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class InputCreateApplicationUserType : InputObjectGraphType
+    public class InputCreateApplicationUserType : ExtendableInputGraphType
     {
         public InputCreateApplicationUserType()
         {

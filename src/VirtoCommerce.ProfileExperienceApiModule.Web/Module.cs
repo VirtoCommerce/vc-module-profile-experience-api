@@ -1,4 +1,5 @@
-using GraphQL.Server;
+using GraphQL;
+using GraphQL.MicrosoftDI;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -21,7 +22,6 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.TaxModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Extensions;
-using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Pipelines;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Web
@@ -33,14 +33,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
 
         public void Initialize(IServiceCollection serviceCollection)
         {
-            var assemblyMarker = typeof(AssemblyMarker);
-            var graphQlBuilder = new CustomGraphQLBuilder(serviceCollection);
-            graphQlBuilder.AddGraphTypes(assemblyMarker);
-            serviceCollection.AddMediatR(assemblyMarker);
-            serviceCollection.AddAutoMapper(assemblyMarker);
-            serviceCollection.AddSchemaBuilders(assemblyMarker);
+            var graphQlBuilder = new GraphQLBuilder(serviceCollection, builder =>
+            {
+                var assemblyMarker = typeof(AssemblyMarker);
+                builder.AddGraphTypes(assemblyMarker.Assembly);
+                serviceCollection.AddMediatR(assemblyMarker);
+                serviceCollection.AddAutoMapper(assemblyMarker);
+                serviceCollection.AddSchemaBuilders(assemblyMarker);
+            });
 
-            serviceCollection.AddSingleton<ScopedSchemaFactory<AssemblyMarker>>();
+            // disable scoped schema
+            //serviceCollection.AddSingleton<ScopedSchemaFactory<AssemblyMarker>>();
 
             serviceCollection.AddSingleton<IMemberAggregateFactory, MemberAggregateFactory>();
             serviceCollection.AddTransient<NewContactValidator>();
@@ -81,7 +84,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
             var permissionsRegistrar = appBuilder.ApplicationServices.GetRequiredService<IPermissionsRegistrar>();
             permissionsRegistrar.RegisterPermissions(ModuleInfo.Id, "XAPI", ModuleConstants.Security.Permissions.AllPermissions);
 
-            appBuilder.UseScopedSchema<AssemblyMarker>("profile");
+            // disable scoped schema
+            //appBuilder.UseScopedSchema<AssemblyMarker>("profile");
         }
 
         public void Uninstall()

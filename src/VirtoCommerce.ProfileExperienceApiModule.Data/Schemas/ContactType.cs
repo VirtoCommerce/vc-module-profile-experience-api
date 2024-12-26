@@ -48,9 +48,8 @@ public class ContactType : MemberBaseType<ContactAggregate>
 
         Field("organizationsIds", x => x.Contact.Organizations);
 
-        var organizationsConnectionBuilder = GraphTypeExtenstionHelper
-            .CreateConnection<OrganizationType, ContactAggregate>()
-            .Name("organizations")
+        var organizationsConnectionBuilder = GraphTypeExtensionHelper
+            .CreateConnection<OrganizationType, ContactAggregate>("organizations")
             .Argument<StringGraphType>("searchPhrase", "Free text search")
             .Argument<StringGraphType>("sort", "Sort expression")
             .PageSize(20);

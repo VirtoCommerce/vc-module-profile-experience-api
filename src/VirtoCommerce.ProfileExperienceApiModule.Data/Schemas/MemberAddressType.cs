@@ -1,9 +1,10 @@
 using GraphQL.Types;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class MemberAddressType : ObjectGraphType<MemberAddress>
+    public class MemberAddressType : ExtendableGraphType<MemberAddress>
     {
         public MemberAddressType()
         {
