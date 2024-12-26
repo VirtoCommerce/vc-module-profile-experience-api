@@ -1,8 +1,9 @@
 using GraphQL.Types;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
 {
-    public class InputRequestRegistrationType : InputObjectGraphType
+    public class InputRequestRegistrationType : ExtendableInputGraphType
     {
         public InputRequestRegistrationType()
         {
