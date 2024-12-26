@@ -7,11 +7,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
         public AddressTypeEnum()
         {
             Name = "AddressTypeEnum";
-            Add("Undefined", 0);
-            Add("Billing", 1);
-            Add("Shipping", 2);
-            Add("Pickup", 4);
-            Add("BillingAndShipping", 3);
+            Add(name: "Undefined", value: 0, description: "Undefined");
+            Add(name: "Billing", value: 1, description: "Billing");
+            Add(name: "Shipping", value: 2, description: "Shipping");
+            Add(name: "Pickup", value: 4, description: "Pickup");
+            Add(name: "BillingAndShipping", value: 3, description: "BillingAndShipping");
         }
     }
 }

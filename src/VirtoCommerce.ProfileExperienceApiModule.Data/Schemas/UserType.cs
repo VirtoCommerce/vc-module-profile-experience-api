@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.Resolvers;
 using GraphQL.Types;
@@ -12,11 +11,12 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
+using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.Xapi.Core.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class UserType : ObjectGraphType<ApplicationUser>
+    public class UserType : ExtendableGraphType<ApplicationUser>
     {
         public UserType(IContactAggregateRepository contactAggregateRepository, IUserManagerCore userManagerCore, IMediator mediator, IOptions<UserOptionsExtended> userOptionsExtended)
         {
@@ -54,17 +54,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             {
                 Name = "Contact",
                 Description = "The associated contact info",
-                Type = GraphTypeExtenstionHelper.GetActualType<ContactType>(),
-                Resolver = new AsyncFieldResolver<ApplicationUser, ContactAggregate>(context =>
+                Type = GraphTypeExtensionHelper.GetActualType<ContactType>(),
+                Resolver = new FuncFieldResolver<ApplicationUser, ContactAggregate>(async context =>
                 {
                     // It's possible to create a user without a contact since MemberId is nullable.
-                    // Platfrom system users (frontend, admin, etc) usually don't have a contact.
+                    // Platform system users (frontend, admin, etc) usually don't have a contact.
                     if (context.Source.MemberId == null)
                     {
-                        return Task.FromResult<ContactAggregate>(null);
+                        return null;
                     }
 
-                    return contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(context.Source.MemberId);
+                    return await contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(context.Source.MemberId);
                 }),
             });
 
@@ -73,14 +73,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 Name = "LockedState",
                 Description = "Account locked state",
                 Type = typeof(BooleanGraphType),
-                Resolver = new AsyncFieldResolver<ApplicationUser, bool>(context => userManagerCore.IsLockedOutAsync(context.Source)),
+                Resolver = new FuncFieldResolver<ApplicationUser, bool>(async context => await userManagerCore.IsLockedOutAsync(context.Source)),
             });
 
             AddField(new FieldType
             {
                 Name = "operator",
-                Type = GraphTypeExtenstionHelper.GetActualType<UserType>(),
-                Resolver = new AsyncFieldResolver<object>(async context =>
+                Type = GraphTypeExtensionHelper.GetActualType<UserType>(),
+                Resolver = new FuncFieldResolver<object>(async context =>
                 {
                     if (context.UserContext.TryGetValue("OperatorUserName", out var operatorUser))
                     {
