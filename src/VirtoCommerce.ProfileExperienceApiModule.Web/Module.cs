@@ -21,6 +21,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.TaxModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Extensions;
+using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Pipelines;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Web
@@ -37,8 +38,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
                 builder.AddSchema(serviceCollection, typeof(AssemblyMarker));
             });
 
-            // disable scoped schema
-            //serviceCollection.AddSingleton<ScopedSchemaFactory<AssemblyMarker>>();
+            serviceCollection.AddSingleton<ScopedSchemaFactory<AssemblyMarker>>();
 
             serviceCollection.AddSingleton<IMemberAggregateFactory, MemberAggregateFactory>();
             serviceCollection.AddTransient<NewContactValidator>();
@@ -79,8 +79,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
             var permissionsRegistrar = appBuilder.ApplicationServices.GetRequiredService<IPermissionsRegistrar>();
             permissionsRegistrar.RegisterPermissions(ModuleInfo.Id, "XAPI", ModuleConstants.Security.Permissions.AllPermissions);
 
-            // disable scoped schema
-            //appBuilder.UseScopedSchema<AssemblyMarker>("profile");
+            appBuilder.UseScopedSchema<AssemblyMarker>("profile");
         }
 
         public void Uninstall()
