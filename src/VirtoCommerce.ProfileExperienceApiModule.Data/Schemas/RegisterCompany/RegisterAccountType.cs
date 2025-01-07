@@ -1,8 +1,10 @@
 using GraphQL.Types;
+using VirtoCommerce.Platform.Core.Security;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
 {
-    public class RegisterAccountType : ObjectGraphType
+    public class RegisterAccountType : ExtendableGraphType<ApplicationUser>
     {
         public RegisterAccountType()
         {
