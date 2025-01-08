@@ -35,14 +35,14 @@ public class ContactType : MemberBaseType<ContactAggregate>
         Field(x => x.Contact.DefaultLanguage, nullable: true);
         Field(x => x.Contact.CurrencyCode, nullable: true);
 
-        Field<DateGraphType>("birthDate",
-            resolve: context =>
+        Field<DateGraphType>("birthDate")
+            .Resolve(context =>
                 context.Source.Contact.BirthDate.HasValue ? context.Source.Contact.BirthDate.Value.Date : null);
 
-        Field<ListGraphType<UserType>>("securityAccounts", resolve: context => context.Source.Contact.SecurityAccounts);
+        Field<ListGraphType<UserType>>("securityAccounts").Resolve(context => context.Source.Contact.SecurityAccounts);
 
-        Field<StringGraphType>("organizationId",
-            resolve: context => context.GetCurrentOrganizationId());
+        Field<StringGraphType>("organizationId")
+            .Resolve(context => context.GetCurrentOrganizationId());
 
         #region Organizations
 

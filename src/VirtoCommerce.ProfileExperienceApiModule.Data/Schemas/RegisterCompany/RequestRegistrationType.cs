@@ -8,12 +8,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
     {
         public RequestRegistrationType(IAccountService accountService)
         {
-            Field<RegisterOrganizationType>("organization", "Created company", resolve: context => context.Source.Organization);
-            Field<RegisterContactType>("contact", "Created contact", resolve: context => context.Source.Contact);
-            FieldAsync<RegisterAccountType>("account", "Contact's account",
-               resolve: async context => context.Source.AccountCreationResult.Succeeded ?
+            Field<RegisterOrganizationType>("organization").Description("Created company").Resolve(context => context.Source.Organization);
+            Field<RegisterContactType>("contact").Description("Created contact").Resolve(context => context.Source.Contact);
+            Field<RegisterAccountType>("account").Description("Contact's account")
+               .ResolveAsync(async context => context.Source.AccountCreationResult.Succeeded ?
                    await accountService.GetAccountAsync(context.Source.AccountCreationResult.AccountName) : null);
-            Field<AccountCreationResultType>("result", "Account creation result", resolve: context => context.Source.AccountCreationResult);
+            Field<AccountCreationResultType>("result").Description("Account creation result").Resolve(context => context.Source.AccountCreationResult);
         }
     }
 }

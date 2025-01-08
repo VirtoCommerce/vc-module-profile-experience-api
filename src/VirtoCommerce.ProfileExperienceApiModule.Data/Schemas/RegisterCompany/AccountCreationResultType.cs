@@ -10,7 +10,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
         {
             Field(x => x.Succeeded);
             Field(x => x.RequireEmailVerification);
-            Field<ListGraphType<RegistrationErrorType>>("errors", "The errors that occurred during the operation.", resolve: context => context.Source.Errors);
+            Field<ListGraphType<RegistrationErrorType>>("errors").Description("The errors that occurred during the operation.").Resolve(context => context.Source.Errors);
         }
     }
 }

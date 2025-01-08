@@ -18,17 +18,17 @@ public class VendorType : MemberBaseType<VendorAggregate>
         Name = "Vendor";
         Description = "Vendor Info";
 
-        Field<StringGraphType>("about", description: "About vendor",
-            resolve: context =>
+        Field<StringGraphType>("about").Description("About vendor")
+            .Resolve(context =>
                 context.Source.Contact?.About ??
                 context.Source.Organization?.Description ??
                 context.Source.Vendor?.Description);
-        Field<StringGraphType>("iconUrl", description: "Icon URL",
-            resolve: context =>
+        Field<StringGraphType>("iconUrl").Description("Icon URL")
+            .Resolve(context =>
                 context.Source.Member.IconUrl ??
                 context.Source.Contact?.PhotoUrl ??
                 context.Source.Vendor?.LogoUrl);
-        Field<StringGraphType>("siteUrl", description: "Site URL", resolve: context => context.Source.Vendor?.SiteUrl);
+        Field<StringGraphType>("siteUrl").Description("Site URL").Resolve(context => context.Source.Vendor?.SiteUrl);
 
         ExtendableField<RatingType>(
             "rating",

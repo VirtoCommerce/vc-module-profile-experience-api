@@ -16,7 +16,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
             Field<NonNullGraphType<StringGraphType>>("firstName");
             Field<NonNullGraphType<StringGraphType>>("lastName");
             Field<StringGraphType>("middleName");
-            Field<StringGraphType>("phoneNumber", resolve: context => (context.Source).Phones?.FirstOrDefault());
+            Field<StringGraphType>("phoneNumber").Resolve(context => (context.Source).Phones?.FirstOrDefault());
             Field<DateGraphType>("birthdate");
             Field<StringGraphType>("status");
             Field<StringGraphType>("createdBy");

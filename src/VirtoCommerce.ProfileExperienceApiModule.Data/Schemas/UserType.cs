@@ -28,7 +28,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field(x => x.Id);
             Field(x => x.IsAdministrator);
             Field(x => x.LockoutEnabled);
-            Field<DateTimeGraphType>("lockoutEnd", resolve: x => x.Source.LockoutEnd);
+            Field<DateTimeGraphType>("lockoutEnd").Resolve(x => x.Source.LockoutEnd);
             Field(x => x.MemberId, true);
             Field(x => x.ModifiedBy, true);
             Field(x => x.ModifiedDate, true);
@@ -37,18 +37,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field(x => x.PhoneNumber, true);
             Field(x => x.PhoneNumberConfirmed);
             Field(x => x.PhotoUrl, true);
-            Field<ListGraphType<RoleType>>("roles", resolve: x => x.Source.Roles);
-            Field<ListGraphType<StringGraphType>>("permissions", resolve: x => x.Source.Roles?.SelectMany(r => r.Permissions?.Select(p => p.Name)).Distinct(), description: "Account permissions");
+            Field<ListGraphType<RoleType>>("roles").Resolve(x => x.Source.Roles);
+            Field<ListGraphType<StringGraphType>>("permissions").Resolve(x => x.Source.Roles?.SelectMany(r => r.Permissions?.Select(p => p.Name)).Distinct()).Description("Account permissions");
             Field(x => x.SecurityStamp);
             Field(x => x.StoreId, true);
             Field(x => x.TwoFactorEnabled);
             Field(x => x.UserName);
             Field(x => x.UserType, true);
 
-            Field<NonNullGraphType<BooleanGraphType>>("passwordExpired", resolve: x => GetPasswordExpired(x));
-            Field<BooleanGraphType>("forcePasswordChange", resolve: x => GetPasswordExpired(x), description: "Make this user change their password when they sign in next time");
-            Field<IntGraphType>("passwordExpiryInDays", resolve: x => GetPasswordExpiryInDays(x, userOptionsExtended.Value), description: "Password expiry in days");
-
+            Field<NonNullGraphType<BooleanGraphType>>("passwordExpired").Resolve(x => GetPasswordExpired(x));
+            Field<BooleanGraphType>("forcePasswordChange").Resolve(x => GetPasswordExpired(x)).Description("Make this user change their password when they sign in next time");
+            Field<IntGraphType>("passwordExpiryInDays").Resolve(x => GetPasswordExpiryInDays(x, userOptionsExtended.Value)).Description("Password expiry in days");
 
             AddField(new FieldType
             {

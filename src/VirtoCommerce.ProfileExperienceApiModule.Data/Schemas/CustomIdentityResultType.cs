@@ -9,7 +9,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
         public CustomIdentityResultType()
         {
             Field(x => x.Succeeded);
-            Field<ListGraphType<IdentityErrorInfoType>>("errors", "The errors that occurred during the identity operation.", resolve: context => context.Source.Errors);
+            Field<ListGraphType<IdentityErrorInfoType>>("errors").Description("The errors that occurred during the identity operation.").Resolve(context => context.Source.Errors);
         }
     }
 }

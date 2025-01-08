@@ -8,8 +8,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
     {
         public MemberAddressType()
         {
-            Field<StringGraphType>("id", resolve: context => context.Source.Key, description: "Id");
-            Field(x => x.Key, true).Description("Id");
+            Field<StringGraphType>("id").Description("Id").Resolve(context => context.Source.Key);
+            Field(x => x.Key, nullable: true).Description("Id");
             Field(x => x.IsDefault, nullable: false).Description("Is default address or not");
             Field(x => x.IsFavorite, nullable: false).Description("Is favorite address or not");
             Field(x => x.City, nullable: true).Description("City");
@@ -30,7 +30,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field(x => x.Zip, nullable: true).Description("Zip");
             Field(x => x.OuterId, nullable: true).Description("Outer id");
             Field(x => x.Description, nullable: true).Description("Description");
-            Field<IntGraphType>(nameof(MemberAddress.AddressType), resolve: context => (int)context.Source.AddressType);
+            Field<IntGraphType>(nameof(MemberAddress.AddressType)).Resolve(context => (int)context.Source.AddressType);
         }
     }
 }

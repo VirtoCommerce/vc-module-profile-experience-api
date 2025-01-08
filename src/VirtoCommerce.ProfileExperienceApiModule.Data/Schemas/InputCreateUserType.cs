@@ -1,13 +1,12 @@
 using GraphQL.Types;
-using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class InputCreateUserType : ExtendableInputGraphType
+    public class InputCreateUserType : InputObjectGraphType
     {
         public InputCreateUserType()
         {
-            Field<NonNullGraphType<InputCreateApplicationUserType>>("applicationUser", description: "Application user to create");
+            Field<NonNullGraphType<InputCreateApplicationUserType>>("applicationUser").Description("Application user to create");
         }
     }
 }

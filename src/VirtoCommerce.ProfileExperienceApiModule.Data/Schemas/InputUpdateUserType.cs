@@ -1,13 +1,12 @@
 using GraphQL.Types;
-using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class InputUpdateUserType : ExtendableInputGraphType
+    public class InputUpdateUserType : InputObjectGraphType
     {
         public InputUpdateUserType()
         {
-            Field<NonNullGraphType<InputUpdateApplicationUserType>>("applicationUser", description: "Application user to update");
+            Field<NonNullGraphType<InputUpdateApplicationUserType>>("applicationUser").Description("Application user to update");
         }
     }
 }
