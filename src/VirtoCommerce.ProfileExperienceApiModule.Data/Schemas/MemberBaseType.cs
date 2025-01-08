@@ -86,11 +86,11 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
 
         #endregion
 
-        ExtendableField<NonNullGraphType<ListGraphType<DynamicPropertyValueType>>>(
+        ExtendableFieldAsync<NonNullGraphType<ListGraphType<DynamicPropertyValueType>>>(
             "dynamicProperties",
             "Dynamic property values",
             QueryArgumentPresets.GetArgumentForDynamicProperties(),
-            context => dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source.Member, context.GetArgumentOrValue<string>("cultureName")));
+            async context => await dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source.Member, context.GetArgumentOrValue<string>("cultureName")));
     }
 
 
