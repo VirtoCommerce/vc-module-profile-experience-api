@@ -8,7 +8,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
     public class CreateOrganizationCommand : ICommand<OrganizationAggregate>
     {
-        public string Id { get; set; }
         public string Name { get; set; }
         public IList<Address> Addresses { get; set; }
 
