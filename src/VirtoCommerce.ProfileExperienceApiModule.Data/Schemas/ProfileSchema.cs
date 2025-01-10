@@ -10,6 +10,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Security.Authorization;
 using VirtoCommerce.Platform.Security.Extensions;
@@ -61,6 +62,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
         public void Build(ISchema schema)
         {
+            // Value converters
+            ValueConverter.Register<int, AddressType>(x => (AddressType)x);
+
             //Queries
 
             schema.Query.AddField(new FieldType
