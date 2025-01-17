@@ -7,7 +7,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
     {
         public InputMemberAddressType()
         {
-            Field(x => x.Id).Description("Id");
+            Field(x => x.Id, nullable: true).Description("Id");
             Field(x => x.City).Description("City");
             Field(x => x.CountryCode).Description("Country code");
             Field(x => x.CountryName, true).Description("Country name");
