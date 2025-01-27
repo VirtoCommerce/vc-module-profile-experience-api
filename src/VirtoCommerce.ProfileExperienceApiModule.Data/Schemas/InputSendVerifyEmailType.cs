@@ -6,8 +6,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
     {
         public InputSendVerifyEmailType()
         {
-            Field<NonNullGraphType<StringGraphType>>("storeId", "Store ID");
-            Field<StringGraphType>("languageCode", "Notification language code");
+            Field<NonNullGraphType<StringGraphType>>("storeId").Description("Store ID");
+            Field<StringGraphType>("languageCode").Description("Notification language code");
             Field<StringGraphType>("email");
             Field<StringGraphType>("userId");
         }

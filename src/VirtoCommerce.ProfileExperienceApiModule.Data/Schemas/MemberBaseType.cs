@@ -42,11 +42,11 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
         #region SEO
 
         Field(x => x.Member.SeoObjectType).Description("SEO object type");
-        Field<SeoInfoType>("seoInfo",
-            arguments: new QueryArguments(
+        Field<SeoInfoType>("seoInfo")
+            .Arguments(new QueryArguments(
                 new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "storeId" },
-                new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "cultureName" }),
-            resolve: context =>
+                new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "cultureName" }))
+            .Resolve(context =>
             {
                 var source = context.Source;
                 var storeId = context.GetArgumentOrValue<string>("storeId");
@@ -61,7 +61,7 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
 
                 return seoInfo ??
                        SeoInfosExtensions.GetFallbackSeoInfo(source.Member.Id, source.Member.Name, cultureName);
-            }, description: "Request related SEO info");
+            }).Description("Request related SEO info");
 
         #endregion
 
@@ -77,8 +77,7 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
 
         #region Addresses
 
-        var addressesConnectionBuilder = GraphTypeExtenstionHelper.CreateConnection<MemberAddressType, TAggregate>()
-            .Name("addresses")
+        var addressesConnectionBuilder = GraphTypeExtensionHelper.CreateConnection<MemberAddressType, TAggregate>("addresses")
             .Argument<StringGraphType>("sort", "Sort expression")
             .PageSize(20);
 
@@ -87,11 +86,11 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
 
         #endregion
 
-        ExtendableField<NonNullGraphType<ListGraphType<DynamicPropertyValueType>>>(
+        ExtendableFieldAsync<NonNullGraphType<ListGraphType<DynamicPropertyValueType>>>(
             "dynamicProperties",
             "Dynamic property values",
             QueryArgumentPresets.GetArgumentForDynamicProperties(),
-            context => dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source.Member, context.GetArgumentOrValue<string>("cultureName")));
+            async context => await dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source.Member, context.GetArgumentOrValue<string>("cultureName")));
     }
 
 

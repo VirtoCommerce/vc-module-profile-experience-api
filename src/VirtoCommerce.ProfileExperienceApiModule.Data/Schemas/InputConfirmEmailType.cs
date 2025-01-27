@@ -6,8 +6,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
     {
         public InputConfirmEmailType()
         {
-            Field<NonNullGraphType<StringGraphType>>("userId", "User identifier");
-            Field<NonNullGraphType<StringGraphType>>("token", "Confirm email token");
+            Field<NonNullGraphType<StringGraphType>>("userId").Description("User identifier");
+            Field<NonNullGraphType<StringGraphType>>("token").Description("Confirm email token");
         }
     }
 }

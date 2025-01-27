@@ -401,14 +401,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return orgAddresses.FirstOrDefault()?.Email ?? account.Email;
         }
 
-        private Task SetDynamicPropertiesAsync(IList<DynamicPropertyValue> dynamicProperties, IHasDynamicProperties entity)
+        private async Task SetDynamicPropertiesAsync(IList<DynamicPropertyValue> dynamicProperties, IHasDynamicProperties entity)
         {
             if (dynamicProperties?.Any() ?? false)
             {
-                _dynamicPropertyUpdater.UpdateDynamicPropertyValues(entity, dynamicProperties);
+                await _dynamicPropertyUpdater.UpdateDynamicPropertyValues(entity, dynamicProperties);
             }
-
-            return Task.CompletedTask;
         }
     }
 }

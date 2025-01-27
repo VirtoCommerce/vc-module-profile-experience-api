@@ -6,7 +6,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
     {
         public InputUpdateUserType()
         {
-            Field<NonNullGraphType<InputUpdateApplicationUserType>>("applicationUser", description: "Application user to update");
+            Field<NonNullGraphType<InputUpdateApplicationUserType>>("applicationUser").Description("Application user to update");
         }
     }
 }
