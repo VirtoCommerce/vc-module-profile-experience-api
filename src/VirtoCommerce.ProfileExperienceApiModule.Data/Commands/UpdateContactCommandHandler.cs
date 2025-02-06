@@ -27,14 +27,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         {
             var contactAggregate = await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.Id);
 
-            await UpdateContactAsync(request, contactAggregate.Contact);
+            await UpdateContactAsync(contactAggregate.Contact, request);
 
             await _contactAggregateRepository.SaveAsync(contactAggregate);
 
             return contactAggregate;
         }
 
-        protected async virtual Task UpdateContactAsync(UpdateContactCommand request, Contact contact)
+        protected virtual async Task UpdateContactAsync(Contact contact, UpdateContactCommand request)
         {
             _mapper.Map(request, contact);
 
