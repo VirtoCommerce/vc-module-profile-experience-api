@@ -28,7 +28,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             using var userManager = _userManagerFactory();
 
             var user = await userManager.FindByIdAsync(request.UserId);
-
             if (user is null)
             {
                 identityResult = IdentityResult.Failed(new IdentityError { Code = "UserNotFound", Description = "User not found" });
@@ -36,6 +35,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             else if (!IsUserEditable(user.UserName))
             {
                 identityResult = IdentityResult.Failed(new IdentityError { Code = "UserNotEditable", Description = "It is forbidden to edit this user." });
+            }
+            else if (!await userManager.HasPasswordAsync(user))
+            {
+                identityResult = IdentityResult.Failed(new IdentityError { Code = "PasswordNotResetable", Description = "You can't reset the password right now." });
             }
             else
             {
