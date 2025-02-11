@@ -136,6 +136,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 MemberId = contact.Id,
                 StoreId = request.StoreId,
                 UserType = _userType,
+                LockoutEnd = DateTime.MaxValue, // always create invited accounts as locked
             };
         }
 

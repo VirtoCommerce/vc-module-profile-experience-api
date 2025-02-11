@@ -36,9 +36,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             {
                 identityResult = IdentityResult.Failed(new IdentityError { Code = "UserNotEditable", Description = "It is forbidden to edit this user." });
             }
-            else if (!await userManager.HasPasswordAsync(user))
+            else if (user.LockoutEnd > DateTime.UtcNow)
             {
-                identityResult = IdentityResult.Failed(new IdentityError { Code = "PasswordNotResetable", Description = "You can't reset the password right now." });
+                identityResult = IdentityResult.Failed(new IdentityError { Code = "UserLocked", Description = "It is forbidden to reset password for this user." });
             }
             else
             {
