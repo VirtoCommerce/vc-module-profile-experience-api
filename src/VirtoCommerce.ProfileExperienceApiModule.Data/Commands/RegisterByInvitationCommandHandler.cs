@@ -72,6 +72,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return SetResponse(identityResult);
             }
 
+            // disable locked account state (only for registration by invitation)
+            if (user.LockoutEnd != null)
+            {
+                await userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MinValue.ToUniversalTime());
+            }
+
             identityResult = await userManager.SetUserNameAsync(user, request.Username);
             if (!identityResult.Succeeded)
             {
