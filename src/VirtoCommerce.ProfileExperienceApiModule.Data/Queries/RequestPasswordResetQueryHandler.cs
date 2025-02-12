@@ -2,7 +2,6 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
-using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.NotificationsModule.Core.Extensions;
 using VirtoCommerce.NotificationsModule.Core.Services;
 using VirtoCommerce.NotificationsModule.Core.Types;
@@ -11,6 +10,7 @@ using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
+using VirtoCommerce.Xapi.Core.Infrastructure;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries
 {
@@ -40,7 +40,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries
             var user = await userManager.FindByNameAsync(request.LoginOrEmail)
                        ?? await userManager.FindByEmailAsync(request.LoginOrEmail);
 
-            if (!string.IsNullOrEmpty(user?.Email) && !string.IsNullOrEmpty(user.StoreId))
+            if (!string.IsNullOrEmpty(user?.Email) && !string.IsNullOrEmpty(user.StoreId) && user.LockoutEnd < DateTime.UtcNow)
             {
                 var store = await _storeService.GetByIdAsync(user.StoreId);
 
