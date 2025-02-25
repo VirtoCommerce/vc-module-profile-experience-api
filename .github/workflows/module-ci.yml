@@ -247,7 +247,8 @@ jobs:
       katalonRepo: 'VirtoCommerce/vc-quality-gate-katalon'
       katalonRepoBranch: 'dev'
       testSuite: 'Test Suites/Modules/Platform_collection'
-      installModules: 'false'
+      # installModules: 'false'
+      installModules: 'true'
       installCustomModule: 'true'
       customModuleId:  ${{ needs.ci.outputs.moduleId }}
       customModuleUrl:  ${{ needs.ci.outputs.artifactUrl }}
