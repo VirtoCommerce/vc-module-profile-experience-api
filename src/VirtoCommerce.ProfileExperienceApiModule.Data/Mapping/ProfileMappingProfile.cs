@@ -35,7 +35,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Mapping
 
             CreateMap<UpdateContactCommand, Contact>()
                 .ForMember(x => x.DynamicProperties, opt => opt.Ignore())
-                .ForMember(x => x.Addresses, opt => opt.Condition(x => x.Addresses != null));
+                .ForMember(x => x.Addresses, opt => opt.Condition(x => x.Addresses != null))
+                .ForMember(x => x.Emails, opt => opt.Condition(x => x.Emails != null))
+                .ForMember(x => x.Groups, opt => opt.Condition(x => x.Groups != null))
+                .ForMember(x => x.Phones, opt => opt.Condition(x => x.Phones != null))
+                .ForMember(x => x.Organizations, opt => opt.Condition(x => x.Organizations != null));
 
             CreateMap<RegisteredOrganization, Organization>()
                 .ConvertUsing((input, result) =>
