@@ -10,21 +10,35 @@ using VirtoCommerce.ExperienceApiModule.Core.Services;
 using VirtoCommerce.ExperienceApiModule.Tests.Helpers;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Mapping;
 using Xunit;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
 {
     public class UpdateContactCommandHandlerTests : MoqHelper
     {
+        private readonly IMapper _mapper;
+
+        public UpdateContactCommandHandlerTests()
+        {
+            var configuration = new MapperConfiguration(cfg =>
+            {
+                cfg.AddProfile<ProfileMappingProfile>();
+            });
+
+            _mapper = configuration.CreateMapper();
+        }
+
         [Fact]
         public async Task Handle_RequestWithDynamicProperties_UpdateDynamicPropertyCalled()
         {
             // Arragne
             var aggregateRepositoryMock = new Mock<IContactAggregateRepository>();
             var dynamicPropertyUpdaterServiceMock = new Mock<IDynamicPropertyUpdaterService>();
-            var mapperMock = new Mock<IMapper>();
+
 
             var contact = _fixture.Create<Contact>();
+            contact.Emails = new List<string> { "initial@example.com" };
             var contactAggregae = new ContactAggregate { Member = contact };
 
             aggregateRepositoryMock
@@ -33,14 +47,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
 
             var handler = new UpdateContactCommandHandler(aggregateRepositoryMock.Object,
                 dynamicPropertyUpdaterServiceMock.Object,
-                mapperMock.Object);
+                _mapper);
 
             var command = _fixture.Create<UpdateContactCommand>();
+            command.Emails = null;
 
             // Act
             var aggregate = await handler.Handle(command, CancellationToken.None);
 
             // Assert
+            Assert.Contains("initial@example.com", contact.Emails);
+
             dynamicPropertyUpdaterServiceMock.Verify(x => x.UpdateDynamicPropertyValues(It.Is<Contact>(x => x == contact),
                 It.Is<IList<DynamicPropertyValue>>(x => x == command.DynamicProperties)), Times.Once);
         }
