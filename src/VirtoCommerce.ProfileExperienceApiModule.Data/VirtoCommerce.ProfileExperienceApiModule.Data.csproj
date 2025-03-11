@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
@@ -19,13 +19,13 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-    <PackageReference Include="VirtoCommerce.Xapi.Core" Version="3.904.0" />
-    <PackageReference Include="VirtoCommerce.XOrder.Core" Version="3.903.0" />
-    <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.861.0" />
     <PackageReference Include="VirtoCommerce.CustomerModule.Core" Version="3.817.0" />
     <PackageReference Include="VirtoCommerce.MarketingModule.Core" Version="3.815.0" />
     <PackageReference Include="VirtoCommerce.NotificationsModule.Core" Version="3.811.0" />
+    <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.877.0" />
     <PackageReference Include="VirtoCommerce.PricingModule.Core" Version="3.809.0" />
     <PackageReference Include="VirtoCommerce.TaxModule.Core" Version="3.802.0" />
+    <PackageReference Include="VirtoCommerce.Xapi.Core" Version="3.906.0-alpha.75-vcst-2821" />
+    <PackageReference Include="VirtoCommerce.XOrder.Core" Version="3.904.0-alpha.53-vcst-2821" />
   </ItemGroup>
 </Project>
