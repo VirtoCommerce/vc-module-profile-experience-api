@@ -11,6 +11,8 @@ using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
+using VirtoCommerce.StoreModule.Core.Extensions;
+using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.Xapi.Core.Infrastructure;
@@ -25,6 +27,7 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
     private readonly IMemberAddressService _memberAddressService;
 
     protected MemberBaseType(
+        IStoreService storeService,
         IDynamicPropertyResolverService dynamicPropertyResolverService,
         IMemberAddressService memberAddressService)
     {
@@ -42,26 +45,32 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
         #region SEO
 
         Field(x => x.Member.SeoObjectType).Description("SEO object type");
-        Field<SeoInfoType>("seoInfo")
-            .Arguments(new QueryArguments(
+
+        ExtendableFieldAsync<SeoInfoType>(
+            "seoInfo",
+            "Request related SEO info",
+            new QueryArguments(
                 new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "storeId" },
-                new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "cultureName" }))
-            .Resolve(context =>
+                new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "cultureName" }),
+            resolve: async context =>
             {
-                var source = context.Source;
+                var member = context.Source.Member;
                 var storeId = context.GetArgumentOrValue<string>("storeId");
                 var cultureName = context.GetArgumentOrValue<string>("cultureName");
 
                 SeoInfo seoInfo = null;
 
-                if (!source.Member.SeoInfos.IsNullOrEmpty())
+                if (!string.IsNullOrEmpty(storeId) && !member.SeoInfos.IsNullOrEmpty())
                 {
-                    seoInfo = source.Member.SeoInfos.GetBestMatchingSeoInfo(storeId, cultureName);
+                    var store = await storeService.GetByIdAsync(storeId);
+                    if (store != null)
+                    {
+                        seoInfo = member.SeoInfos.GetBestMatchingSeoInfo(store, cultureName);
+                    }
                 }
 
-                return seoInfo ??
-                       SeoInfosExtensions.GetFallbackSeoInfo(source.Member.Id, source.Member.Name, cultureName);
-            }).Description("Request related SEO info");
+                return seoInfo ?? SeoInfosExtensions.GetFallbackSeoInfo(member.Id, member.Name, cultureName);
+            });
 
         #endregion
 
