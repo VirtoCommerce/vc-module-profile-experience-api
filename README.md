@@ -1,24 +1,27 @@
-# Overview
+# Virto Commerce Profile Experience API (xProfile) Module
 
-X-Profile module provides high performance search queries for customer and organization data.
+The xProfile module provides high performance search queries for customer and organization data.
 
 ## Key features
 
-Through X-Profile, you can perform  Create, Read, Update, and Delete (CRUD) operations with **users**, **organizations**, and **contacts**.
+Through xProfile, you can perform  Create, Read, Update, and Delete (CRUD) operations with **users**, **organizations**, and **contacts**.
 
 ## How It Works
-Just like other xAPI modules, X-Profile module resides on a website's or application's back end and is managed with queries. It enables efficiently creating, updating, and deleting various entity profiles. 
+Just like other xAPI modules, xProfile module resides on a website's or application's back end and is managed with queries. It enables efficiently creating, updating, and deleting various entity profiles. 
 
 ## Documentation
-* [Module Documentation](https://docs.virtocommerce.org/modules/profile-experience-api/)
-* [View on GitHub](docs/index.md)
+
+* [xProfile module documentation](https://docs.virtocommerce.org/platform/developer-guide/GraphQL-Storefront-API-Reference-xAPI/Profile/overview/)
+* [REST API](https://virtostart-demo-admin.govirto.com/docs/index.html?urls.primaryName=VirtoCommerce.ProfileExperienceApiModule)
+* [View on GitHub](https://github.com/VirtoCommerce/vc-module-profile-experience-api)
 
 ## References
-* Deployment: https://docs.virtocommerce.org/developer-guide/deploy-module-from-source-code/
-* Installation: https://docs.virtocommerce.org/user-guide/modules/
-* Home: https://virtocommerce.com
-* Community: https://www.virtocommerce.org
-* [Download Latest Release](https://github.com/VirtoCommerce/vc-module-profile-experience-api/releases/latest)
+
+* [Deployment](https://docs.virtocommerce.org/platform/developer-guide/Tutorials-and-How-tos/Tutorials/deploy-module-from-source-code/)
+* [Installation](https://docs.virtocommerce.org/platform/user-guide/modules-installation/)
+* [Home](https://virtocommerce.com)
+* [Community](https://www.virtocommerce.org)
+* [Download latest release](https://github.com/VirtoCommerce/vc-module-profile-experience-api/releases/latest)
 
 ## License
 Copyright (c) Virto Solutions LTD.  All rights reserved.
