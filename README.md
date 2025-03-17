@@ -12,7 +12,6 @@ Just like other xAPI modules, xProfile module resides on a website's or applicat
 ## Documentation
 
 * [xProfile module documentation](https://docs.virtocommerce.org/platform/developer-guide/GraphQL-Storefront-API-Reference-xAPI/Profile/overview/)
-* [REST API](https://virtostart-demo-admin.govirto.com/docs/index.html?urls.primaryName=VirtoCommerce.ProfileExperienceApiModule)
 * [View on GitHub](https://github.com/VirtoCommerce/vc-module-profile-experience-api)
 * [Experience API Documentation](https://docs.virtocommerce.org/platform/developer-guide/GraphQL-Storefront-API-Reference-xAPI/)
 * [Getting started](https://docs.virtocommerce.org/platform/developer-guide/GraphQL-Storefront-API-Reference-xAPI/getting-started/)
