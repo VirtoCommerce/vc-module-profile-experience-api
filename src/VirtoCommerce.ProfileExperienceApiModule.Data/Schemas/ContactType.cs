@@ -43,7 +43,6 @@ public class ContactType : MemberBaseType<ContactAggregate>
 
         Field<StringGraphType>("organizationId")
             .Resolve(context => context.GetCurrentOrganizationId());
-        Field(x => x.Contact.SelectedAddressId, true).Description("Selected shipping address id.");
 
         #region Organizations
 
