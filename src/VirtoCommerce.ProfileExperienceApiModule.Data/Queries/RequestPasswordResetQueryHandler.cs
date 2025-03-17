@@ -40,7 +40,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries
             var user = await userManager.FindByNameAsync(request.LoginOrEmail)
                        ?? await userManager.FindByEmailAsync(request.LoginOrEmail);
 
-            if (!string.IsNullOrEmpty(user?.Email) && !string.IsNullOrEmpty(user.StoreId) && user.LockoutEnd < DateTime.UtcNow)
+            if (user != null &&
+                !string.IsNullOrEmpty(user.Email) &&
+                !string.IsNullOrEmpty(user.StoreId) &&
+                (!user.LockoutEnd.HasValue || user.LockoutEnd < DateTime.UtcNow))
             {
                 var store = await _storeService.GetByIdAsync(user.StoreId);
 
