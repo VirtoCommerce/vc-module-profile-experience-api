@@ -43,7 +43,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries
             if (user != null &&
                 !string.IsNullOrEmpty(user.Email) &&
                 !string.IsNullOrEmpty(user.StoreId) &&
-                (!user.LockoutEnd.HasValue || user.LockoutEnd < DateTime.UtcNow))
+                (user.LockoutEnd is null || user.LockoutEnd < DateTime.UtcNow))
             {
                 var store = await _storeService.GetByIdAsync(user.StoreId);
 

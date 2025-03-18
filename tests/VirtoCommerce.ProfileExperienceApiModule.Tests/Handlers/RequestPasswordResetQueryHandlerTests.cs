@@ -17,123 +17,80 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
 {
     public class RequestPasswordResetQueryHandlerTests
     {
-        private readonly Mock<UserManager<ApplicationUser>> _userManagerMock;
-        private readonly Mock<INotificationSearchService> _notificationSearchServiceMock;
-        private readonly Mock<INotificationSender> _notificationSenderMock;
-        private readonly Mock<IStoreService> _storeServiceMock;
-        private readonly RequestPasswordResetQueryHandler _handler;
-
-        public RequestPasswordResetQueryHandlerTests()
-        {
-            _userManagerMock = new Mock<UserManager<ApplicationUser>>(
-                Mock.Of<IUserStore<ApplicationUser>>(), null, null, null, null, null, null, null, null);
-            _notificationSearchServiceMock = new Mock<INotificationSearchService>();
-            _notificationSenderMock = new Mock<INotificationSender>();
-            _storeServiceMock = new Mock<IStoreService>();
-
-            _handler = new RequestPasswordResetQueryHandler(
-                () => _userManagerMock.Object,
-                _notificationSearchServiceMock.Object,
-                _notificationSenderMock.Object,
-                _storeServiceMock.Object);
-        }
-
-        [Fact]
-        public async Task Handle_UserWithNullLockoutEnd_ScheduleSendNotificationAsyncCalled()
+        [Theory]
+        [InlineData(null, true)]
+        [InlineData(-1, true)]
+        [InlineData(1, false)]
+        public async Task WhenLockoutEndIsNotInFuture_SendNotification(int? lockoutEndHours, bool expectedNotification)
         {
             // Arrange
-            var user = CreateUser(null);
-            var store = CreateStore();
-            var notification = new ResetPasswordEmailNotification();
-
-            SetupMocks(user, store, notification);
-
-            var request = new RequestPasswordResetQuery
-            {
-                LoginOrEmail = "test@example.com",
-                UrlSuffix = "/reset-password"
-            };
-
-            // Act
-            await _handler.Handle(request, CancellationToken.None);
-
-            // Assert
-            _notificationSenderMock.Verify(x => x.ScheduleSendNotificationAsync(It.IsAny<ResetPasswordEmailNotification>()), Times.Once);
-        }
-
-        [Fact]
-        public async Task Handle_UserWithExpiredLockoutEnd_ScheduleSendNotificationAsyncCalled()
-        {
-            // Arrange
-            var user = CreateUser(DateTime.UtcNow.AddHours(-1));
-            var store = CreateStore();
-            var notification = new ResetPasswordEmailNotification();
-
-            SetupMocks(user, store, notification);
-
-            var request = new RequestPasswordResetQuery
-            {
-                LoginOrEmail = "test@example.com",
-                UrlSuffix = "/reset-password"
-            };
-
-            // Act
-            await _handler.Handle(request, CancellationToken.None);
-
-            // Assert
-            _notificationSenderMock.Verify(x => x.ScheduleSendNotificationAsync(It.IsAny<ResetPasswordEmailNotification>()), Times.Once);
-        }
-
-        [Fact]
-        public async Task Handle_UserWithFutureLockoutEnd_ScheduleSendNotificationAsyncNotCalled()
-        {
-            // Arrange
-            var user = CreateUser(DateTime.UtcNow.AddHours(1));
-            var store = CreateStore();
-            var notification = new ResetPasswordEmailNotification();
-
-            SetupMocks(user, store, notification);
-
-            var request = new RequestPasswordResetQuery
-            {
-                LoginOrEmail = "test@example.com",
-                UrlSuffix = "/reset-password"
-            };
-
-            // Act
-            await _handler.Handle(request, CancellationToken.None);
-
-            // Assert
-            _notificationSenderMock.Verify(x => x.ScheduleSendNotificationAsync(It.IsAny<ResetPasswordEmailNotification>()), Times.Never);
-        }
-
-        private static ApplicationUser CreateUser(DateTime? lockoutEnd)
-        {
-            return new ApplicationUser
-            {
-                Id = "testUserId",
-                Email = "test@example.com",
-                StoreId = "testStoreId",
-                LockoutEnd = lockoutEnd
-            };
-        }
-
-        private static Store CreateStore()
-        {
-            return new Store
+            var store = new Store
             {
                 Id = "testStoreId",
                 Url = "http://teststore.com",
-                Email = "store@example.com"
+                Email = "store@example.com",
             };
+
+            var user = new ApplicationUser
+            {
+                Id = "testUserId",
+                Email = "test@example.com",
+                StoreId = store.Id,
+                LockoutEnd = lockoutEndHours is null
+                    ? null
+                    : DateTime.UtcNow.AddHours(lockoutEndHours.Value),
+            };
+
+            var request = new RequestPasswordResetQuery
+            {
+                LoginOrEmail = user.Email,
+            };
+
+            var notificationSenderMock = new Mock<INotificationSender>();
+            var handler = GetHandler(notificationSenderMock.Object, store, user);
+
+            // Act
+            await handler.Handle(request, CancellationToken.None);
+
+            // Assert
+            var expectedTimes = expectedNotification ? Times.Once() : Times.Never();
+            notificationSenderMock.Verify(x => x.ScheduleSendNotificationAsync(It.IsAny<ResetPasswordEmailNotification>()), expectedTimes);
         }
 
-        private void SetupMocks(ApplicationUser user, Store store, ResetPasswordEmailNotification notification)
+
+        private static RequestPasswordResetQueryHandler GetHandler(INotificationSender notificationSender, Store store, ApplicationUser user)
         {
-            _userManagerMock.Setup(x => x.FindByNameAsync(It.IsAny<string>())).ReturnsAsync(user);
-            _userManagerMock.Setup(x => x.GeneratePasswordResetTokenAsync(user)).ReturnsAsync("testToken");
-            _storeServiceMock.Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>())).ReturnsAsync(new List<Store> { store });
-            _notificationSearchServiceMock.Setup(x => x.SearchNotificationsAsync(It.IsAny<NotificationSearchCriteria>())).ReturnsAsync(new NotificationSearchResult { Results = new List<Notification> { notification }, TotalCount = 1 });
+            var userManagerMock = new Mock<UserManager<ApplicationUser>>(Mock.Of<IUserStore<ApplicationUser>>(), null, null, null, null, null, null, null, null);
+
+            userManagerMock
+                .Setup(x => x.GeneratePasswordResetTokenAsync(It.IsAny<ApplicationUser>()))
+                .ReturnsAsync("testToken");
+
+            userManagerMock
+                .Setup(x => x.FindByNameAsync(It.IsAny<string>()))
+                .ReturnsAsync(user);
+
+            var notificationSearchServiceMock = new Mock<INotificationSearchService>();
+
+            notificationSearchServiceMock
+                .Setup(x => x.SearchNotificationsAsync(It.IsAny<NotificationSearchCriteria>()))
+                .ReturnsAsync(new NotificationSearchResult
+                {
+                    Results = [new ResetPasswordEmailNotification()],
+                    TotalCount = 1,
+                });
+
+            var storeServiceMock = new Mock<IStoreService>();
+
+            storeServiceMock
+                .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
+                .ReturnsAsync([store]);
+
+            return new RequestPasswordResetQueryHandler(
+                () => userManagerMock.Object,
+                notificationSearchServiceMock.Object,
+                notificationSender,
+                storeServiceMock.Object);
         }
     }
 }
