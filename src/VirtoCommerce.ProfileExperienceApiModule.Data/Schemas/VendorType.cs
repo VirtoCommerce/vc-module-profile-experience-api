@@ -2,6 +2,7 @@ using System.Linq;
 using GraphQL.Types;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Vendor;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
+using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.Xapi.Core.Services;
@@ -11,9 +12,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 public class VendorType : MemberBaseType<VendorAggregate>
 {
     public VendorType(
+        IStoreService storeService,
         IDynamicPropertyResolverService dynamicPropertyResolverService,
         IMemberAddressService memberAddressService)
-        : base(dynamicPropertyResolverService, memberAddressService)
+        : base(storeService, dynamicPropertyResolverService, memberAddressService)
     {
         Name = "Vendor";
         Description = "Vendor Info";
