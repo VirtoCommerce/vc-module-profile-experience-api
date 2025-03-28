@@ -17,6 +17,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field<StringGraphType>(nameof(Contact.DefaultLanguage));
             Field<StringGraphType>(nameof(Contact.CurrencyCode));
             Field<StringGraphType>(nameof(Contact.About));
+            Field<StringGraphType>(nameof(Contact.SelectedAddressId));
             Field<ListGraphType<StringGraphType>>(nameof(Contact.Organizations));
         }
     }

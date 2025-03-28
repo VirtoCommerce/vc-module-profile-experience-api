@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Models;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -26,6 +26,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         public string FullName { get; set; }
         public string Salutation { get; set; }
         public string About { get; set; }
+        public string SelectedAddressId { get; set; }
         public IList<Address> Addresses { get; set; }
         public IList<string> Phones { get; set; }
         public IList<string> Emails { get; set; }
