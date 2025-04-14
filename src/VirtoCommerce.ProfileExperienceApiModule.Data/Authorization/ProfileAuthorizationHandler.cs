@@ -75,7 +75,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     break;
                 case CreateUserCommand createUserCommand:
                     //Anonymous user can create customer users only
-                    result = !createUserCommand.ApplicationUser.IsAdministrator && createUserCommand.ApplicationUser.UserType.EqualsInvariant("Customer");
+                    result = !createUserCommand.ApplicationUser.IsAdministrator && createUserCommand.ApplicationUser.UserType.EqualsIgnoreCase("Customer");
                     break;
                 case SendVerifyEmailCommand:
                     //Anonymous user request verification email
@@ -102,7 +102,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     {
                         var memberId = memberCommand.MemberId;
                         var member = await _memberService.GetByIdAsync(memberId);
-                        if (member.MemberType.EqualsInvariant("Organization") && currentContact.Organizations.Any(x => x.EqualsInvariant(member.Id)))
+                        if (member.MemberType.EqualsIgnoreCase("Organization") && currentContact.Organizations.Any(x => x.EqualsIgnoreCase(member.Id)))
                         {
                             result = true;
                         }
@@ -142,7 +142,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                         if (currentContact != null && currentUser != null)
                         {
                             result = currentContact.Organizations.Contains(inviteUserCommand.OrganizationId)
-                                && currentUser.StoreId.EqualsInvariant(inviteUserCommand.StoreId);
+                                && currentUser.StoreId.EqualsIgnoreCase(inviteUserCommand.StoreId);
                         }
                     }
                     else
