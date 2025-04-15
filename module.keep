@@ -3,3 +3,4 @@ VirtoCommerce.OrdersModule.Core.dll
 VirtoCommerce.PaymentModule.Core.dll
 VirtoCommerce.XCart.Core.dll
 VirtoCommerce.XOrder.Core.dll
+VirtoCommerce.TaxModule.Core.dll

@@ -20,7 +20,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         protected bool IsUserEditable(string userName)
         {
-            return _securityOptions.NonEditableUsers?.FirstOrDefault(x => x.EqualsInvariant(userName)) == null;
+            return _securityOptions.NonEditableUsers?.FirstOrDefault(x => x.EqualsIgnoreCase(userName)) == null;
         }
     }
 }
