@@ -13,7 +13,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact
             {
                 base.Member = value;
 
-                if (string.IsNullOrEmpty(Contact?.FullName))
+                if (Contact != null && string.IsNullOrEmpty(Contact.FullName))
                 {
                     Contact.FullName = string.Join(" ", Contact.FirstName, Contact.LastName);
                 }
