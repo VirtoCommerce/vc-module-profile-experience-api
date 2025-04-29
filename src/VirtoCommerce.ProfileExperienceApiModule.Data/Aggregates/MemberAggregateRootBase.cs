@@ -21,7 +21,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
                 }
                 else
                 {
-                    // If we adding new entry, we shouldn't manage the ids.
+                    // If we are adding new entry, we shouldn't manage the ids.
                     address.Key = null;
                     Member.Addresses.Add(address);
                 }

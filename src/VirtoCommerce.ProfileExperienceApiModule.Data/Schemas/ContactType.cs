@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading.Tasks;
 using GraphQL.Types;
 using MediatR;
 using VirtoCommerce.CustomerModule.Core.Model.Search;
@@ -9,6 +10,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
+using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
@@ -34,8 +36,12 @@ public class ContactType : MemberBaseType<ContactAggregate>
 
         Field(x => x.Contact.About);
 
-        Field(x => x.Contact.DefaultLanguage, nullable: true);
-        Field(x => x.Contact.CurrencyCode, nullable: true);
+        Field(x => x.Contact.DefaultLanguage, nullable: true)
+            .ResolveAsync(async context =>
+                context.Source.Contact.DefaultLanguage ?? (await GetStore(context, storeService))?.DefaultLanguage);
+        Field(x => x.Contact.CurrencyCode, nullable: true)
+            .ResolveAsync(async context =>
+                context.Source.Contact.CurrencyCode ?? (await GetStore(context, storeService))?.DefaultCurrency);
 
         Field<DateGraphType>("birthDate")
             .Resolve(context =>
@@ -79,5 +85,10 @@ public class ContactType : MemberBaseType<ContactAggregate>
         AddField(organizationsConnectionBuilder.FieldType);
 
         #endregion
+    }
+
+    private static async Task<Store> GetStore(GraphQL.IResolveFieldContext<ContactAggregate> context, IStoreService storeService)
+    {
+        return await storeService.GetByIdAsync(context.Source.StoreId);
     }
 }
