@@ -278,7 +278,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             result.Name = result.FullName;
             result.Status = requireEmailVerification ? ModuleConstants.ContactStatuses.Locked : DefaultContactStatus;
             result.Emails = new List<string> { account.Email };
-            result.DefaultLanguage = language;
+            result.CurrencyCode = CurrentStore.DefaultCurrency;
+            result.DefaultLanguage = language ?? CurrentStore.DefaultLanguage;
 
             await SetDynamicPropertiesAsync(contact.DynamicProperties, result);
 

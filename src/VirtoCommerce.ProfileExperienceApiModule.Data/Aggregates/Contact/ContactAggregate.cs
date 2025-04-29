@@ -1,3 +1,4 @@
+using System.Linq;
 using VirtoCommerce.CustomerModule.Core.Model;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact
@@ -5,6 +6,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact
     public class ContactAggregate : MemberAggregateRootBase
     {
         public CustomerModule.Core.Model.Contact Contact => Member as CustomerModule.Core.Model.Contact;
+        public string StoreId { get; set; }
 
         public override Member Member
         {
@@ -17,6 +19,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact
                 {
                     Contact.FullName = string.Join(" ", Contact.FirstName, Contact.LastName);
                 }
+
+                StoreId = Contact.SecurityAccounts.Select(x => x.StoreId).FirstOrDefault();
             }
         }
 
