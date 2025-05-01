@@ -48,6 +48,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Mapping
                     result.Name = input.Name;
                     result.Description = input.Description;
 
+                    result.Phones = input.PhoneNumber == null ?
+                        null :
+                        new List<string> { input.PhoneNumber };
+
                     result.Addresses = input.Address == null ?
                             null :
                             new List<Address> { input.Address };
