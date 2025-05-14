@@ -20,7 +20,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact
                     Contact.FullName = string.Join(" ", Contact.FirstName, Contact.LastName);
                 }
 
-                StoreId = Contact.SecurityAccounts.Select(x => x.StoreId).FirstOrDefault();
+                StoreId = Contact?.SecurityAccounts?.Select(x => x.StoreId).FirstOrDefault();
             }
         }
 
