@@ -12,7 +12,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
             Field<StringGraphType>("description");
             Field<StringGraphType>("phoneNumber");
             Field<ListGraphType<InputDynamicPropertyValueType>>(nameof(Member.DynamicProperties));
-            Field<InputMemberAddressType>("address");
+            Field<InputMemberAddressType>("address").DeprecationReason("Use \"Addresses\" field. \"Address\" and \"Addresses\" fields will be automatically concatenated.");
+            Field<ListGraphType<InputMemberAddressType>>("addresses");
         }
     }
 }

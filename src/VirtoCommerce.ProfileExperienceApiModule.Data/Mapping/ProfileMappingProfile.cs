@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
@@ -52,9 +53,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Mapping
                         null :
                         new List<string> { input.PhoneNumber };
 
-                    result.Addresses = input.Address == null ?
-                            null :
-                            new List<Address> { input.Address };
+                    result.Addresses = input.Addresses?.ToList() ?? [];
+                    if (input.Address != null)
+                    {
+                        result.Addresses.Add(input.Address);
+                    }
 
                     return result;
                 });
