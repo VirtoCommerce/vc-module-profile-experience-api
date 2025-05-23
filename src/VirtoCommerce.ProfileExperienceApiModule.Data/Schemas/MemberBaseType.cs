@@ -19,8 +19,6 @@ using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.Xapi.Core.Services;
 
-using SeoInfoType = VirtoCommerce.Seo.ExperienceApi.Schemas.SeoInfoType;
-
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 
 public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregate>
