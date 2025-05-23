@@ -6,12 +6,12 @@ using GraphQL;
 using GraphQL.Builders;
 using GraphQL.Types;
 using VirtoCommerce.CoreModule.Core.Common;
-using VirtoCommerce.CoreModule.Core.Seo;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
-using VirtoCommerce.StoreModule.Core.Extensions;
+using VirtoCommerce.Seo.Core.Extensions;
+using VirtoCommerce.Seo.Core.Models;
 using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
@@ -65,11 +65,11 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
                     var store = await storeService.GetByIdAsync(storeId);
                     if (store != null)
                     {
-                        seoInfo = member.SeoInfos.GetBestMatchingSeoInfo(store, cultureName);
+                        seoInfo = member.SeoInfos.GetBestMatchingSeoInfo(store.Id, store.DefaultLanguage, cultureName);
                     }
                 }
 
-                return seoInfo ?? SeoInfosExtensions.GetFallbackSeoInfo(member.Id, member.Name, cultureName);
+                return seoInfo ?? SeoExtensions.GetFallbackSeoInfo(member.Id, member.Name, cultureName);
             });
 
         #endregion
@@ -95,11 +95,13 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
 
         #endregion
 
+#pragma warning disable VC0010
         ExtendableFieldAsync<NonNullGraphType<ListGraphType<DynamicPropertyValueType>>>(
             "dynamicProperties",
             "Dynamic property values",
             QueryArgumentPresets.GetArgumentForDynamicProperties(),
             async context => await dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source.Member, context.GetArgumentOrValue<string>("cultureName")));
+#pragma warning restore VC0010
     }
 
 

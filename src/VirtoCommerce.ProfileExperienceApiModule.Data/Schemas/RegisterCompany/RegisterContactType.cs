@@ -22,11 +22,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
             Field<StringGraphType>("createdBy");
             Field<StringGraphType>("about");
             ExtendableField<MemberAddressType>("address", resolve: context => (context.Source).Addresses?.FirstOrDefault());
+#pragma warning disable VC0010
             ExtendableFieldAsync<ListGraphType<DynamicPropertyValueType>>(
                 "dynamicProperties",
                 "Contact's dynamic property values",
                 QueryArgumentPresets.GetArgumentForDynamicProperties(),
                 async context => await dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source, context.GetArgumentOrValue<string>("cultureName")));
+#pragma warning restore VC0010
         }
     }
 }
