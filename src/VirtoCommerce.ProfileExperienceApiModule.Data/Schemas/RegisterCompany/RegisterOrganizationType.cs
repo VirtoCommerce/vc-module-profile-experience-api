@@ -21,14 +21,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
                 deprecationReason: "Use addresses field instead.");
             ExtendableField<ListGraphType<MemberAddressType>>("addresses",
                 resolve: context => (context.Source).Addresses,
-                description: "Organization addresses");
+                description: "Organization's addresses");
             Field<StringGraphType>("phoneNumber").Resolve(context => (context.Source).Phones?.FirstOrDefault());
             Field<StringGraphType>("status");
             Field<StringGraphType>("createdBy");
             Field<StringGraphType>("ownerId");
             ExtendableFieldAsync<ListGraphType<DynamicPropertyValueType>>(
                 "dynamicProperties",
-                "Contact's dynamic property values",
+                "Organization's dynamic property values",
                 QueryArgumentPresets.GetArgumentForDynamicProperties(),
                 async context => await dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source, context.GetArgumentOrValue<string>("cultureName")));
         }
