@@ -17,8 +17,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
             Field<StringGraphType>("description");
             ExtendableField<MemberAddressType>("address",
                 resolve: context => (context.Source).Addresses?.FirstOrDefault(),
-                description: "Returns first organization address.",
-                deprecationReason: "Use addresses field instead.");
+                description: "Returns first organization address.");
             ExtendableField<ListGraphType<MemberAddressType>>("addresses",
                 resolve: context => (context.Source).Addresses,
                 description: "Organization's addresses");
