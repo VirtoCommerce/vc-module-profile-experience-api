@@ -10,6 +10,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganizat
         public string Description { get; set; }
         public string PhoneNumber { get; set; }
         public Address Address { get; set; }
+        public IList<Address> Addresses { get; set; }
         public IList<DynamicPropertyValue> DynamicProperties { get; set; }
     }
 }
