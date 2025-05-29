@@ -2,7 +2,6 @@ using System.Linq;
 using GraphQL.Types;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Extensions;
-using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.Xapi.Core.Services;
 
@@ -20,13 +19,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
             Field<StringGraphType>("status");
             Field<StringGraphType>("createdBy");
             Field<StringGraphType>("ownerId");
-#pragma warning disable VC0010
             ExtendableFieldAsync<ListGraphType<DynamicPropertyValueType>>(
-            "dynamicProperties",
+                "dynamicProperties",
                 "Contact's dynamic property values",
-                QueryArgumentPresets.GetArgumentForDynamicProperties(),
+                null,
                 async context => await dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source, context.GetArgumentOrValue<string>("cultureName")));
-#pragma warning restore VC0010
         }
     }
 }

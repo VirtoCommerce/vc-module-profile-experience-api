@@ -12,12 +12,14 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.Seo.Core.Extensions;
 using VirtoCommerce.Seo.Core.Models;
+using VirtoCommerce.StoreModule.Core.Extensions;
 using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.Xapi.Core.Services;
+using SeoExtensions = VirtoCommerce.Seo.Core.Extensions.SeoExtensions;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 
@@ -65,7 +67,7 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
                     var store = await storeService.GetByIdAsync(storeId);
                     if (store != null)
                     {
-                        seoInfo = member.SeoInfos.GetBestMatchingSeoInfo(store.Id, store.DefaultLanguage, cultureName);
+                        seoInfo = member.SeoInfos.GetBestMatchingSeoInfo(store, cultureName);
                     }
                 }
 
@@ -95,13 +97,11 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
 
         #endregion
 
-#pragma warning disable VC0010
         ExtendableFieldAsync<NonNullGraphType<ListGraphType<DynamicPropertyValueType>>>(
             "dynamicProperties",
             "Dynamic property values",
-            QueryArgumentPresets.GetArgumentForDynamicProperties(),
+            null,
             async context => await dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source.Member, context.GetArgumentOrValue<string>("cultureName")));
-#pragma warning restore VC0010
     }
 
 
