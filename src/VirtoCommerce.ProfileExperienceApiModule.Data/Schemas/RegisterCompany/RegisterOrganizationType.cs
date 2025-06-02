@@ -14,7 +14,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
             Field<NonNullGraphType<StringGraphType>>("id");
             Field<NonNullGraphType<StringGraphType>>("name");
             Field<StringGraphType>("description");
-            ExtendableField<MemberAddressType>("address", resolve: context => (context.Source).Addresses?.FirstOrDefault());
+            ExtendableField<MemberAddressType>("address",
+                resolve: context => (context.Source).Addresses?.FirstOrDefault(),
+                description: "Returns first organization address.",
+                deprecationReason: "Use addresses field instead.");
+            ExtendableField<ListGraphType<MemberAddressType>>("addresses",
+                resolve: context => (context.Source).Addresses,
+                description: "Organization's addresses");
             Field<StringGraphType>("phoneNumber").Resolve(context => (context.Source).Phones?.FirstOrDefault());
             Field<StringGraphType>("status");
             Field<StringGraphType>("createdBy");
