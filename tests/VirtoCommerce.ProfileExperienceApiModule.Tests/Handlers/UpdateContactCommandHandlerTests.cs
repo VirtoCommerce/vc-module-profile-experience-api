@@ -5,6 +5,7 @@ using AutoFixture;
 using AutoMapper;
 using Moq;
 using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Mapping;
@@ -32,21 +33,22 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         [Fact]
         public async Task Handle_RequestWithDynamicProperties_UpdateDynamicPropertyCalled()
         {
-            // Arragne
+            // Arrange
             var aggregateRepositoryMock = new Mock<IContactAggregateRepository>();
             var dynamicPropertyUpdaterServiceMock = new Mock<IDynamicPropertyUpdaterService>();
 
-
             var contact = _fixture.Create<Contact>();
             contact.Emails = new List<string> { "initial@example.com" };
-            var contactAggregae = new ContactAggregate { Member = contact };
+            var contactAggregate = new ContactAggregate { Member = contact };
 
             aggregateRepositoryMock
                 .Setup(x => x.GetMemberAggregateRootByIdAsync<ContactAggregate>(It.IsAny<string>()))
-                .ReturnsAsync(contactAggregae);
+                .ReturnsAsync(contactAggregate);
 
-            var handler = new UpdateContactCommandHandler(aggregateRepositoryMock.Object,
+            var handler = new UpdateContactCommandHandler(
+                aggregateRepositoryMock.Object,
                 dynamicPropertyUpdaterServiceMock.Object,
+                Mock.Of<ICustomerPreferenceService>(),
                 _mapper);
 
             var command = _fixture.Create<UpdateContactCommand>();

@@ -1,5 +1,5 @@
 using GraphQL.Types;
-using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
@@ -7,18 +7,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
     {
         protected InputContactBaseType()
         {
-            Field<StringGraphType>(nameof(Contact.FullName));
-            Field<NonNullGraphType<StringGraphType>>(nameof(Contact.FirstName));
-            Field<NonNullGraphType<StringGraphType>>(nameof(Contact.LastName));
-            Field<StringGraphType>(nameof(Contact.MiddleName));
-            Field<StringGraphType>(nameof(Contact.Salutation));
-            Field<StringGraphType>(nameof(Contact.PhotoUrl));
-            Field<StringGraphType>(nameof(Contact.TimeZone));
-            Field<StringGraphType>(nameof(Contact.DefaultLanguage));
-            Field<StringGraphType>(nameof(Contact.CurrencyCode));
-            Field<StringGraphType>(nameof(Contact.About));
-            Field<StringGraphType>(nameof(Contact.SelectedAddressId));
-            Field<ListGraphType<StringGraphType>>(nameof(Contact.Organizations));
+            Field<StringGraphType>(nameof(ContactCommand.FullName));
+            Field<NonNullGraphType<StringGraphType>>(nameof(ContactCommand.FirstName));
+            Field<NonNullGraphType<StringGraphType>>(nameof(ContactCommand.LastName));
+            Field<StringGraphType>(nameof(ContactCommand.MiddleName));
+            Field<StringGraphType>(nameof(ContactCommand.Salutation));
+            Field<StringGraphType>(nameof(ContactCommand.PhotoUrl));
+            Field<StringGraphType>(nameof(ContactCommand.TimeZone));
+            Field<StringGraphType>(nameof(ContactCommand.DefaultLanguage));
+            Field<StringGraphType>(nameof(ContactCommand.CurrencyCode));
+            Field<StringGraphType>(nameof(ContactCommand.About));
+            Field<StringGraphType>(nameof(ContactCommand.SelectedAddressId));
+            Field<ListGraphType<StringGraphType>>(nameof(ContactCommand.Organizations));
         }
     }
 }

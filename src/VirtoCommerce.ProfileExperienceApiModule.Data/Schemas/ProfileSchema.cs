@@ -365,6 +365,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             {
                                 var type = GenericTypeHelper.GetActualType<UpdateContactCommand>();
                                 var command = (UpdateContactCommand)context.GetArgument(type, _commandName);
+                                command.UserId = context.GetCurrentUserId();
+                                command.OrganizationId = context.GetCurrentOrganizationId();
                                 await CheckAuthAsync(context, command);
                                 return await _mediator.Send(command);
 
