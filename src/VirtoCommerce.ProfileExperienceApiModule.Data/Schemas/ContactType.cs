@@ -1,9 +1,15 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
+using GraphQL;
 using GraphQL.Types;
 using MediatR;
+using Microsoft.AspNetCore.Identity;
+using VirtoCommerce.CustomerModule.Core.Extensions;
 using VirtoCommerce.CustomerModule.Core.Model.Search;
+using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
@@ -21,14 +27,22 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 
 public class ContactType : MemberBaseType<ContactAggregate>
 {
+    private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
+    private readonly ICustomerPreferenceService _customerPreferenceService;
+
     public ContactType(
         IStoreService storeService,
         IDynamicPropertyResolverService dynamicPropertyResolverService,
         IMemberAddressService memberAddressService,
+        Func<UserManager<ApplicationUser>> userManagerFactory,
+        ICustomerPreferenceService customerPreferenceService,
         IMediator mediator,
         IMemberAggregateFactory memberAggregateFactory)
         : base(storeService, dynamicPropertyResolverService, memberAddressService)
     {
+        _userManagerFactory = userManagerFactory;
+        _customerPreferenceService = customerPreferenceService;
+
         Field(x => x.Contact.FirstName);
         Field(x => x.Contact.LastName);
         Field(x => x.Contact.MiddleName, true);
@@ -44,15 +58,16 @@ public class ContactType : MemberBaseType<ContactAggregate>
                 context.Source.Contact.CurrencyCode ?? (await GetStore(context, storeService))?.DefaultCurrency);
 
         Field<DateGraphType>("birthDate")
-            .Resolve(context =>
-                context.Source.Contact.BirthDate.HasValue ? context.Source.Contact.BirthDate.Value.Date : null);
+            .Resolve(context => context.Source.Contact.BirthDate?.Date);
 
         Field<ListGraphType<UserType>>("securityAccounts").Resolve(context => context.Source.Contact.SecurityAccounts);
 
         Field<StringGraphType>("organizationId")
-            .Resolve(context => context.GetCurrentOrganizationId());
+            .ResolveAsync(async context => await GetCurrentOrganizationId(context));
 
-        Field(x => x.Contact.SelectedAddressId, nullable: true).Description("Selected shipping address id.");
+        Field<StringGraphType>("selectedAddressId")
+            .Description("Selected shipping address id.")
+            .ResolveAsync(async context => await GetSelectedAddressId(context));
 
         #region Organizations
 
@@ -79,7 +94,7 @@ public class ContactType : MemberBaseType<ContactAggregate>
             }
 
             return new PagedConnection<OrganizationAggregate>(
-                response.Results.Select(x => memberAggregateFactory.Create<OrganizationAggregate>(x)), query.Skip,
+                response.Results.Select(memberAggregateFactory.Create<OrganizationAggregate>), query.Skip,
                 query.Take, response.TotalCount);
         });
         AddField(organizationsConnectionBuilder.FieldType);
@@ -87,8 +102,57 @@ public class ContactType : MemberBaseType<ContactAggregate>
         #endregion
     }
 
-    private static async Task<Store> GetStore(GraphQL.IResolveFieldContext<ContactAggregate> context, IStoreService storeService)
+    private static async Task<Store> GetStore(IResolveFieldContext<ContactAggregate> context, IStoreService storeService)
     {
         return await storeService.GetByIdAsync(context.Source.StoreId);
+    }
+
+    private async Task<string> GetCurrentOrganizationId(IResolveFieldContext<ContactAggregate> context)
+    {
+        if (!await IsCurrentUser(context))
+        {
+            return null;
+        }
+
+        return context.GetCurrentOrganizationId();
+    }
+
+    private async Task<string> GetSelectedAddressId(IResolveFieldContext<ContactAggregate> context)
+    {
+        if (!await IsCurrentUser(context))
+        {
+            return null;
+        }
+
+        return await _customerPreferenceService.GetSelectedAddressId(context.GetCurrentUserId(), context.GetCurrentOrganizationId());
+    }
+
+    private async Task<bool> IsCurrentUser(IResolveFieldContext<ContactAggregate> context)
+    {
+        return context.Source.Contact.Id.EqualsIgnoreCase(await GetCurrentMemberId(context));
+    }
+
+    private async Task<string> GetCurrentMemberId(IResolveFieldContext<ContactAggregate> context)
+    {
+        const string contextKey = "CurrentUserMemberId";
+
+        if (context.UserContext.TryGetValue(contextKey, out var contextValue))
+        {
+            return contextValue as string;
+        }
+
+        var userId = context.GetCurrentUserId();
+        if (userId.IsNullOrEmpty())
+        {
+            return null;
+        }
+
+        using var userManager = _userManagerFactory();
+        var user = await userManager.FindByIdAsync(userId);
+        var currentMemberId = user?.MemberId;
+
+        context.UserContext[contextKey] = currentMemberId;
+
+        return currentMemberId;
     }
 }
