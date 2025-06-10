@@ -1,6 +1,6 @@
 using System.Linq;
 using GraphQL.Types;
-using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
@@ -8,7 +8,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
     {
         public InputUpdateContactType()
         {
-            Fields.First(x => x.Name == nameof(Member.Id)).Type = typeof(NonNullGraphType<StringGraphType>);
+            Fields.First(x => x.Name == nameof(UpdateContactCommand.Id)).Type = typeof(NonNullGraphType<StringGraphType>);
         }
     }
 }
