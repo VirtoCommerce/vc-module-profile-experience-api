@@ -6,11 +6,12 @@ using GraphQL;
 using GraphQL.Builders;
 using GraphQL.Types;
 using VirtoCommerce.CoreModule.Core.Common;
-using VirtoCommerce.CoreModule.Core.Seo;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
+using VirtoCommerce.Seo.Core.Extensions;
+using VirtoCommerce.Seo.Core.Models;
 using VirtoCommerce.StoreModule.Core.Extensions;
 using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Extensions;
@@ -18,6 +19,7 @@ using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.Xapi.Core.Services;
+using SeoExtensions = VirtoCommerce.Seo.Core.Extensions.SeoExtensions;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 
@@ -69,7 +71,7 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
                     }
                 }
 
-                return seoInfo ?? SeoInfosExtensions.GetFallbackSeoInfo(member.Id, member.Name, cultureName);
+                return seoInfo ?? SeoExtensions.GetFallbackSeoInfo(member.Id, member.Name, cultureName);
             });
 
         #endregion
@@ -96,10 +98,10 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
         #endregion
 
         ExtendableFieldAsync<NonNullGraphType<ListGraphType<DynamicPropertyValueType>>>(
-            "dynamicProperties",
-            "Dynamic property values",
-            null,
-            async context => await dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source.Member, context.GetArgumentOrValue<string>("cultureName")));
+            name: "dynamicProperties",
+            description: "Dynamic property values",
+            arguments: null,
+            resolve: async context => await dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source.Member, context.GetArgumentOrValue<string>("cultureName")));
     }
 
 

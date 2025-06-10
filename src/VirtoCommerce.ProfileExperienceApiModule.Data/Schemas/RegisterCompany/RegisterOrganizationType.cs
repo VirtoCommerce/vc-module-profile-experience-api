@@ -26,10 +26,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
             Field<StringGraphType>("createdBy");
             Field<StringGraphType>("ownerId");
             ExtendableFieldAsync<ListGraphType<DynamicPropertyValueType>>(
-                "dynamicProperties",
-                "Organization's dynamic property values",
-                null,
-                async context => await dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source, context.GetArgumentOrValue<string>("cultureName")));
+                name: "dynamicProperties",
+                description: "Contact's dynamic property values",
+                arguments: null,
+                resolve: async context => await dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source, context.GetArgumentOrValue<string>("cultureName")));
         }
     }
 }
