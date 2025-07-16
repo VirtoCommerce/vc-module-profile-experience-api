@@ -26,6 +26,7 @@ using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.Xapi.Core.Services;
 using CustomerSettings = VirtoCommerce.CustomerModule.Core.ModuleConstants.Settings.General;
+using Exception = System.Exception;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -209,14 +210,22 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                         }
                     case ModuleConstants.RegistrationFlows.EmailVerificationRequired:
                         {
-                            await SendVerifyEmailCommandAsync(request, result, tokenSource);
+                            try
+                            {
+                                await SendVerifyEmailCommandAsync(request, result, tokenSource);
+                            }
+                            catch (Exception)
+                            {
+                                SetErrorResult(result, "NotificationError", "Cannot send registration notification", tokenSource);
+                            }
+
                             break;
                         }
                 }
             }
             catch (Exception)
             {
-                SetErrorResult(result, "NotificationError", "Cannot send registration notification", tokenSource);
+                SetErrorResult(result, "NotificationError", "Cannot send registration notification");
             }
         }
 
@@ -382,6 +391,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             }
         }
 
+        protected static void SetErrorResult(RegisterOrganizationResult result, string errorCode, string errorMessage)
+        {
+            SetErrorResult(result, new[] { new RegistrationError { Code = errorCode, Description = errorMessage } }, source: null);
+        }
+
         protected static void SetErrorResult(RegisterOrganizationResult result, string errorCode, string errorMessage, CancellationTokenSource source)
         {
             SetErrorResult(result, new[] { new RegistrationError { Code = errorCode, Description = errorMessage } }, source);
@@ -394,7 +408,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             result.AccountCreationResult.Errors ??= new List<RegistrationError>();
             result.AccountCreationResult.Errors.AddRange(errors);
 
-            source.Cancel();
+            source?.Cancel();
         }
 
         private static string ResolveEmail(ApplicationUser account, IList<Address> orgAddresses)
