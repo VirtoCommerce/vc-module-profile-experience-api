@@ -192,6 +192,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             result.Contact.SecurityAccounts = new List<ApplicationUser> { account };
 
             // Send email notifications
+            CancellationTokenSource cancellationTokenSource = null;
             try
             {
                 switch (EmailVerificationFlow)
@@ -210,22 +211,15 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                         }
                     case ModuleConstants.RegistrationFlows.EmailVerificationRequired:
                         {
-                            try
-                            {
-                                await SendVerifyEmailCommandAsync(request, result, tokenSource);
-                            }
-                            catch (Exception)
-                            {
-                                SetErrorResult(result, "NotificationError", "Cannot send registration notification", tokenSource);
-                            }
-
+                            cancellationTokenSource = tokenSource;
+                            await SendVerifyEmailCommandAsync(request, result, tokenSource);
                             break;
                         }
                 }
             }
             catch (Exception)
             {
-                SetErrorResult(result, "NotificationError", "Cannot send registration notification");
+                SetErrorResult(result, "NotificationError", "Cannot send registration notification", cancellationTokenSource);
             }
         }
 
@@ -389,11 +383,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 result.AccountCreationResult.AccountId = null;
                 result.AccountCreationResult.AccountName = null;
             }
-        }
-
-        protected static void SetErrorResult(RegisterOrganizationResult result, string errorCode, string errorMessage)
-        {
-            SetErrorResult(result, new[] { new RegistrationError { Code = errorCode, Description = errorMessage } }, source: null);
         }
 
         protected static void SetErrorResult(RegisterOrganizationResult result, string errorCode, string errorMessage, CancellationTokenSource source)
