@@ -33,7 +33,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Middlewares
 
             if (!string.IsNullOrEmpty(parameter.OrganizaitonId))
             {
-                await _loadUserToEvalContextService.SetShopperDataFromMember(parameter, parameter.OrganizaitonId);
+                await _loadUserToEvalContextService.SetShopperDataFromOrganization(parameter, parameter.OrganizaitonId);
             }
             await next(parameter);
         }
@@ -47,7 +47,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Middlewares
 
             if (!string.IsNullOrEmpty(parameter.OrganizationId))
             {
-                await _loadUserToEvalContextService.SetShopperDataFromMember(parameter, parameter.OrganizationId);
+                await _loadUserToEvalContextService.SetShopperDataFromOrganization(parameter, parameter.OrganizationId);
             }
 
             await next(parameter);
