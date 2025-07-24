@@ -41,12 +41,22 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return CreateResponse(IdentityResult.Failed(new IdentityError { Code = "SamePassword", Description = "New password is the same as old password. Please choose another one." }));
             }
 
+            if (await userManager.IsLockedOutAsync(user))
+            {
+                return CreateResponse(IdentityResult.Failed(new IdentityError { Code = "AccountLocked", Description = "Your account is locked." }));
+            }
+
             var result = await userManager.ChangePasswordAsync(user, request.OldPassword, request.NewPassword);
 
             if (result.Succeeded && user.PasswordExpired)
             {
                 user.PasswordExpired = false;
                 await userManager.UpdateAsync(user);
+                await userManager.ResetAccessFailedCountAsync(user);
+            }
+            else
+            {
+                await userManager.AccessFailedAsync(user);
             }
 
             return CreateResponse(result);
