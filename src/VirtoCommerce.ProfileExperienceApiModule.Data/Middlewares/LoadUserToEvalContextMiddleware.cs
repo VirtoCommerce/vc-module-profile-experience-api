@@ -31,9 +31,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Middlewares
                 await _loadUserToEvalContextService.SetShopperDataFromMember(parameter, parameter.CustomerId);
             }
 
-            if (!string.IsNullOrEmpty(parameter.OrganizaitonId))
+            if (!string.IsNullOrEmpty(parameter.OrganizationId))
             {
-                await _loadUserToEvalContextService.SetShopperDataFromOrganization(parameter, parameter.OrganizaitonId);
+                await _loadUserToEvalContextService.SetShopperDataFromOrganization(parameter, parameter.OrganizationId);
             }
             await next(parameter);
         }
