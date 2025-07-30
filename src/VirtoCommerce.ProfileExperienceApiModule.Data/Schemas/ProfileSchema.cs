@@ -212,6 +212,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             {
                 Name = "requestPasswordReset",
                 Arguments = new QueryArguments(
+                    new QueryArgument<StringGraphType> { Name = "storeId" },
+                    new QueryArgument<StringGraphType> { Name = "languageCode" },
                     new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "loginOrEmail" },
                     new QueryArgument<StringGraphType> { Name = "urlSuffix" }),
                 Type = GraphTypeExtensionHelper.GetActualType<BooleanGraphType>(),
@@ -219,6 +221,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 {
                     var result = await _mediator.Send(new RequestPasswordResetQuery
                     {
+                        StoreId = context.GetArgument<string>("storeId"),
+                        LanguageCode = context.GetArgument<string>("languageCode"),
                         LoginOrEmail = context.GetArgument<string>("loginOrEmail"),
                         UrlSuffix = context.GetArgument<string>("urlSuffix"),
                     });

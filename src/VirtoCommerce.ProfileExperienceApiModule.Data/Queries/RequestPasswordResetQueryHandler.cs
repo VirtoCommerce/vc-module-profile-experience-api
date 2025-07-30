@@ -40,25 +40,39 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries
             var user = await userManager.FindByNameAsync(request.LoginOrEmail)
                        ?? await userManager.FindByEmailAsync(request.LoginOrEmail);
 
-            if (user != null &&
-                !string.IsNullOrEmpty(user.Email) &&
-                !string.IsNullOrEmpty(user.StoreId) &&
-                (user.LockoutEnd is null || user.LockoutEnd < DateTime.UtcNow))
+            if (user == null)
             {
-                var store = await _storeService.GetByIdAsync(user.StoreId);
-
-                if (!string.IsNullOrEmpty(store?.Url) && !string.IsNullOrEmpty(store.Email))
-                {
-                    var token = await userManager.GeneratePasswordResetTokenAsync(user);
-
-                    var notification = await _notificationSearchService.GetNotificationAsync<ResetPasswordEmailNotification>(new TenantIdentity(store.Id, nameof(Store)));
-                    notification.Url = $"{store.Url.TrimLastSlash()}{request.UrlSuffix.NormalizeUrlSuffix()}?userId={user.Id}&token={Uri.EscapeDataString(token)}";
-                    notification.To = user.Email;
-                    notification.From = store.Email;
-
-                    await _notificationSender.ScheduleSendNotificationAsync(notification);
-                }
+                return true;
             }
+
+            var storeId = request.StoreId ?? user.StoreId;
+
+            if ((user.LockoutEnd != null && DateTime.UtcNow < user.LockoutEnd) ||
+                string.IsNullOrEmpty(user.Email) ||
+                string.IsNullOrEmpty(storeId))
+            {
+                return true;
+            }
+
+            var store = await _storeService.GetByIdAsync(storeId);
+
+            if (store == null ||
+                string.IsNullOrEmpty(store.Url) ||
+                string.IsNullOrEmpty(store.Email))
+            {
+                return true;
+            }
+
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+
+            var notification = await _notificationSearchService.GetNotificationAsync<ResetPasswordEmailNotification>(new TenantIdentity(storeId, nameof(Store)));
+
+            notification.Url = $"{store.Url.TrimLastSlash()}{request.UrlSuffix.NormalizeUrlSuffix()}?userId={user.Id}&token={Uri.EscapeDataString(token)}";
+            notification.To = user.Email;
+            notification.From = store.Email;
+            notification.LanguageCode = request.LanguageCode ?? store.DefaultLanguage;
+
+            await _notificationSender.ScheduleSendNotificationAsync(notification);
 
             return true;
         }
