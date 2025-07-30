@@ -48,8 +48,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries
             var storeId = request.StoreId ?? user.StoreId;
 
             if ((user.LockoutEnd != null && DateTime.UtcNow < user.LockoutEnd) ||
-                string.IsNullOrEmpty(user.Email) ||
-                string.IsNullOrEmpty(storeId))
+                user.Email.IsNullOrEmpty() ||
+                storeId.IsNullOrEmpty())
             {
                 return true;
             }
@@ -57,8 +57,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries
             var store = await _storeService.GetByIdAsync(storeId);
 
             if (store == null ||
-                string.IsNullOrEmpty(store.Url) ||
-                string.IsNullOrEmpty(store.Email))
+                store.Url.IsNullOrEmpty() ||
+                store.Email.IsNullOrEmpty())
             {
                 return true;
             }
