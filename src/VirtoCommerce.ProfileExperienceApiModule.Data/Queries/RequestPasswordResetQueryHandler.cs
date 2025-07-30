@@ -70,7 +70,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries
             notification.Url = $"{store.Url.TrimLastSlash()}{request.UrlSuffix.NormalizeUrlSuffix()}?userId={user.Id}&token={Uri.EscapeDataString(token)}";
             notification.To = user.Email;
             notification.From = store.Email;
-            notification.LanguageCode = request.LanguageCode ?? store.DefaultLanguage;
+            notification.LanguageCode = request.CultureName ?? store.DefaultLanguage;
 
             await _notificationSender.ScheduleSendNotificationAsync(notification);
 

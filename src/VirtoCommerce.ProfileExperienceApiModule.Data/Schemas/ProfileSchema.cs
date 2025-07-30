@@ -222,7 +222,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                     var result = await _mediator.Send(new RequestPasswordResetQuery
                     {
                         StoreId = context.GetArgument<string>("storeId"),
-                        LanguageCode = context.GetArgument<string>("languageCode"),
+                        CultureName = context.GetArgument<string>("cultureName"),
                         LoginOrEmail = context.GetArgument<string>("loginOrEmail"),
                         UrlSuffix = context.GetArgument<string>("urlSuffix"),
                     });
