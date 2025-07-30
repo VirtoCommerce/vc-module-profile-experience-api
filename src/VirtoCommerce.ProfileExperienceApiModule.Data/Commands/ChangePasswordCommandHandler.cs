@@ -57,6 +57,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             else
             {
                 await userManager.AccessFailedAsync(user);
+
+                if (await userManager.IsLockedOutAsync(user))
+                {
+                    return CreateResponse(IdentityResult.Failed(new IdentityError { Code = "AccountLocked", Description = "Your account was locked." }));
+                }
             }
 
             return CreateResponse(result);
