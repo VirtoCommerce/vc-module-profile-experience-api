@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
+using VirtoCommerce.Xapi.Core.Security.Authorization;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -43,7 +44,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             if (await userManager.IsLockedOutAsync(user))
             {
-                return CreateResponse(IdentityResult.Failed(new IdentityError { Code = "AccountLocked", Description = "Your account is locked." }));
+                throw AuthorizationError.UserLocked();
             }
 
             var result = await userManager.ChangePasswordAsync(user, request.OldPassword, request.NewPassword);
@@ -60,7 +61,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
                 if (await userManager.IsLockedOutAsync(user))
                 {
-                    return CreateResponse(IdentityResult.Failed(new IdentityError { Code = "AccountLocked", Description = "Your account was locked." }));
+                    throw AuthorizationError.UserLocked();
                 }
             }
 
