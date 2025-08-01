@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
+using VirtoCommerce.Xapi.Core.Security.Authorization;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -41,12 +42,27 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return CreateResponse(IdentityResult.Failed(new IdentityError { Code = "SamePassword", Description = "New password is the same as old password. Please choose another one." }));
             }
 
+            if (await userManager.IsLockedOutAsync(user))
+            {
+                throw AuthorizationError.UserLocked();
+            }
+
             var result = await userManager.ChangePasswordAsync(user, request.OldPassword, request.NewPassword);
 
             if (result.Succeeded && user.PasswordExpired)
             {
                 user.PasswordExpired = false;
                 await userManager.UpdateAsync(user);
+                await userManager.ResetAccessFailedCountAsync(user);
+            }
+            else
+            {
+                await userManager.AccessFailedAsync(user);
+
+                if (await userManager.IsLockedOutAsync(user))
+                {
+                    throw AuthorizationError.UserLocked();
+                }
             }
 
             return CreateResponse(result);
