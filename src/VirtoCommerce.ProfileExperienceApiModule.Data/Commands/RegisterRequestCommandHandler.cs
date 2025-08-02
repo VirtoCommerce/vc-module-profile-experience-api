@@ -26,6 +26,7 @@ using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.Xapi.Core.Services;
 using CustomerSettings = VirtoCommerce.CustomerModule.Core.ModuleConstants.Settings.General;
+using Exception = System.Exception;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -191,6 +192,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             result.Contact.SecurityAccounts = new List<ApplicationUser> { account };
 
             // Send email notifications
+            CancellationTokenSource cancellationTokenSource = null;
             try
             {
                 switch (EmailVerificationFlow)
@@ -209,6 +211,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                         }
                     case ModuleConstants.RegistrationFlows.EmailVerificationRequired:
                         {
+                            cancellationTokenSource = tokenSource;
                             await SendVerifyEmailCommandAsync(request, result, tokenSource);
                             break;
                         }
@@ -216,7 +219,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             }
             catch (Exception)
             {
-                SetErrorResult(result, "NotificationError", "Cannot send registration notification", tokenSource);
+                SetErrorResult(result, "NotificationError", "Cannot send registration notification", cancellationTokenSource);
             }
         }
 
@@ -394,7 +397,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             result.AccountCreationResult.Errors ??= new List<RegistrationError>();
             result.AccountCreationResult.Errors.AddRange(errors);
 
-            source.Cancel();
+            source?.Cancel();
         }
 
         private static string ResolveEmail(ApplicationUser account, IList<Address> orgAddresses)
