@@ -5,7 +5,7 @@ using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
 {
-    public class InputRegisterContactType : InputObjectGraphType<RegisteredContact>
+    public class InputRegisterContactType : ExtendableInputObjectGraphType<RegisteredContact>
     {
         public InputRegisterContactType()
         {

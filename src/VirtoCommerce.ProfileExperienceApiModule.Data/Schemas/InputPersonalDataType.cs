@@ -2,10 +2,11 @@ using GraphQL.Types;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class InputPersonalDataType : InputObjectGraphType<PersonalData>
+    public class InputPersonalDataType : ExtendableInputObjectGraphType<PersonalData>
     {
         public InputPersonalDataType()
         {

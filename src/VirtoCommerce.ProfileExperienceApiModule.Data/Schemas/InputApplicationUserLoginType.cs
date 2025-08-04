@@ -1,9 +1,9 @@
-using GraphQL.Types;
 using VirtoCommerce.Platform.Core.Security;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class InputApplicationUserLoginType : InputObjectGraphType<ApplicationUserLogin>
+    public class InputApplicationUserLoginType : ExtendableInputObjectGraphType<ApplicationUserLogin>
     {
         public InputApplicationUserLoginType()
         {

@@ -5,7 +5,7 @@ using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
 {
-    public class InputRegisterOrganizationType : InputObjectGraphType<RegisteredOrganization>
+    public class InputRegisterOrganizationType : ExtendableInputObjectGraphType<RegisteredOrganization>
     {
         public InputRegisterOrganizationType()
         {

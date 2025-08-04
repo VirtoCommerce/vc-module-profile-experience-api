@@ -1,9 +1,10 @@
 using GraphQL.Types;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class InputInviteUserType : InputObjectGraphType
+    public class InputInviteUserType : ExtendableInputObjectGraphType
     {
         public InputInviteUserType()
         {

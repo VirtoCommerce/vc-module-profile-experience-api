@@ -1,8 +1,9 @@
 using GraphQL.Types;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class InputSendVerifyEmailType : InputObjectGraphType
+    public class InputSendVerifyEmailType : ExtendableInputObjectGraphType
     {
         public InputSendVerifyEmailType()
         {
