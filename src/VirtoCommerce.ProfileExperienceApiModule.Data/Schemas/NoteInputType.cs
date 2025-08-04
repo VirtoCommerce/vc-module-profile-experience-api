@@ -1,9 +1,9 @@
-using GraphQL.Types;
 using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class NoteInputType : InputObjectGraphType<Note>
+    public class NoteInputType : ExtendableInputObjectGraphType<Note>
     {
         public NoteInputType()
         {

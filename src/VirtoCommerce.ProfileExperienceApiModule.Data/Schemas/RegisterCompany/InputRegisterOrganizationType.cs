@@ -1,10 +1,11 @@
 using GraphQL.Types;
 using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
 using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
 {
-    public class InputRegisterOrganizationType : InputObjectGraphType
+    public class InputRegisterOrganizationType : ExtendableInputObjectGraphType<RegisteredOrganization>
     {
         public InputRegisterOrganizationType()
         {

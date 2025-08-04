@@ -1,13 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using GraphQL.Types;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class InputLockUnlockOrganizationContactType : InputObjectGraphType
+    public class InputLockUnlockOrganizationContactType : ExtendableInputObjectGraphType
     {
         public InputLockUnlockOrganizationContactType()
         {

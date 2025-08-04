@@ -1,9 +1,10 @@
 using GraphQL.Types;
 using VirtoCommerce.Platform.Core.Security;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class InputAssignPermissionType : InputObjectGraphType<Permission>
+    public class InputAssignPermissionType : ExtendableInputObjectGraphType<Permission>
     {
         public InputAssignPermissionType()
         {

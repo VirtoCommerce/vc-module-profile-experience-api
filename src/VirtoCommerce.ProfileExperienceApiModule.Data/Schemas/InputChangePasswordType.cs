@@ -1,8 +1,9 @@
 using GraphQL.Types;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class InputChangePasswordType : InputObjectGraphType
+    public class InputChangePasswordType : ExtendableInputObjectGraphType
     {
         public InputChangePasswordType()
         {

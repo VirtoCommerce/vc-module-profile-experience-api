@@ -1,9 +1,10 @@
 using GraphQL.Types;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class InputMemberAddressType : InputObjectGraphType<MemberAddress>
+    public class InputMemberAddressType : ExtendableInputObjectGraphType<MemberAddress>
     {
         public InputMemberAddressType()
         {

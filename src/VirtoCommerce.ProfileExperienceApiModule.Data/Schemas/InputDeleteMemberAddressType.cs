@@ -1,9 +1,10 @@
-﻿using GraphQL.Types;
+using GraphQL.Types;
 using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class InputDeleteMemberAddressType : InputObjectGraphType
+    public class InputDeleteMemberAddressType : ExtendableInputObjectGraphType
     {
         public InputDeleteMemberAddressType()
         {

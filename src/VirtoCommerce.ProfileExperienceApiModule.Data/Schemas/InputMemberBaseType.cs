@@ -4,7 +4,7 @@ using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public abstract class InputMemberBaseType : InputObjectGraphType
+    public abstract class InputMemberBaseType : ExtendableInputObjectGraphType
     {
         protected InputMemberBaseType()
         {
