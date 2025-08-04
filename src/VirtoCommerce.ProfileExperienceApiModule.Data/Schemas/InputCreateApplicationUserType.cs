@@ -3,7 +3,7 @@ using VirtoCommerce.Platform.Core.Security;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class InputCreateApplicationUserType : InputObjectGraphType
+    public class InputCreateApplicationUserType : InputObjectGraphType<ApplicationUser>
     {
         public InputCreateApplicationUserType()
         {

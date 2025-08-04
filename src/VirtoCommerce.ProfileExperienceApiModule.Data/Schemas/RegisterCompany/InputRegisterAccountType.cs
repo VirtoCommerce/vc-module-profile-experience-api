@@ -1,8 +1,9 @@
 using GraphQL.Types;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas.RegisterCompany
 {
-    public class InputRegisterAccountType : InputObjectGraphType
+    public class InputRegisterAccountType : InputObjectGraphType<Account>
     {
         public InputRegisterAccountType()
         {
