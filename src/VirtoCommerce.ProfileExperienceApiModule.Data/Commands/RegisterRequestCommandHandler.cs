@@ -191,32 +191,39 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             result.Contact.SecurityAccounts = new List<ApplicationUser> { account };
 
             // Send email notifications
-            try
+            switch (EmailVerificationFlow)
             {
-                switch (EmailVerificationFlow)
-                {
-                    case ModuleConstants.RegistrationFlows.NoEmailVerification:
-                        {
-                            await SendRegistrationEmailNotificationAsync(request, result, tokenSource);
-                            break;
-                        }
-
-                    case ModuleConstants.RegistrationFlows.EmailVerificationOptional:
-                        {
-                            await SendRegistrationEmailNotificationAsync(request, result, tokenSource);
-                            await SendVerifyEmailCommandAsync(request, result, tokenSource);
-                            break;
-                        }
-                    case ModuleConstants.RegistrationFlows.EmailVerificationRequired:
-                        {
-                            await SendVerifyEmailCommandAsync(request, result, tokenSource);
-                            break;
-                        }
-                }
-            }
-            catch (Exception)
-            {
-                SetErrorResult(result, "NotificationError", "Cannot send registration notification", tokenSource);
+                case ModuleConstants.RegistrationFlows.NoEmailVerification:
+                    try
+                    {
+                        await SendRegistrationEmailNotificationAsync(request, result, tokenSource);
+                    }
+                    catch
+                    {
+                        // ignored
+                    }
+                    break;
+                case ModuleConstants.RegistrationFlows.EmailVerificationOptional:
+                    try
+                    {
+                        await SendRegistrationEmailNotificationAsync(request, result, tokenSource);
+                        await SendVerifyEmailCommandAsync(request, result, tokenSource);
+                    }
+                    catch
+                    {
+                        // ignored
+                    }
+                    break;
+                case ModuleConstants.RegistrationFlows.EmailVerificationRequired:
+                    try
+                    {
+                        await SendVerifyEmailCommandAsync(request, result, tokenSource);
+                    }
+                    catch
+                    {
+                        SetErrorResult(result, "NotificationError", "Cannot send registration notification", tokenSource);
+                    }
+                    break;
             }
         }
 
@@ -394,7 +401,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             result.AccountCreationResult.Errors ??= new List<RegistrationError>();
             result.AccountCreationResult.Errors.AddRange(errors);
 
-            source.Cancel();
+            source?.Cancel();
         }
 
         private static string ResolveEmail(ApplicationUser account, IList<Address> orgAddresses)
