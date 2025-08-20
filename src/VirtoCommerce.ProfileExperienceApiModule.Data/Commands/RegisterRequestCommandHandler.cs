@@ -26,7 +26,6 @@ using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.Xapi.Core.Services;
 using CustomerSettings = VirtoCommerce.CustomerModule.Core.ModuleConstants.Settings.General;
-using Exception = System.Exception;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -192,34 +191,39 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             result.Contact.SecurityAccounts = new List<ApplicationUser> { account };
 
             // Send email notifications
-            CancellationTokenSource cancellationTokenSource = null;
-            try
+            switch (EmailVerificationFlow)
             {
-                switch (EmailVerificationFlow)
-                {
-                    case ModuleConstants.RegistrationFlows.NoEmailVerification:
-                        {
-                            await SendRegistrationEmailNotificationAsync(request, result, tokenSource);
-                            break;
-                        }
-
-                    case ModuleConstants.RegistrationFlows.EmailVerificationOptional:
-                        {
-                            await SendRegistrationEmailNotificationAsync(request, result, tokenSource);
-                            await SendVerifyEmailCommandAsync(request, result, tokenSource);
-                            break;
-                        }
-                    case ModuleConstants.RegistrationFlows.EmailVerificationRequired:
-                        {
-                            cancellationTokenSource = tokenSource;
-                            await SendVerifyEmailCommandAsync(request, result, tokenSource);
-                            break;
-                        }
-                }
-            }
-            catch (Exception)
-            {
-                SetErrorResult(result, "NotificationError", "Cannot send registration notification", cancellationTokenSource);
+                case ModuleConstants.RegistrationFlows.NoEmailVerification:
+                    try
+                    {
+                        await SendRegistrationEmailNotificationAsync(request, result, tokenSource);
+                    }
+                    catch
+                    {
+                        // ignored
+                    }
+                    break;
+                case ModuleConstants.RegistrationFlows.EmailVerificationOptional:
+                    try
+                    {
+                        await SendRegistrationEmailNotificationAsync(request, result, tokenSource);
+                        await SendVerifyEmailCommandAsync(request, result, tokenSource);
+                    }
+                    catch
+                    {
+                        // ignored
+                    }
+                    break;
+                case ModuleConstants.RegistrationFlows.EmailVerificationRequired:
+                    try
+                    {
+                        await SendVerifyEmailCommandAsync(request, result, tokenSource);
+                    }
+                    catch
+                    {
+                        SetErrorResult(result, "NotificationError", "Cannot send registration notification", tokenSource);
+                    }
+                    break;
             }
         }
 
