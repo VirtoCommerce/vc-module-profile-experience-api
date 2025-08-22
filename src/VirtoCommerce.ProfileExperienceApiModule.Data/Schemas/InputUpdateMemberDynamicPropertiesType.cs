@@ -4,7 +4,7 @@ using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
-    public class InputUpdateMemberDynamicPropertiesType : InputObjectGraphType
+    public class InputUpdateMemberDynamicPropertiesType : ExtendableInputObjectGraphType
     {
         public InputUpdateMemberDynamicPropertiesType()
         {
