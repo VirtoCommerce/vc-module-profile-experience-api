@@ -129,15 +129,16 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         protected virtual ApplicationUser CreateUser(InviteUserCommand request, Contact contact, string email)
         {
-            return new ApplicationUser
-            {
-                UserName = email,
-                Email = email,
-                MemberId = contact.Id,
-                StoreId = request.StoreId,
-                UserType = _userType,
-                LockoutEnd = DateTime.MaxValue, // always create invited accounts as locked
-            };
+            var user = AbstractTypeFactory<ApplicationUser>.TryCreateInstance();
+
+            user.UserName = email;
+            user.Email = email;
+            user.MemberId = contact.Id;
+            user.StoreId = request.StoreId;
+            user.UserType = _userType;
+            user.LockoutEnd = DateTime.MaxValue;
+
+            return user;
         }
 
         protected virtual async Task<List<IdentityErrorInfo>> AssignUserRoles(ApplicationUser user, string[] roleIds)
