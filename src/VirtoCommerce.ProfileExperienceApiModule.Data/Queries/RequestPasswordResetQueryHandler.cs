@@ -14,6 +14,7 @@ using VirtoCommerce.Xapi.Core.Infrastructure;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries
 {
+    [Obsolete("Made obsolete along with the 'requestPasswordReset' query. Use 'sendPasswordResetEmail' command and SendPasswordResetEmailCommandHandler instead.", DiagnosticId = "VC0011", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
     public class RequestPasswordResetQueryHandler : IQueryHandler<RequestPasswordResetQuery, bool>
     {
         private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;

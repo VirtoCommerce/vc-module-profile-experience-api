@@ -33,7 +33,7 @@ public class SendPasswordResetEmailCommandHandler : IRequestHandler<SendPassword
         _storeService = storeService;
     }
 
-    public async Task<bool> Handle(SendPasswordResetEmailCommand request, CancellationToken cancellationToken)
+    public virtual async Task<bool> Handle(SendPasswordResetEmailCommand request, CancellationToken cancellationToken)
     {
         using var userManager = _userManagerFactory();
 
@@ -65,6 +65,13 @@ public class SendPasswordResetEmailCommandHandler : IRequestHandler<SendPassword
 
         var token = await userManager.GeneratePasswordResetTokenAsync(user);
 
+        await ScheduleSendNotificationAsync(request, user, storeId, store, token);
+
+        return true;
+    }
+
+    protected virtual async Task ScheduleSendNotificationAsync(SendPasswordResetEmailCommand request, ApplicationUser user, string storeId, Store store, string token)
+    {
         var notification = await _notificationSearchService.GetNotificationAsync<ResetPasswordEmailNotification>(new TenantIdentity(storeId, nameof(Store)));
 
         notification.Url = $"{store.Url.TrimLastSlash()}{request.UrlSuffix.NormalizeUrlSuffix()}?userId={user.Id}&token={Uri.EscapeDataString(token)}";
@@ -73,7 +80,5 @@ public class SendPasswordResetEmailCommandHandler : IRequestHandler<SendPassword
         notification.LanguageCode = request.CultureName ?? store.DefaultLanguage;
 
         await _notificationSender.ScheduleSendNotificationAsync(notification);
-
-        return true;
     }
 }
