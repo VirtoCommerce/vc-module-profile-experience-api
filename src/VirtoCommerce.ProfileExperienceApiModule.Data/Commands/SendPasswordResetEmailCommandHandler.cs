@@ -39,16 +39,16 @@ public class SendPasswordResetEmailCommandHandler : IRequestHandler<SendPassword
 
         var user = await FindUserAsync(request, userManager);
 
-        if (user == null)
+        if (user == null ||
+            user.Email.IsNullOrEmpty() ||
+            (user.LockoutEnd != null && DateTime.UtcNow < user.LockoutEnd))
         {
             return true;
         }
 
         var storeId = request.StoreId ?? user.StoreId;
 
-        if ((user.LockoutEnd != null && DateTime.UtcNow < user.LockoutEnd) ||
-            user.Email.IsNullOrEmpty() ||
-            storeId.IsNullOrEmpty())
+        if (storeId.IsNullOrEmpty())
         {
             return true;
         }
