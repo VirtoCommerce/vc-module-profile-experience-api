@@ -37,8 +37,7 @@ public class SendPasswordResetEmailCommandHandler : IRequestHandler<SendPassword
     {
         using var userManager = _userManagerFactory();
 
-        var user = await userManager.FindByNameAsync(request.LoginOrEmail)
-                   ?? await userManager.FindByEmailAsync(request.LoginOrEmail);
+        var user = await FindUserAsync(request, userManager);
 
         if (user == null)
         {
@@ -68,6 +67,12 @@ public class SendPasswordResetEmailCommandHandler : IRequestHandler<SendPassword
         await ScheduleSendNotificationAsync(request, user, storeId, store, token);
 
         return true;
+    }
+
+    protected virtual async Task<ApplicationUser> FindUserAsync(SendPasswordResetEmailCommand request, UserManager<ApplicationUser> userManager)
+    {
+        return await userManager.FindByNameAsync(request.LoginOrEmail)
+            ?? await userManager.FindByEmailAsync(request.LoginOrEmail);
     }
 
     protected virtual async Task ScheduleSendNotificationAsync(SendPasswordResetEmailCommand request, ApplicationUser user, string storeId, Store store, string token)
