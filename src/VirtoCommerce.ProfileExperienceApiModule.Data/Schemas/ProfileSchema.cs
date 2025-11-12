@@ -228,7 +228,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                     });
 
                     return result;
-                })
+                }),
+                DeprecationReason = "Deprecated. Use sendPasswordResetEmail command.",
             });
 
 #pragma warning disable S125 // Sections of code should not be commented out
