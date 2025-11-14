@@ -8,14 +8,14 @@ using VirtoCommerce.NotificationsModule.Core.Model;
 using VirtoCommerce.NotificationsModule.Core.Services;
 using VirtoCommerce.NotificationsModule.Core.Types;
 using VirtoCommerce.Platform.Core.Security;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
 using Xunit;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
 {
-    public class RequestPasswordResetQueryHandlerTests
+    public class SendPasswordResetEmailCommandHandlerTests
     {
         [Theory]
         [InlineData(null, true)]
@@ -41,7 +41,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                     : DateTime.UtcNow.AddHours(lockoutEndHours.Value),
             };
 
-            var request = new RequestPasswordResetQuery
+            var request = new SendPasswordResetEmailCommand
             {
                 LoginOrEmail = user.Email,
             };
@@ -58,7 +58,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         }
 
 
-        private static RequestPasswordResetQueryHandler GetHandler(INotificationSender notificationSender, Store store, ApplicationUser user)
+        private static SendPasswordResetEmailCommandHandler GetHandler(INotificationSender notificationSender, Store store, ApplicationUser user)
         {
             var userManagerMock = new Mock<UserManager<ApplicationUser>>(Mock.Of<IUserStore<ApplicationUser>>(), null, null, null, null, null, null, null, null);
 
@@ -86,7 +86,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
                 .ReturnsAsync([store]);
 
-            return new RequestPasswordResetQueryHandler(
+            return new SendPasswordResetEmailCommandHandler(
                 () => userManagerMock.Object,
                 notificationSearchServiceMock.Object,
                 notificationSender,
