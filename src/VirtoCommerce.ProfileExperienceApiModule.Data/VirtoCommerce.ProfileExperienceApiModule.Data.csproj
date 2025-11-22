@@ -7,25 +7,14 @@
     <SonarQubeTestProject>false</SonarQubeTestProject>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="Caching\**" />
-    <Compile Remove="ExportImport\**" />
-    <Compile Remove="Handlers\**" />
-    <EmbeddedResource Remove="Caching\**" />
-    <EmbeddedResource Remove="ExportImport\**" />
-    <EmbeddedResource Remove="Handlers\**" />
-    <None Remove="Caching\**" />
-    <None Remove="ExportImport\**" />
-    <None Remove="Handlers\**" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-    <PackageReference Include="VirtoCommerce.CustomerModule.Core" Version="3.833.0" />
-    <PackageReference Include="VirtoCommerce.MarketingModule.Core" Version="3.820.0" />
-    <PackageReference Include="VirtoCommerce.NotificationsModule.Core" Version="3.811.0" />
-    <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.889.0" />
-    <PackageReference Include="VirtoCommerce.PricingModule.Core" Version="3.809.0" />
-    <PackageReference Include="VirtoCommerce.TaxModule.Core" Version="3.802.0" />
-    <PackageReference Include="VirtoCommerce.Xapi.Core" Version="3.922.0" />
-    <PackageReference Include="VirtoCommerce.XOrder.Core" Version="3.904.0" />
+    <PackageReference Include="VirtoCommerce.CustomerModule.Core" Version="3.846.0-alpha.929-vcst-4203-cleanup" />
+    <PackageReference Include="VirtoCommerce.MarketingModule.Core" Version="3.824.0-alpha.902-vcst-4203-cleanup" />
+    <PackageReference Include="VirtoCommerce.NotificationsModule.Core" Version="3.828.0-alpha.429-vcst-4203-cleanup" />
+    <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.916.0-alpha.13164-vcst-4203-cleanup" />
+    <PackageReference Include="VirtoCommerce.PricingModule.Core" Version="3.822.0-alpha.781-vcst-4203-cleanup" />
+    <PackageReference Include="VirtoCommerce.TaxModule.Core" Version="3.807.0-alpha.205-vcst-4203-cleanup" />
+    <PackageReference Include="VirtoCommerce.Xapi.Core" Version="3.928.0-alpha.130-vcst-4203-cleanup" />
+    <PackageReference Include="VirtoCommerce.XOrder.Core" Version="3.914.0-alpha.81-vcst-4203-cleanup" />
   </ItemGroup>
 </Project>
