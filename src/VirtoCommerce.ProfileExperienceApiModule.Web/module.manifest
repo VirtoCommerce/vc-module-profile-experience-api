@@ -4,15 +4,15 @@
   <version>3.925.0</version>
   <version-tag />
 
-  <platformVersion>3.889.0</platformVersion>
+  <platformVersion>3.916.0-alpha.13164-vcst-4203-cleanup</platformVersion>
   <dependencies>
-    <dependency id="VirtoCommerce.Customer" version="3.833.0" />
-    <dependency id="VirtoCommerce.Marketing" version="3.820.0" optional="true" />
-    <dependency id="VirtoCommerce.Notifications" version="3.811.0" />
-    <dependency id="VirtoCommerce.Pricing" version="3.809.0" optional="true" />
-    <dependency id="VirtoCommerce.Tax" version="3.802.0" optional="true" />
-    <dependency id="VirtoCommerce.Xapi" version="3.922.0" />
-    <dependency id="VirtoCommerce.XOrder" version="3.904.0" optional="true" />
+    <dependency id="VirtoCommerce.Customer" version="3.846.0-alpha.929-vcst-4203-cleanup" />
+    <dependency id="VirtoCommerce.Marketing" version="3.824.0-alpha.902-vcst-4203-cleanup" optional="true" />
+    <dependency id="VirtoCommerce.Notifications" version="3.828.0-alpha.429-vcst-4203-cleanup" />
+    <dependency id="VirtoCommerce.Pricing" version="3.822.0-alpha.781-vcst-4203-cleanup" optional="true" />
+    <dependency id="VirtoCommerce.Tax" version="3.807.0-alpha.205-vcst-4203-cleanup" optional="true" />
+    <dependency id="VirtoCommerce.Xapi" version="3.928.0-alpha.130-vcst-4203-cleanup" />
+    <dependency id="VirtoCommerce.XOrder" version="3.914.0-alpha.81-vcst-4203-cleanup" optional="true" />
   </dependencies>
 
   <title>Commerce Profile Experience API</title>
