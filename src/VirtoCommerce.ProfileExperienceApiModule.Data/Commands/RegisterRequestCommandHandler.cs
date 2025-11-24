@@ -229,7 +229,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         protected virtual void LockAccount(ApplicationUser account, bool requireAccountLock)
         {
-            account.LockoutEnd = requireAccountLock ? DateTime.MaxValue : null;
+            account.LockoutEnd = requireAccountLock ? DateTimeOffset.MaxValue : null;
         }
 
         protected virtual async Task<bool> ValidateAsync(Organization organization, Contact contact, Account account, RegisterOrganizationResult result, CancellationTokenSource tokenSource)

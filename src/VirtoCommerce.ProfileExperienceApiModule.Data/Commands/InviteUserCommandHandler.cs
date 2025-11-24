@@ -136,7 +136,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             user.MemberId = contact.Id;
             user.StoreId = request.StoreId;
             user.UserType = _userType;
-            user.LockoutEnd = DateTime.MaxValue;
+            user.LockoutEnd = DateTimeOffset.MaxValue;
 
             return user;
         }
