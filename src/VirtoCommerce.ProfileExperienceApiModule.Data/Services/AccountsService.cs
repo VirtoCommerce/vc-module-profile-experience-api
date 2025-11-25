@@ -70,7 +70,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services
             var user = await userManager.FindByIdAsync(id);
             if (user != null)
             {
-                result = await userManager.SetLockoutEndDateAsync(user, DateTime.MaxValue.ToUniversalTime());
+                result = await userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
             }
 
             return result;
