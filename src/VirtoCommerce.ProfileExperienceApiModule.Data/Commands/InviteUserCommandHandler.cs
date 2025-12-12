@@ -7,7 +7,6 @@ using System.Web;
 using MediatR;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Hosting;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.NotificationsModule.Core.Extensions;
@@ -35,11 +34,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly INotificationSender _notificationSender;
         private readonly IStoreService _storeService;
 
+        private readonly IInviteCustomerService _inviteCustomerService;
+
         public InviteUserCommandHandler(
             IWebHostEnvironment environment,
             Func<UserManager<ApplicationUser>> userManager, IMemberService memberService,
             INotificationSearchService notificationSearchService, INotificationSender notificationSender,
-            IStoreService storeService, Func<RoleManager<Role>> roleManagerFactory)
+            IStoreService storeService, Func<RoleManager<Role>> roleManagerFactory,
+            IInviteCustomerService inviteCustomerService)
         {
             _environment = environment;
             _userManagerFactory = userManager;
@@ -48,68 +50,42 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _notificationSender = notificationSender;
             _storeService = storeService;
             _roleManagerFactory = roleManagerFactory;
+
+            _inviteCustomerService = inviteCustomerService;
         }
 
         public virtual async Task<IdentityResultResponse> Handle(InviteUserCommand request, CancellationToken cancellationToken)
         {
-            var result = new IdentityResultResponse
+            var inviteCustomerRequest = new InviteCustomerRequest
             {
-                Errors = new List<IdentityErrorInfo>(),
-                Succeeded = false,
+                StoreId = request.StoreId,
+                OrganizationId = request.OrganizationId,
+                RoleIds = request.RoleIds,
+                Emails = request.Emails,
+                Message = request.Message,
+                UrlSuffix = request.UrlSuffix,
             };
 
-            // PT-6083: reduce complexity
-            foreach (var email in request.Emails.Distinct())
+            if (!request.CustomerOrderId.IsNullOrEmpty())
             {
-                using var userManager = _userManagerFactory();
-
-                var contact = CreateContact(request, email);
-
-                await _memberService.SaveChangesAsync(new Member[] { contact });
-
-                var user = CreateUser(request, contact, email);
-                var identityResult = await userManager.CreateAsync(user);
-
-                if (identityResult.Succeeded)
-                {
-                    var store = await _storeService.GetByIdAsync(user.StoreId);
-                    if (store == null)
-                    {
-                        var errors = _environment.IsDevelopment() ? new[] { new IdentityError { Code = "StoreNotFound", Description = "Store not found" } } : null;
-                        identityResult = IdentityResult.Failed(errors);
-                    }
-                    else
-                    {
-                        if (string.IsNullOrEmpty(store.Url) || string.IsNullOrEmpty(store.Email))
-                        {
-                            var errors = _environment.IsDevelopment() ? new[] { new IdentityError { Code = "StoreNotConfigured", Description = "Store has invalid URL or email" } } : null;
-                            identityResult = IdentityResult.Failed(errors);
-                        }
-                        else
-                        {
-                            result.Errors.AddRange(await AssignUserRoles(user, request.RoleIds));
-                            await SendNotificationAsync(request, store, email);
-                        }
-                    }
-                }
-
-                result.Errors.AddRange(identityResult.Errors.Select(x => x.MapToIdentityErrorInfo()));
-                result.Succeeded |= identityResult.Succeeded;
-
-                if (!identityResult.Succeeded)
-                {
-                    await _memberService.DeleteAsync(new[] { contact.Id });
-
-                    if (user.Id != null)
-                    {
-                        await userManager.DeleteAsync(user);
-                    }
-                }
+                inviteCustomerRequest.AdditionalParameters?.Add("customerOrderId", request.CustomerOrderId);
             }
 
-            return result;
+            var result = await _inviteCustomerService.InviteCustomerAsyc(inviteCustomerRequest, cancellationToken);
+
+            return new IdentityResultResponse
+            {
+                Succeeded = result.Succeeded,
+                Errors = result.Errors.Select(x => new IdentityErrorInfo
+                {
+                    Code = x.Code,
+                    Description = x.Description,
+                    Parameter = x.Parameter
+                }).ToList()
+            };
         }
 
+        [Obsolete]
         protected virtual Contact CreateContact(InviteUserCommand request, string email)
         {
             var contact = AbstractTypeFactory<Contact>.TryCreateInstance();
@@ -127,6 +103,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return contact;
         }
 
+        [Obsolete]
         protected virtual ApplicationUser CreateUser(InviteUserCommand request, Contact contact, string email)
         {
             var user = AbstractTypeFactory<ApplicationUser>.TryCreateInstance();
@@ -141,6 +118,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return user;
         }
 
+        [Obsolete]
         protected virtual async Task<List<IdentityErrorInfo>> AssignUserRoles(ApplicationUser user, string[] roleIds)
         {
             var errors = new List<IdentityErrorInfo>();
@@ -173,6 +151,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return errors;
         }
 
+        [Obsolete]
         protected virtual async Task SendNotificationAsync(InviteUserCommand request, Store store, string email)
         {
             using var userManager = _userManagerFactory();
