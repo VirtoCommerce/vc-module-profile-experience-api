@@ -85,7 +85,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             };
         }
 
-        [Obsolete]
+        [Obsolete("Not being called. Override CreateContact in InviteCustomerService.", DiagnosticId = "VC0012", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
         protected virtual Contact CreateContact(InviteUserCommand request, string email)
         {
             var contact = AbstractTypeFactory<Contact>.TryCreateInstance();
@@ -103,7 +103,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return contact;
         }
 
-        [Obsolete]
+        [Obsolete("Not being called. Override CreateUser in InviteCustomerService.", DiagnosticId = "VC0012", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
         protected virtual ApplicationUser CreateUser(InviteUserCommand request, Contact contact, string email)
         {
             var user = AbstractTypeFactory<ApplicationUser>.TryCreateInstance();
@@ -118,7 +118,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return user;
         }
 
-        [Obsolete]
+        [Obsolete("Not being called. Override AssignUserRoles in InviteCustomerService.", DiagnosticId = "VC0012", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
         protected virtual async Task<List<IdentityErrorInfo>> AssignUserRoles(ApplicationUser user, string[] roleIds)
         {
             var errors = new List<IdentityErrorInfo>();
@@ -151,7 +151,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return errors;
         }
 
-        [Obsolete]
+        [Obsolete("Not being called. Override SendNotificationAsync in InviteCustomerService.", DiagnosticId = "VC0012", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
         protected virtual async Task SendNotificationAsync(InviteUserCommand request, Store store, string email)
         {
             using var userManager = _userManagerFactory();
