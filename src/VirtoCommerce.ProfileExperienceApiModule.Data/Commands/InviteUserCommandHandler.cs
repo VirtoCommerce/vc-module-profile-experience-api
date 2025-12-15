@@ -26,32 +26,29 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
     {
         private const string _userType = "Customer";
 
-        private readonly IWebHostEnvironment _environment;
         private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
         private readonly Func<RoleManager<Role>> _roleManagerFactory;
-        private readonly IMemberService _memberService;
         private readonly INotificationSearchService _notificationSearchService;
         private readonly INotificationSender _notificationSender;
-        private readonly IStoreService _storeService;
 
         private readonly IInviteCustomerService _inviteCustomerService;
 
-        public InviteUserCommandHandler(
+        public InviteUserCommandHandler(IInviteCustomerService inviteCustomerService)
+        {
+            _inviteCustomerService = inviteCustomerService;
+        }
+
+        [Obsolete("Obsolete constructor. Use the constructor with IInviteCustomerService.", DiagnosticId = "VC0012", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
+        protected InviteUserCommandHandler(
             IWebHostEnvironment environment,
             Func<UserManager<ApplicationUser>> userManager, IMemberService memberService,
             INotificationSearchService notificationSearchService, INotificationSender notificationSender,
-            IStoreService storeService, Func<RoleManager<Role>> roleManagerFactory,
-            IInviteCustomerService inviteCustomerService)
+            IStoreService storeService, Func<RoleManager<Role>> roleManagerFactory)
         {
-            _environment = environment;
             _userManagerFactory = userManager;
-            _memberService = memberService;
             _notificationSearchService = notificationSearchService;
             _notificationSender = notificationSender;
-            _storeService = storeService;
             _roleManagerFactory = roleManagerFactory;
-
-            _inviteCustomerService = inviteCustomerService;
         }
 
         public virtual async Task<IdentityResultResponse> Handle(InviteUserCommand request, CancellationToken cancellationToken)
