@@ -39,7 +39,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         }
 
         [Obsolete("Obsolete constructor. Use the constructor with IInviteCustomerService.", DiagnosticId = "VC0012", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
-        protected InviteUserCommandHandler(
+        private InviteUserCommandHandler(
             IWebHostEnvironment environment,
             Func<UserManager<ApplicationUser>> userManager, IMemberService memberService,
             INotificationSearchService notificationSearchService, INotificationSender notificationSender,
