@@ -65,7 +65,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             if (!request.CustomerOrderId.IsNullOrEmpty())
             {
-                inviteCustomerRequest.AdditionalParameters?.Add("customerOrderId", request.CustomerOrderId);
+                inviteCustomerRequest.AdditionalParameters.Add("customerOrderId", request.CustomerOrderId);
             }
 
             var result = await _inviteCustomerService.InviteCustomerAsyc(inviteCustomerRequest, cancellationToken);
