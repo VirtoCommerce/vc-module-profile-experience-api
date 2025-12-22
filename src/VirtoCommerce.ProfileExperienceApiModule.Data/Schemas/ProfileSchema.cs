@@ -773,6 +773,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             var principal = context.GetCurrentPrincipal();
             var userId = principal.GetCurrentUserId();
             var isExternalSignIn = principal.IsExternalSignIn();
+            var isImpersonated = principal.IsImpersonated();
+
             var signInManager = _signInManagerFactory();
 
             try
@@ -783,7 +785,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                     UserName = Xapi.Core.ModuleConstants.AnonymousUser.UserName,
                 };
 
-                if (checkPasswordExpired && user.PasswordExpired && !isExternalSignIn)
+                if (checkPasswordExpired && user.PasswordExpired && !isExternalSignIn && !isImpersonated)
                 {
                     throw AuthorizationError.PasswordExpired();
                 }
