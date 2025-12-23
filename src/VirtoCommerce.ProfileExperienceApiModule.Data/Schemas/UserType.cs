@@ -97,7 +97,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
         private static bool GetPasswordExpired(IResolveFieldContext<ApplicationUser> context)
         {
-            return context.Source.PasswordExpired && !IsExternalSignIn(context);
+            return context.Source.PasswordExpired && !IsExternalSignIn(context) && !IsImpersonated(context);
         }
 
         private static int? GetPasswordExpiryInDays(IResolveFieldContext<ApplicationUser> context, UserOptionsExtended userOptionsExtended)
@@ -108,6 +108,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
             if (!user.PasswordExpired &&
                 !IsExternalSignIn(context) &&
+                !IsImpersonated(context) &&
                 userOptionsExtended.RemindPasswordExpiryInDays > 0 &&
                 userOptionsExtended.MaxPasswordAge != null &&
                 userOptionsExtended.MaxPasswordAge.Value > TimeSpan.Zero)
@@ -128,6 +129,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
         private static bool IsExternalSignIn(IResolveFieldContext<ApplicationUser> context)
         {
             return context.Source.Id == context.GetCurrentUserId() && context.GetCurrentPrincipal().IsExternalSignIn();
+        }
+
+        private static bool IsImpersonated(IResolveFieldContext<ApplicationUser> context)
+        {
+            return context.GetCurrentPrincipal().IsImpersonated();
         }
     }
 }

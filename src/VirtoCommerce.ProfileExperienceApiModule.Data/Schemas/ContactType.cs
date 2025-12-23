@@ -15,6 +15,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
@@ -64,6 +65,22 @@ public class ContactType : MemberBaseType<ContactAggregate>
 
         Field<StringGraphType>("organizationId")
             .ResolveAsync(async context => await GetCurrentOrganizationId(context));
+
+        Field<OrganizationType>("organization")
+            .ResolveAsync(async context =>
+            {
+                var organizationId = await GetCurrentOrganizationId(context);
+                if (organizationId.IsNullOrEmpty())
+                {
+                    return null;
+                }
+
+                var query = new GetOrganizationByIdQuery()
+                {
+                    Id = organizationId,
+                };
+                return await mediator.Send(query);
+            });
 
         Field<StringGraphType>("selectedAddressId")
             .Description("Selected shipping address id.")
