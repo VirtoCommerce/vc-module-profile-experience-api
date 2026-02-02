@@ -31,7 +31,7 @@ public class ContactType : MemberBaseType<ContactAggregate>
     private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
     private readonly ICustomerPreferenceService _customerPreferenceService;
 
-    public ContactType(
+    public ExtendableFieldAsync(
         IStoreService storeService,
         IDynamicPropertyResolverService dynamicPropertyResolverService,
         IMemberAddressService memberAddressService,
@@ -66,21 +66,18 @@ public class ContactType : MemberBaseType<ContactAggregate>
         Field<StringGraphType>("organizationId")
             .ResolveAsync(async context => await GetCurrentOrganizationId(context));
 
-        Field<OrganizationType>("organization")
-            .ResolveAsync(async context =>
+        ExtendableFieldAsync<OrganizationType>("organization", resolve: async context => {
+            var organizationId = await GetCurrentOrganizationId(context);
+            if (organizationId.IsNullOrEmpty())
             {
-                var organizationId = await GetCurrentOrganizationId(context);
-                if (organizationId.IsNullOrEmpty())
-                {
-                    return null;
-                }
-
-                var query = new GetOrganizationByIdQuery()
-                {
-                    Id = organizationId,
-                };
-                return await mediator.Send(query);
-            });
+                return null;
+            }
+            var query = new GetOrganizationByIdQuery()
+            {
+                Id = organizationId,
+            };
+            return await mediator.Send(query);
+        });
 
         Field<StringGraphType>("selectedAddressId")
             .Description("Selected shipping address id.")
