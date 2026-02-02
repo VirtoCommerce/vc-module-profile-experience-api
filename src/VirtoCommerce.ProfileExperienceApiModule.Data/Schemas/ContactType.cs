@@ -31,7 +31,7 @@ public class ContactType : MemberBaseType<ContactAggregate>
     private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
     private readonly ICustomerPreferenceService _customerPreferenceService;
 
-    public ExtendableFieldAsync(
+    public ContactType(
         IStoreService storeService,
         IDynamicPropertyResolverService dynamicPropertyResolverService,
         IMemberAddressService memberAddressService,
