@@ -62,7 +62,7 @@ public class MemberAddressService : IMemberAddressService
         addressSearchCriteria.Take = criteria.Take;
         addressSearchCriteria.Skip = criteria.Skip;
         addressSearchCriteria.Sort = criteria.Sort;
-
+        addressSearchCriteria.Keyword = criteria.Keyword;
         addressSearchCriteria.CountryCodes = criteria.CountryCodes;
         addressSearchCriteria.RegionIds = criteria.RegionIds;
         addressSearchCriteria.Cities = criteria.Cities;
