@@ -116,17 +116,26 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
         var take = context.First ?? 20;
         var skip = Convert.ToInt32(context.After ?? 0.ToString());
         var sort = context.GetArgument<string>("sort");
-        var addresses = context.Source.Member.Addresses;
 
-        var page = (await _memberAddressService.ToMemberAddressesAsync(addresses, context.GetCurrentUserId()))
-            .AsQueryable()
-            .OrderBySortInfos(BuildAddressSortExpression(sort))
-            .Skip(skip)
-            .Take(take);
+        var criteria = GetAddressSearchCriteria(context, take, skip, sort);
 
-        return new PagedConnection<MemberAddress>(page, skip, take, addresses.Count);
+        var addressSearchResult = await _memberAddressService.SearchMemberAddressesAsync(criteria);
+
+        return new PagedConnection<MemberAddress>(addressSearchResult.Results, skip, take, addressSearchResult.TotalCount);
     }
 
+    private static MemberAddressSearchCriteria GetAddressSearchCriteria(IResolveConnectionContext<TAggregate> context, int take, int skip, string sort)
+    {
+        var criteria = AbstractTypeFactory<MemberAddressSearchCriteria>.TryCreateInstance();
+        criteria.Sort = sort;
+        criteria.Skip = skip;
+        criteria.Take = take;
+        criteria.UserId = context.GetCurrentUserId();
+        criteria.MemberId = context.Source.Member?.Id;
+        return criteria;
+    }
+
+    [Obsolete("Not being called.")]
     protected static IEnumerable<SortInfo> BuildAddressSortExpression(string sort)
     {
         const string isFavorite = nameof(MemberAddress.IsFavorite);
