@@ -1,5 +1,4 @@
 using System.Threading.Tasks;
-using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
@@ -18,8 +17,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
 
         public async Task<T> GetMemberAggregateRootByIdAsync<T>(string id) where T : class, IMemberAggregateRoot
         {
-            var responseGroup = MemberResponseGroup.Full & ~MemberResponseGroup.WithAddresses;
-            var member = await _memberService.GetByIdAsync(id, responseGroup.ToString());
+            var member = await _memberService.GetByIdAsync(id);
             return _memberAggregateFactory.Create<T>(member);
         }
 
