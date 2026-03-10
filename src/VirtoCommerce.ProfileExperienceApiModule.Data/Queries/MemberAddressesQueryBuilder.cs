@@ -1,5 +1,3 @@
-using System.Threading.Tasks;
-using GraphQL;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
@@ -15,10 +13,5 @@ public class MemberAddressesQueryBuilder : SearchQueryBuilder<MemberAddressesQue
     public MemberAddressesQueryBuilder(IMediator mediator, IAuthorizationService authorizationService)
         : base(mediator, authorizationService)
     {
-    }
-
-    protected override Task BeforeMediatorSend(IResolveFieldContext<object> context, MemberAddressesQuery request)
-    {
-        return base.BeforeMediatorSend(context, request);
     }
 }
