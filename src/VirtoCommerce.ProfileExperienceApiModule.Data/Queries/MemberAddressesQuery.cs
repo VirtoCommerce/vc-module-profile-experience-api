@@ -11,6 +11,8 @@ public class MemberAddressesQuery : SearchQuery<MemberAddressSearchResult>
 {
     public string UserId { get; set; }
 
+    public string MemberId { get; set; }
+
     public IList<string> CountryCodes { get; set; }
 
     public IList<string> RegionIds { get; set; }
@@ -25,6 +27,7 @@ public class MemberAddressesQuery : SearchQuery<MemberAddressSearchResult>
             yield return argument;
         }
 
+        yield return Argument<StringGraphType>(nameof(MemberId));
         yield return Argument<ListGraphType<StringGraphType>>(nameof(CountryCodes));
         yield return Argument<ListGraphType<StringGraphType>>(nameof(RegionIds));
         yield return Argument<ListGraphType<StringGraphType>>(nameof(Cities));
@@ -36,6 +39,7 @@ public class MemberAddressesQuery : SearchQuery<MemberAddressSearchResult>
 
         UserId = context.GetCurrentUserId();
 
+        MemberId = context.GetArgument<string>(nameof(MemberId));
         CountryCodes = context.GetArgument<List<string>>(nameof(CountryCodes));
         RegionIds = context.GetArgument<List<string>>(nameof(RegionIds));
         Cities = context.GetArgument<List<string>>(nameof(Cities));

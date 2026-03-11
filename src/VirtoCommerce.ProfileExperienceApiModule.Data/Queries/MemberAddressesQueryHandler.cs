@@ -25,12 +25,18 @@ public class MemberAddressesQueryHandler : IQueryHandler<MemberAddressesQuery, M
     {
         var result = new MemberAddressSearchResult();
 
-        using var userManager = _userManagerFactory();
-        var user = await userManager.FindByIdAsync(request.UserId);
+        var memberId = request.MemberId;
 
-        if (user != null && !user.MemberId.IsNullOrEmpty())
+        if (memberId.IsNullOrEmpty())
         {
-            var criteria = GetAddressSearchCriteria(request, user.MemberId);
+            using var userManager = _userManagerFactory();
+            var user = await userManager.FindByIdAsync(request.UserId);
+            memberId = user?.MemberId;
+        }
+
+        if (!memberId.IsNullOrEmpty())
+        {
+            var criteria = GetAddressSearchCriteria(request, memberId);
             result = await _memberAddressService.SearchMemberAddressesAsync(criteria);
         }
 
