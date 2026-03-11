@@ -12,7 +12,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Vendor;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Queries.AddressesQuery;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
 {
@@ -97,9 +97,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     }
                     result = allowDelete;
                     break;
-                case MemberAddressesQuery addressesQuery when currentContact != null:
-                    result = addressesQuery.MemberId == currentContact.Id; // if member is not set the query handler will work with the currentContact
-                    result = result || await HasSameOrganizationOrCurrentMemberAsync(addressesQuery.MemberId, userManager, currentMember, currentContact);
+                case CurrentCustomerAddressesQuery customerAddressesQuery when currentMember != null:
+                case CurrentOrganizationAddressesQuery organizationAddressesQuery when currentMember != null:
+                    result = true;
                     break;
                 case MemberCommand memberCommand:
                     result = await HasSameOrganizationOrCurrentMemberAsync(memberCommand.MemberId, userManager, currentMember, currentContact);
@@ -218,7 +218,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                 return null;
             }
 
-            var result = await _memberService.GetByIdAsync(customerId);
+            var result = await _memberService.GetByIdAsync(customerId, MemberResponseGroup.Default.ToString());
 
             if (result == null)
             {
@@ -226,7 +226,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
 
                 if (user?.MemberId != null)
                 {
-                    result = await _memberService.GetByIdAsync(user.MemberId);
+                    result = await _memberService.GetByIdAsync(user.MemberId, MemberResponseGroup.Default.ToString());
                 }
             }
 
@@ -240,6 +240,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                 return false;
             }
 
+            // reload contact with addresses
+            contact = await _memberService.GetByIdAsync(contact.Id, MemberResponseGroup.WithAddresses.ToString()) as Contact;
+
             if (contact.Addresses != null && contact.Addresses.Any(x => x.Key == addressId))
             {
                 return true;
@@ -250,7 +253,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                 return false;
             }
 
-            var organizations = await _memberService.GetByIdsAsync(contact.Organizations.ToArray());
+            var organizations = await _memberService.GetByIdsAsync(contact.Organizations.ToArray(), MemberResponseGroup.WithAddresses.ToString());
 
             return organizations
                 .SelectMany(x => x.Addresses)

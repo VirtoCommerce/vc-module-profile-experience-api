@@ -7,21 +7,21 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.Xapi.Core.BaseQueries;
 
-namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
+namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries.AddressesQuery;
 
-public class MemberAddressesQueryBuilder : SearchQueryBuilder<MemberAddressesQuery, MemberAddressSearchResult, MemberAddress, MemberAddressType>
+public class CurrentCustomerAddressesQueryBuilder : SearchQueryBuilder<CurrentCustomerAddressesQuery, MemberAddressSearchResult, MemberAddress, MemberAddressType>
 {
-    protected override string Name => "memberAddresses";
+    protected override string Name => "currentCustomerAddresses";
 
     private readonly IProfileAuthorizationService _profileAuthorizationService;
 
-    public MemberAddressesQueryBuilder(IMediator mediator, IAuthorizationService authorizationService, IProfileAuthorizationService profileAuthorizationService)
+    public CurrentCustomerAddressesQueryBuilder(IMediator mediator, IAuthorizationService authorizationService, IProfileAuthorizationService profileAuthorizationService)
         : base(mediator, authorizationService)
     {
         _profileAuthorizationService = profileAuthorizationService;
     }
 
-    protected override async Task BeforeMediatorSend(IResolveFieldContext<object> context, MemberAddressesQuery request)
+    protected override async Task BeforeMediatorSend(IResolveFieldContext<object> context, CurrentCustomerAddressesQuery request)
     {
         await base.BeforeMediatorSend(context, request);
         await _profileAuthorizationService.CheckAuthAsync(context, request);
