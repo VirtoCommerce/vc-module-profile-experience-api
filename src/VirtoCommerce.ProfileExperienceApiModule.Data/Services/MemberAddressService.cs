@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.CustomerModule.Core.Model.Search;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
@@ -12,10 +13,29 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 public class MemberAddressService : IMemberAddressService
 {
     private readonly IFavoriteAddressService _favoriteAddressService;
+    private readonly IAddressSearchService _addressSearchService;
 
-    public MemberAddressService(IFavoriteAddressService favoriteAddressService)
+    public MemberAddressService(IFavoriteAddressService favoriteAddressService, IAddressSearchService addressSearchService)
     {
         _favoriteAddressService = favoriteAddressService;
+        _addressSearchService = addressSearchService;
+    }
+
+    public virtual async Task<MemberAddressSearchResult> SearchMemberAddressesAsync(MemberAddressSearchCriteria criteria)
+    {
+        var searchCrtieria = GetAddressSearchCriteria(criteria);
+
+        var addressesSearchResult = await _addressSearchService.SearchNoCloneAsync(searchCrtieria);
+
+        var page = await ToMemberAddressesAsync(addressesSearchResult.Results, criteria.UserId);
+
+        var result = new MemberAddressSearchResult()
+        {
+            TotalCount = addressesSearchResult.TotalCount,
+            Results = page,
+        };
+
+        return result;
     }
 
     public virtual async Task<MemberAddress> ToMemberAddressAsync(Address address, string userId)
@@ -34,6 +54,22 @@ public class MemberAddressService : IMemberAddressService
             .ToList();
     }
 
+    protected virtual AddressSearchCriteria GetAddressSearchCriteria(MemberAddressSearchCriteria criteria)
+    {
+        var addressSearchCriteria = AbstractTypeFactory<AddressSearchCriteria>.TryCreateInstance();
+
+        addressSearchCriteria.MemberId = criteria.MemberId;
+
+        addressSearchCriteria.Take = criteria.Take;
+        addressSearchCriteria.Skip = criteria.Skip;
+        addressSearchCriteria.Sort = criteria.Sort;
+        addressSearchCriteria.Keyword = criteria.Keyword;
+        addressSearchCriteria.CountryCodes = criteria.CountryCodes;
+        addressSearchCriteria.RegionIds = criteria.RegionIds;
+        addressSearchCriteria.Cities = criteria.Cities;
+
+        return addressSearchCriteria;
+    }
 
     protected virtual MemberAddress ToMemberAddress(Address address, IList<string> favoriteAddressIds)
     {
