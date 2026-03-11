@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
@@ -8,7 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     
-    <PackageReference Include="VirtoCommerce.CustomerModule.Core" Version="3.1001.0-alpha.944-vcst-4710" />
+    <PackageReference Include="VirtoCommerce.CustomerModule.Core" Version="3.1001.0-alpha.947-vcst-4710" />
     <PackageReference Include="VirtoCommerce.MarketingModule.Core" Version="3.1000.0" />
     <PackageReference Include="VirtoCommerce.NotificationsModule.Core" Version="3.1000.0" />
     <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.1002.0" />
