@@ -13,14 +13,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
         public OrganizationValidator(IOptions<InputValidationOptions> validationOptions)
         {
             var options = validationOptions.Value;
-            var hasNamePattern = !string.IsNullOrWhiteSpace(options.NameValidationPattern);
+            var hasOrgNamePattern = !string.IsNullOrWhiteSpace(options.OrganizationNameValidationPattern);
 
             RuleFor(x => x.Name).NotNull().NotEmpty().MaximumLength(256);
             RuleFor(x => x.Description).MaximumLength(1024);
 
-            When(_ => hasNamePattern, () =>
+            When(_ => hasOrgNamePattern, () =>
             {
-                RuleFor(x => x.Name).MatchesNamePattern(options.NameValidationPattern);
+                RuleFor(x => x.Name).MatchesNamePattern(options.OrganizationNameValidationPattern);
             });
 
             When(_ => options.EnableScriptInjectionValidation, () =>

@@ -12,6 +12,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
         {
             var options = validationOptions.Value;
             var hasNamePattern = !string.IsNullOrWhiteSpace(options.NameValidationPattern);
+            var hasOrgNamePattern = !string.IsNullOrWhiteSpace(options.OrganizationNameValidationPattern);
 
             RuleFor(x => x.Email)
                 .MaximumLength(256)
@@ -33,7 +34,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
                 RuleFor(x => x.FirstName).MatchesNamePattern(options.NameValidationPattern);
                 RuleFor(x => x.LastName).MatchesNamePattern(options.NameValidationPattern);
                 RuleFor(x => x.Name).MatchesNamePattern(options.NameValidationPattern);
-                RuleFor(x => x.Organization).MatchesNamePattern(options.NameValidationPattern);
+            });
+
+            When(_ => hasOrgNamePattern, () =>
+            {
+                RuleFor(x => x.Organization).MatchesNamePattern(options.OrganizationNameValidationPattern);
             });
 
             When(_ => options.EnableNoHtmlTagsValidation, () =>

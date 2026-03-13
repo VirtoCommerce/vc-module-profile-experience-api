@@ -3,15 +3,13 @@ using FluentValidation;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
 {
-    public static class FluentValidationExtensions
+    public static partial class FluentValidationExtensions
     {
-        private static readonly Regex _htmlTagPattern = new(
-            @"<[^>]*>",
-            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        [GeneratedRegex(@"<[^>]*>", RegexOptions.IgnoreCase)]
+        private static partial Regex HtmlTagPattern();
 
-        private static readonly Regex _scriptInjectionPattern = new(
-            @"<[^>]*>|javascript:|vbscript:|data:text/html",
-            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        [GeneratedRegex(@"<[^>]*>|javascript:|vbscript:|data:text/html", RegexOptions.IgnoreCase)]
+        private static partial Regex ScriptInjectionPattern();
 
         /// <summary>
         /// Rejects strings containing HTML/XML-like tags.
@@ -20,7 +18,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
         public static IRuleBuilderOptions<T, string> NoHtmlTags<T>(this IRuleBuilder<T, string> ruleBuilder)
         {
             return ruleBuilder
-                .Must(value => string.IsNullOrEmpty(value) || !_htmlTagPattern.IsMatch(value))
+                .Must(value => string.IsNullOrEmpty(value) || !HtmlTagPattern().IsMatch(value))
                 .WithMessage("'{PropertyName}' must not contain HTML tags.");
         }
 
@@ -31,7 +29,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
         public static IRuleBuilderOptions<T, string> NoScriptInjection<T>(this IRuleBuilder<T, string> ruleBuilder)
         {
             return ruleBuilder
-                .Must(value => string.IsNullOrEmpty(value) || !_scriptInjectionPattern.IsMatch(value))
+                .Must(value => string.IsNullOrEmpty(value) || !ScriptInjectionPattern().IsMatch(value))
                 .WithMessage("'{PropertyName}' contains potentially unsafe content.");
         }
 

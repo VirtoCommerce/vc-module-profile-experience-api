@@ -334,4 +334,3 @@ ASALocalRun/
 # Virto
 *.nupkg
 *.zip
-/.claude/settings.local.json

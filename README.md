@@ -20,6 +20,34 @@ Just like other xAPI modules, xProfile module resides on a website's or applicat
 * [How to extend](https://docs.virtocommerce.org/platform/developer-guide/GraphQL-Storefront-API-Reference-xAPI/x-api-extensions/)
 * [Virto Commerce Frontend architecture](https://docs.virtocommerce.org/storefront/developer-guide/architecture/)
 
+## Configuration
+
+### Input Validation
+
+The module includes server-side input validation to prevent stored XSS attacks. Validation is configurable via `appsettings.json` under `FrontendSecurity:InputValidation`:
+
+```json
+{
+  "FrontendSecurity": {
+    "InputValidation": {
+      "NameValidationPattern": "^[\\p{L}\\p{M}\\s'\\-\\.]+$",
+      "OrganizationNameValidationPattern": "^[\\p{L}\\p{M}\\p{N}\\s'\\-\\.&#/,()]+$",
+      "EnableNoHtmlTagsValidation": true,
+      "EnableScriptInjectionValidation": true
+    }
+  }
+}
+```
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `NameValidationPattern` | `^[\p{L}\p{M}\s'\-\.]+$` | Allow-list regex for person name fields (firstName, lastName, fullName). Permits Unicode letters, diacritics, spaces, apostrophes, hyphens, and dots. Set to empty string to disable. |
+| `OrganizationNameValidationPattern` | `^[\p{L}\p{M}\p{N}\s'\-\.&#/,()]+$` | Allow-list regex for organization name fields. Additionally permits numbers, `&`, `#`, `/`, `,`, `(`, `)` for names like "3M", "AT&T", "H&M". Set to empty string to disable. |
+| `EnableNoHtmlTagsValidation` | `true` | Rejects HTML tags (`<...>`) in non-name fields (username, phone, address lines, city). Set to `false` to disable. |
+| `EnableScriptInjectionValidation` | `true` | Rejects script injection patterns (`<script>`, `javascript:`, `vbscript:`, `data:text/html`) in free-text fields (description). Set to `false` to disable. |
+
+> MaxLength constraints are always enforced regardless of configuration.
+
 ## References
 
 * [Deployment](https://docs.virtocommerce.org/platform/developer-guide/Tutorials-and-How-tos/Tutorials/deploy-module-from-source-code/)
