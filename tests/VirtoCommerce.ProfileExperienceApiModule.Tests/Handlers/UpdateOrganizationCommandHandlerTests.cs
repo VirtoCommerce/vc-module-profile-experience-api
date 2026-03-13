@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoFixture;
+using Microsoft.Extensions.Options;
 using Moq;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Models;
@@ -9,6 +10,8 @@ using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.Xapi.Tests.Helpers;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Configuration;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using Xunit;
 
 
@@ -30,9 +33,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 .Setup(x => x.GetMemberAggregateRootByIdAsync<OrganizationAggregate>(It.IsAny<string>()))
                 .ReturnsAsync(organizatnoAggregate);
 
+            var disabledOptions = new InputValidationOptions { NameValidationPattern = null, EnableNoHtmlTagsValidation = false, EnableScriptInjectionValidation = false };
+            var organizationValidator = new OrganizationValidator(Options.Create(disabledOptions));
+
             var handler = new UpdateOrganizationCommandHandler(
                 aggregateRepositoryMock.Object,
-                dynamicPropertyUpdaterServiceMock.Object);
+                dynamicPropertyUpdaterServiceMock.Object,
+                organizationValidator);
 
             var command = _fixture.Create<UpdateOrganizationCommand>();
 

@@ -41,10 +41,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
             serviceCollection.AddSingleton<ScopedSchemaFactory<AssemblyMarker>>();
 
             serviceCollection.AddSingleton<IMemberAggregateFactory, MemberAggregateFactory>();
+            serviceCollection.AddOptions<InputValidationOptions>().Bind(Configuration.GetSection("FrontendSecurity:InputValidation"));
+
             serviceCollection.AddTransient<NewContactValidator>();
             serviceCollection.AddTransient<AccountValidator>();
             serviceCollection.AddTransient<AddressValidator>();
             serviceCollection.AddTransient<OrganizationValidator>();
+            serviceCollection.AddTransient<RegisterByInvitationCommandValidator>();
+            serviceCollection.AddTransient<PersonalDataValidator>();
             serviceCollection.AddTransient<IMemberAggregateRootRepository, MemberAggregateRootRepository>();
             serviceCollection.AddTransient<IOrganizationAggregateRepository, OrganizationAggregateRepository>();
             serviceCollection.AddTransient<IContactAggregateRepository, ContactAggregateRepository>();
