@@ -1,11 +1,13 @@
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using FluentValidation;
 using MediatR;
 using VirtoCommerce.CustomerModule.Core.Extensions;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.Xapi.Core.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
@@ -14,6 +16,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         IContactAggregateRepository contactAggregateRepository,
         IDynamicPropertyUpdaterService dynamicPropertyUpdater,
         ICustomerPreferenceService customerPreferenceService,
+        NewContactValidator contactValidator,
         IMapper mapper)
         : IRequestHandler<UpdateContactCommand, ContactAggregate>
     {
@@ -22,6 +25,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             var contactAggregate = await contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.Id);
 
             await UpdateContactAsync(contactAggregate.Contact, request);
+
+            await contactValidator.ValidateAndThrowAsync(contactAggregate.Contact, cancellationToken);
 
             await contactAggregateRepository.SaveAsync(contactAggregate);
 

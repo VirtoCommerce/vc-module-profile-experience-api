@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoFixture;
 using AutoMapper;
+using Microsoft.Extensions.Options;
 using Moq;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Models;
@@ -11,6 +12,7 @@ using VirtoCommerce.Xapi.Tests.Helpers;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Configuration;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using Xunit;
 
@@ -26,7 +28,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             var aggregateFactoryMock = new Mock<IMemberAggregateFactory>();
             var dynamicPropertyUpdaterServiceMock = new Mock<IDynamicPropertyUpdaterService>();
             var mapperMock = new Mock<IMapper>();
-            var validator = new NewContactValidator();
+            var disabledOptions = new InputValidationOptions { NameValidationPattern = null, EnableNoHtmlTagsValidation = false };
+            var validator = new NewContactValidator(Options.Create(disabledOptions));
 
             var contact = _fixture.Create<Contact>();
             var contactAggregae = new ContactAggregate { Member = contact };
