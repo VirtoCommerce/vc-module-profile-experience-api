@@ -13,6 +13,7 @@ using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.XOrder.Core.Commands;
 
@@ -25,23 +26,35 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly IStoreService _storeService;
         private readonly IMediator _mediator;
         private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
+        private readonly RegisterByInvitationCommandValidator _validator;
 
         public RegisterByInvitationCommandHandler(
             IWebHostEnvironment environment,
             Func<UserManager<ApplicationUser>> userManager,
             IMemberService memberService,
             IStoreService storeService,
-            IMediator mediator)
+            IMediator mediator,
+            RegisterByInvitationCommandValidator validator)
         {
             _environment = environment;
             _userManagerFactory = userManager;
             _memberService = memberService;
             _storeService = storeService;
             _mediator = mediator;
+            _validator = validator;
         }
 
         public virtual async Task<IdentityResultResponse> Handle(RegisterByInvitationCommand request, CancellationToken cancellationToken)
         {
+            var validationResult = await _validator.ValidateAsync(request, cancellationToken);
+            if (!validationResult.IsValid)
+            {
+                var errors = validationResult.Errors
+                    .Select(e => new IdentityError { Code = e.ErrorCode, Description = e.ErrorMessage })
+                    .ToArray();
+                return SetResponse(IdentityResult.Failed(errors));
+            }
+
             using var userManager = _userManagerFactory();
 
             var user = await userManager.FindByIdAsync(request.UserId);
