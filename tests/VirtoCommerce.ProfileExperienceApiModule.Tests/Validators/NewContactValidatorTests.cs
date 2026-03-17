@@ -64,8 +64,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Validators
             var contact = CreateValidContact();
             contact.FirstName = "José";
             contact.LastName = "O'Brien-Müller";
-            contact.FullName = "José O'Brien-Müller";
-            contact.Name = "José O'Brien-Müller";
 
             var result = validator.TestValidate(contact);
 
@@ -92,8 +90,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Validators
             var contact = CreateValidContact();
             contact.FirstName = "Paul123<html>";
             contact.LastName = "Test";
-            contact.FullName = "Paul123<html> Test";
-            contact.Name = "Paul123<html> Test";
 
             var result = validator.TestValidate(contact);
 
@@ -111,8 +107,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Validators
             var contact = AbstractTypeFactory<Contact>.TryCreateInstance();
             contact.FirstName = "John";
             contact.LastName = "Doe";
-            contact.FullName = "John Doe";
-            contact.Name = "John Doe";
             return contact;
         }
     }

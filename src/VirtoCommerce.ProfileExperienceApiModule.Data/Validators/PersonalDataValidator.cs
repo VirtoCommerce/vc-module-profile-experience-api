@@ -16,7 +16,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
             RuleFor(x => x.FirstName).MaximumLength(128);
             RuleFor(x => x.LastName).MaximumLength(128);
             RuleFor(x => x.MiddleName).MaximumLength(128);
-            RuleFor(x => x.FullName).MaximumLength(254);
             RuleFor(x => x.Email)
                 .MaximumLength(256)
                 .Must(x => string.IsNullOrEmpty(x) || x.IsValidEmail())
@@ -27,7 +26,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
                 RuleFor(x => x.FirstName).MatchesNamePattern(options.NameValidationPattern);
                 RuleFor(x => x.LastName).MatchesNamePattern(options.NameValidationPattern);
                 RuleFor(x => x.MiddleName).MatchesNamePattern(options.NameValidationPattern);
-                RuleFor(x => x.FullName).MatchesNamePattern(options.NameValidationPattern);
             });
         }
     }
