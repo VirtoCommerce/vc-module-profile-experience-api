@@ -1,30 +1,39 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
     public class UpdatePersonalDataCommandHandler : UserCommandHandlerBase, IRequestHandler<UpdatePersonalDataCommand, IdentityResult>
     {
         private readonly IContactAggregateRepository _contactAggregateRepository;
+        private readonly PersonalDataValidator _personalDataValidator;
 
         public UpdatePersonalDataCommandHandler(
-            IContactAggregateRepository contactAggregateRepository
-            , Func<UserManager<ApplicationUser>> userManager
-            , IOptions<AuthorizationOptions> securityOptions
-            )
+            Func<UserManager<ApplicationUser>> userManager,
+            IOptions<AuthorizationOptions> securityOptions,
+            IContactAggregateRepository contactAggregateRepository,
+            PersonalDataValidator personalDataValidator)
             : base(userManager, securityOptions)
         {
             _contactAggregateRepository = contactAggregateRepository;
+            _personalDataValidator = personalDataValidator;
         }
 
         public virtual async Task<IdentityResult> Handle(UpdatePersonalDataCommand request, CancellationToken cancellationToken)
         {
+            if (request.PersonalData != null)
+            {
+                await _personalDataValidator.ValidateAndThrowAsync(request.PersonalData, cancellationToken);
+            }
+
             var result = IdentityResult.Success;
             using (var userManager = _userManagerFactory())
             {
@@ -52,7 +61,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 }
             }
             return result;
-
         }
     }
 }
