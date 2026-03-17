@@ -17,10 +17,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly PersonalDataValidator _personalDataValidator;
 
         public UpdatePersonalDataCommandHandler(
-            IContactAggregateRepository contactAggregateRepository,
-            PersonalDataValidator personalDataValidator,
             Func<UserManager<ApplicationUser>> userManager,
-            IOptions<AuthorizationOptions> securityOptions)
+            IOptions<AuthorizationOptions> securityOptions,
+            IContactAggregateRepository contactAggregateRepository,
+            PersonalDataValidator personalDataValidator)
             : base(userManager, securityOptions)
         {
             _contactAggregateRepository = contactAggregateRepository;
