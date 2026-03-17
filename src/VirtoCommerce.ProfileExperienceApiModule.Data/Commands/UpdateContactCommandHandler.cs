@@ -24,9 +24,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         {
             var contactAggregate = await contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.Id);
 
-            await contactValidator.ValidateAndThrowAsync(contactAggregate.Contact, cancellationToken);
-
             await UpdateContactAsync(contactAggregate.Contact, request);
+
+            await contactValidator.ValidateAndThrowAsync(contactAggregate.Contact, cancellationToken);
 
             await contactAggregateRepository.SaveAsync(contactAggregate);
 
