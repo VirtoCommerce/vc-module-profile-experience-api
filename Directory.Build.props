@@ -2,7 +2,7 @@
 <Project>
   <!-- These properties will be shared for all projects -->
   <PropertyGroup>
-    <VersionPrefix>3.1002.0</VersionPrefix>
+    <VersionPrefix>3.1003.0</VersionPrefix>
     <VersionSuffix>
     </VersionSuffix>
     <VersionSuffix Condition=" '$(VersionSuffix)' != '' AND '$(BuildNumber)' != '' ">$(VersionSuffix)-$(BuildNumber)</VersionSuffix>
@@ -12,5 +12,5 @@
   </PropertyGroup>
   <ItemGroup>
     <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-rvv3-g6hj-g44x" />
-  </ItemGroup>
+  </ItemGroup>  
 </Project>

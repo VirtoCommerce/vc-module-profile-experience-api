@@ -1,20 +1,22 @@
 using FluentValidation;
 using Microsoft.Extensions.Options;
-using VirtoCommerce.CustomerModule.Core.Model;
-using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Configuration;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
 {
-    public class NewContactValidator : AbstractValidator<Contact>
+    public class RegisterByInvitationCommandValidator : AbstractValidator<RegisterByInvitationCommand>
     {
-        public NewContactValidator(IOptions<InputValidationOptions> validationOptions)
+        public RegisterByInvitationCommandValidator(IOptions<InputValidationOptions> validationOptions)
         {
             var options = validationOptions.Value;
             var hasNamePattern = !string.IsNullOrWhiteSpace(options.NameValidationPattern);
 
             RuleFor(x => x.FirstName).NotNull().NotEmpty().MaximumLength(128);
             RuleFor(x => x.LastName).NotNull().NotEmpty().MaximumLength(128);
+            RuleFor(x => x.Username).NotNull().NotEmpty().MaximumLength(256);
+            RuleFor(x => x.Phone).MaximumLength(64);
+            RuleFor(x => x.Password).NotNull().NotEmpty().MaximumLength(128);
 
             When(_ => hasNamePattern, () =>
             {
@@ -22,15 +24,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
                 RuleFor(x => x.LastName).MatchesNamePattern(options.NameValidationPattern);
             });
 
-            RuleSet("strict", () =>
+            When(_ => options.EnableNoHtmlTagsValidation, () =>
             {
-                RuleFor(x => x).Custom((member, context) =>
-                {
-                    if (member.Addresses.IsNullOrEmpty())
-                    {
-                        context.AddFailure(ErrorDescriber.AddressesMissingError(member));
-                    }
-                });
+                RuleFor(x => x.Username).NoHtmlTags();
+                RuleFor(x => x.Phone).NoHtmlTags();
             });
         }
     }

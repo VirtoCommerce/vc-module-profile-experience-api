@@ -3,12 +3,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoFixture;
 using AutoMapper;
+using Microsoft.Extensions.Options;
 using Moq;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Configuration;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Mapping;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.Xapi.Tests.Helpers;
@@ -45,10 +48,15 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 .Setup(x => x.GetMemberAggregateRootByIdAsync<ContactAggregate>(It.IsAny<string>()))
                 .ReturnsAsync(contactAggregate);
 
+            // Disable name validation to avoid test data issues with AutoFixture-generated names
+            var disabledOptions = new InputValidationOptions { NameValidationPattern = null, EnableNoHtmlTagsValidation = false };
+            var contactValidator = new NewContactValidator(Options.Create(disabledOptions));
+
             var handler = new UpdateContactCommandHandler(
                 aggregateRepositoryMock.Object,
                 dynamicPropertyUpdaterServiceMock.Object,
                 Mock.Of<ICustomerPreferenceService>(),
+                contactValidator,
                 _mapper);
 
             var command = _fixture.Create<UpdateContactCommand>();
