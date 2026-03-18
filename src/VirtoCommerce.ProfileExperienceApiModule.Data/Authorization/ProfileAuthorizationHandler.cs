@@ -235,6 +235,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
 
         protected virtual async Task<bool> CanAccessAddressAsync(Contact contact, string addressId)
         {
+            if (contact is null)
+            {
+                return false;
+            }
+
             // reload contact with addresses
             contact = await _memberService.GetByIdAsync(contact.Id, MemberResponseGroup.WithAddresses.ToString()) as Contact;
 
