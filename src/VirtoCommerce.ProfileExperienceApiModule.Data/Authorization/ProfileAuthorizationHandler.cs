@@ -97,8 +97,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     }
                     result = allowDelete;
                     break;
-                case CurrentCustomerAddressesQuery customerAddressesQuery when currentMember != null:
-                case CurrentOrganizationAddressesQuery organizationAddressesQuery when currentMember != null:
+                case CurrentCustomerAddressesQuery when currentMember != null:
+                case CurrentOrganizationAddressesQuery when currentMember != null:
                     result = true;
                     break;
                 case MemberCommand memberCommand:
@@ -235,13 +235,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
 
         protected virtual async Task<bool> CanAccessAddressAsync(Contact contact, string addressId)
         {
+            // reload contact with addresses
+            contact = await _memberService.GetByIdAsync(contact.Id, MemberResponseGroup.WithAddresses.ToString()) as Contact;
+
             if (contact is null)
             {
                 return false;
             }
-
-            // reload contact with addresses
-            contact = await _memberService.GetByIdAsync(contact.Id, MemberResponseGroup.WithAddresses.ToString()) as Contact;
 
             if (contact.Addresses != null && contact.Addresses.Any(x => x.Key == addressId))
             {

@@ -27,7 +27,7 @@ public class BaseAddressesQueryHandler : IQueryHandler<CurrentCustomerAddressesQ
         return await SearchAddressesAsync(request, memberId);
     }
 
-    public async Task<MemberAddressSearchResult> Handle(CurrentOrganizationAddressesQuery request, CancellationToken cancellationToken)
+    public virtual async Task<MemberAddressSearchResult> Handle(CurrentOrganizationAddressesQuery request, CancellationToken cancellationToken)
     {
         var memberId = await GetOrganizationIdAsync(request);
         return await SearchAddressesAsync(request, memberId);
