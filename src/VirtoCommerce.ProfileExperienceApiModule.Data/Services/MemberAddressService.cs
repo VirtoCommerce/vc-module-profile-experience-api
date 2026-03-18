@@ -59,7 +59,7 @@ public class MemberAddressService : IMemberAddressService
         var addressSearchCriteria = AbstractTypeFactory<AddressSearchCriteria>.TryCreateInstance();
 
         addressSearchCriteria.MemberId = criteria.MemberId;
-
+        addressSearchCriteria.UserId = criteria.UserId;
         addressSearchCriteria.Take = criteria.Take;
         addressSearchCriteria.Skip = criteria.Skip;
         addressSearchCriteria.Sort = criteria.Sort;
