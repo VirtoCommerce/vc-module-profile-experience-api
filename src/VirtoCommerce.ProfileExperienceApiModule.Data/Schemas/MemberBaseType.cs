@@ -17,7 +17,6 @@ using VirtoCommerce.StoreModule.Core.Extensions;
 using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
-using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.Xapi.Core.Services;
 using SeoExtensions = VirtoCommerce.Seo.Core.Extensions.SeoExtensions;
@@ -126,7 +125,7 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
             .Skip(skip)
             .Take(take);
 
-        return new PagedConnection<MemberAddress>(page, skip, take, addresses.Count);
+        return new MemberAddressConnection<MemberAddress>(page, skip, take, addresses.Count);
     }
 
     protected static IEnumerable<SortInfo> BuildAddressSortExpression(string sort)
