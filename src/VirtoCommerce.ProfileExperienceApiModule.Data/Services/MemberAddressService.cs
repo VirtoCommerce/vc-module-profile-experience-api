@@ -52,7 +52,7 @@ public class MemberAddressService : IMemberAddressService
             result.Facets.Add(facet);
         }
 
-        if (addressesSearchResult?.Facets.City != null)
+        if (addressesSearchResult.Facets?.City != null)
         {
             var aggregation = addressesSearchResult.Facets.City;
             var facet = GetTermFacetResult(aggregation);
