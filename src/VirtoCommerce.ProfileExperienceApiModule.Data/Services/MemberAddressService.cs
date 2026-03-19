@@ -67,7 +67,7 @@ public class MemberAddressService : IMemberAddressService
         return new TermFacetResult
         {
             Name = aggregation.Field,
-            Label = aggregation.Labels?.FirstOrDefault().Label,
+            Label = aggregation.Labels?.FirstOrDefault()?.Label ?? aggregation.Field,
             Terms = aggregation.Items?.Select(x => new FacetTerm
             {
                 Term = x.Value?.ToString(),
