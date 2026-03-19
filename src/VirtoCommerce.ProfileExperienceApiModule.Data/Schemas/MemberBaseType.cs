@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.Builders;
 using GraphQL.Types;
+using GraphQL.Types.Relay;
 using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
@@ -88,7 +89,8 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
 
         #region Addresses
 
-        var addressesConnectionBuilder = GraphTypeExtensionHelper.CreateConnection<MemberAddressType, TAggregate>("addresses")
+        var addressesConnectionBuilder = GraphTypeExtensionHelper
+            .CreateConnection<MemberAddressType, EdgeType<MemberAddressType>, MemberAddressConnectionType<MemberAddressType>, TAggregate>("addresses")
             .Argument<StringGraphType>("sort", "Sort expression")
             .PageSize(20);
 

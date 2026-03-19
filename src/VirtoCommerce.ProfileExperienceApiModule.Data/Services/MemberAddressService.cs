@@ -7,6 +7,7 @@ using VirtoCommerce.CustomerModule.Core.Model.Search;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
+using VirtoCommerce.Xapi.Core.Models.Facets;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 
@@ -33,9 +34,48 @@ public class MemberAddressService : IMemberAddressService
         {
             TotalCount = addressesSearchResult.TotalCount,
             Results = page,
+            Facets = new List<FacetResult>(),
         };
 
+        // facets
+        if (addressesSearchResult.Facets?.Country != null)
+        {
+            var aggregation = addressesSearchResult.Facets.Country;
+            var facet = GetTermFacetResult(aggregation);
+            result.Facets.Add(facet);
+        }
+
+        if (addressesSearchResult.Facets?.Region != null)
+        {
+            var aggregation = addressesSearchResult.Facets.Region;
+            var facet = GetTermFacetResult(aggregation);
+            result.Facets.Add(facet);
+        }
+
+        if (addressesSearchResult?.Facets.City != null)
+        {
+            var aggregation = addressesSearchResult.Facets.City;
+            var facet = GetTermFacetResult(aggregation);
+            result.Facets.Add(facet);
+        }
+
         return result;
+    }
+
+    private static TermFacetResult GetTermFacetResult(SearchModule.Core.Model.Aggregation aggregation)
+    {
+        return new TermFacetResult
+        {
+            Name = aggregation.Field,
+            Label = aggregation.Labels?.FirstOrDefault().Label,
+            Terms = aggregation.Items?.Select(x => new FacetTerm
+            {
+                Term = x.Value?.ToString(),
+                Count = x.Count,
+                IsSelected = x.IsApplied,
+                Label = x.Labels?.FirstOrDefault()?.Label ?? x.Value?.ToString(),
+            }).ToList() ?? [],
+        };
     }
 
     public virtual async Task<MemberAddress> ToMemberAddressAsync(Address address, string userId)
