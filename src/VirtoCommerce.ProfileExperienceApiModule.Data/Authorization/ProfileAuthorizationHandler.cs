@@ -186,7 +186,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             var result = memberId == currentMember?.Id;
             if (!result && currentContact != null)
             {
-                var member = await _memberService.GetByIdAsync(memberId);
+                var member = await _memberService.GetByIdAsync(memberId, MemberResponseGroup.Default.ToString());
                 if (member == null)
                 {
                     return false;
