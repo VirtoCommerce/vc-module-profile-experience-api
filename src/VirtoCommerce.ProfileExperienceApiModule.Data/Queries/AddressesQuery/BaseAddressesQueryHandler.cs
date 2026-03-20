@@ -9,7 +9,7 @@ public abstract class BaseAddressesQueryHandler
 {
     private readonly IMemberAddressService _memberAddressService;
 
-    public BaseAddressesQueryHandler(IMemberAddressService memberAddressService)
+    protected BaseAddressesQueryHandler(IMemberAddressService memberAddressService)
     {
         _memberAddressService = memberAddressService;
     }
