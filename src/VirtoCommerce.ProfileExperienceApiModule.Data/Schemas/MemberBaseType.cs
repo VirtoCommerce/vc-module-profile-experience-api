@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.Builders;
 using GraphQL.Types;
+using GraphQL.Types.Relay;
 using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
@@ -16,7 +17,6 @@ using VirtoCommerce.StoreModule.Core.Extensions;
 using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
-using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.Xapi.Core.Services;
 using SeoExtensions = VirtoCommerce.Seo.Core.Extensions.SeoExtensions;
@@ -88,7 +88,8 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
 
         #region Addresses
 
-        var addressesConnectionBuilder = GraphTypeExtensionHelper.CreateConnection<MemberAddressType, TAggregate>("addresses")
+        var addressesConnectionBuilder = GraphTypeExtensionHelper
+            .CreateConnection<MemberAddressType, EdgeType<MemberAddressType>, MemberAddressConnectionType<MemberAddressType>, TAggregate>("addresses")
             .Argument<StringGraphType>("sort", "Sort expression")
             .PageSize(20);
 
@@ -124,7 +125,7 @@ public abstract class MemberBaseType<TAggregate> : ExtendableGraphType<TAggregat
             .Skip(skip)
             .Take(take);
 
-        return new PagedConnection<MemberAddress>(page, skip, take, addresses.Count);
+        return new MemberAddressConnection<MemberAddress>(page, skip, take, addresses.Count);
     }
 
     protected static IEnumerable<SortInfo> BuildAddressSortExpression(string sort)
