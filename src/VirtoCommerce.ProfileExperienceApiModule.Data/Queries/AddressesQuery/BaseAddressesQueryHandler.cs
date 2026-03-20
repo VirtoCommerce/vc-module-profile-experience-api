@@ -10,6 +10,16 @@ using VirtoCommerce.Xapi.Core.Infrastructure;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries.AddressesQuery;
 
+public class CurrentCustomerAddressesQueryHandler
+{
+
+}
+
+public class CurrentOrganizationAddressesQueryHandler
+{
+
+}
+
 public class BaseAddressesQueryHandler : IQueryHandler<CurrentCustomerAddressesQuery, MemberAddressSearchResult>, IQueryHandler<CurrentOrganizationAddressesQuery, MemberAddressSearchResult>
 {
     private readonly IMemberAddressService _memberAddressService;

@@ -15,11 +15,13 @@ public class MemberAddressService : IMemberAddressService
 {
     private readonly IFavoriteAddressService _favoriteAddressService;
     private readonly IAddressSearchService _addressSearchService;
+    private readonly ICountriesService _countriesService;
 
-    public MemberAddressService(IFavoriteAddressService favoriteAddressService, IAddressSearchService addressSearchService)
+    public MemberAddressService(IFavoriteAddressService favoriteAddressService, IAddressSearchService addressSearchService, ICountriesService countriesService)
     {
         _favoriteAddressService = favoriteAddressService;
         _addressSearchService = addressSearchService;
+        _countriesService = countriesService;
     }
 
     public virtual async Task<MemberAddressSearchResult> SearchMemberAddressesAsync(MemberAddressSearchCriteria criteria)
@@ -34,48 +36,73 @@ public class MemberAddressService : IMemberAddressService
         {
             TotalCount = addressesSearchResult.TotalCount,
             Results = page,
-            Facets = new List<FacetResult>(),
+            Facets = [],
         };
 
         // facets
-        if (addressesSearchResult.Facets?.Country != null)
+        if (addressesSearchResult.Facets == null)
         {
-            var aggregation = addressesSearchResult.Facets.Country;
-            var facet = GetTermFacetResult(aggregation);
-            result.Facets.Add(facet);
+            return result;
         }
 
-        if (addressesSearchResult.Facets?.Region != null)
+        var countries = await _countriesService.GetCountriesAsync();
+
+        if (!addressesSearchResult.Facets.Countries.IsNullOrEmpty())
         {
-            var aggregation = addressesSearchResult.Facets.Region;
-            var facet = GetTermFacetResult(aggregation);
-            result.Facets.Add(facet);
+            var terms = addressesSearchResult.Facets.Countries
+                .Select(x => new FacetTerm
+                {
+                    Term = x.Value,
+                    Count = x.Count,
+                    IsSelected = x.IsApplied,
+                    Label = countries.FirstOrDefault(c => c.Id.EqualsIgnoreCase(x.CountryCode))?.Name ?? x.CountryCode,
+                })
+                .ToList();
+
+            var termFacet = GetTermFacet("CountryCode", "Country", terms);
+            result.Facets.Add(termFacet);
         }
 
-        if (addressesSearchResult.Facets?.City != null)
+        if (!addressesSearchResult.Facets.Cities.IsNullOrEmpty())
         {
-            var aggregation = addressesSearchResult.Facets.City;
-            var facet = GetTermFacetResult(aggregation);
-            result.Facets.Add(facet);
+            var terms = addressesSearchResult.Facets.Cities
+                .Select(x => new FacetTerm
+                {
+                    Term = x.Value,
+                    Count = x.Count,
+                    IsSelected = x.IsApplied,
+                    Label = x.Label,
+                })
+                .ToList();
+
+            var termFacet = GetTermFacet("City", "City", terms);
+            result.Facets.Add(termFacet);
+        }
+
+        if (!addressesSearchResult.Facets.Regions.IsNullOrEmpty())
+        {
+            List<FacetTerm> terms = [];
+
+            foreach (var regionFacet in addressesSearchResult.Facets.Regions)
+            {
+                var facetTerm = new FacetTerm
+                {
+                    Term = regionFacet.Value,
+                    Count = regionFacet.Count,
+                    IsSelected = regionFacet.IsApplied,
+                };
+
+                var regions = await _countriesService.GetCountryRegionsAsync(regionFacet.CountryCode);
+                facetTerm.Label = regions.FirstOrDefault(x => x.Id.EqualsIgnoreCase(regionFacet.RegionId))?.Name ?? regionFacet.RegionId;
+
+                terms.Add(facetTerm);
+            }
+
+            var termFacet = GetTermFacet("RegionId", "Region", terms);
+            result.Facets.Add(termFacet);
         }
 
         return result;
-    }
-
-    private static TermFacetResult GetTermFacetResult(SearchModule.Core.Model.Aggregation aggregation)
-    {
-        return new TermFacetResult
-        {
-            Name = aggregation.Field,
-            Label = aggregation.Labels?.FirstOrDefault()?.Label ?? aggregation.Field,
-            Terms = aggregation.Items?.Select(x => new FacetTerm
-            {
-                Term = x.Value?.ToString(),
-                Count = x.Count,
-                IsSelected = x.IsApplied,
-                Label = x.Labels?.FirstOrDefault()?.Label ?? x.Value?.ToString(),
-            }).ToList() ?? [],
-        };
     }
 
     public virtual async Task<MemberAddress> ToMemberAddressAsync(Address address, string userId)
@@ -145,5 +172,15 @@ public class MemberAddressService : IMemberAddressService
         }
 
         return result;
+    }
+
+    private static TermFacetResult GetTermFacet(string name, string label, List<FacetTerm> terms)
+    {
+        return new TermFacetResult
+        {
+            Name = name,
+            Label = label,
+            Terms = terms
+        };
     }
 }
