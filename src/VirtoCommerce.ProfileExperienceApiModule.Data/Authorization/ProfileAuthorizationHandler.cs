@@ -187,6 +187,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             if (!result && currentContact != null)
             {
                 var member = await _memberService.GetByIdAsync(memberId);
+                if (member == null)
+                {
+                    return false;
+                }
+
                 if (member.MemberType.EqualsIgnoreCase("Organization") && currentContact.Organizations.Any(x => x.EqualsIgnoreCase(member.Id)))
                 {
                     result = true;

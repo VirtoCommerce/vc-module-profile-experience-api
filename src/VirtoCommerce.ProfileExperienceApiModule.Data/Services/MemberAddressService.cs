@@ -82,6 +82,7 @@ public class MemberAddressService : IMemberAddressService
         if (!addressesSearchResult.Facets.Regions.IsNullOrEmpty())
         {
             List<FacetTerm> terms = [];
+            Dictionary<string, IList<CountryRegion>> regionsDictionary = [];
 
             foreach (var regionFacet in addressesSearchResult.Facets.Regions)
             {
@@ -92,9 +93,13 @@ public class MemberAddressService : IMemberAddressService
                     IsSelected = regionFacet.IsApplied,
                 };
 
-                var regions = await _countriesService.GetCountryRegionsAsync(regionFacet.CountryCode);
-                facetTerm.Label = regions.FirstOrDefault(x => x.Id.EqualsIgnoreCase(regionFacet.RegionId))?.Name ?? regionFacet.RegionId;
+                if (!regionsDictionary.TryGetValue(regionFacet.CountryCode, out var regions))
+                {
+                    regions = await _countriesService.GetCountryRegionsAsync(regionFacet.CountryCode);
+                    regionsDictionary.Add(regionFacet.CountryCode, regions);
+                }
 
+                facetTerm.Label = regions.FirstOrDefault(x => x.Id.EqualsIgnoreCase(regionFacet.RegionId))?.Name ?? regionFacet.RegionId;
                 terms.Add(facetTerm);
             }
 
