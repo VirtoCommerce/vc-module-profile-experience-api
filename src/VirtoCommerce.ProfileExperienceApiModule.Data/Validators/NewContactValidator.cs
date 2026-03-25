@@ -16,10 +16,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
             RuleFor(x => x.FirstName).NotNull().NotEmpty().MaximumLength(128);
             RuleFor(x => x.LastName).NotNull().NotEmpty().MaximumLength(128);
 
+            RuleForEach(x => x.Phones).MaximumLength(64);
+
             When(_ => hasNamePattern, () =>
             {
                 RuleFor(x => x.FirstName).MatchesNamePattern(options.NameValidationPattern);
                 RuleFor(x => x.LastName).MatchesNamePattern(options.NameValidationPattern);
+            });
+
+            When(_ => options.EnableNoHtmlTagsValidation, () =>
+            {
+                RuleForEach(x => x.Phones).NoHtmlTags();
             });
 
             RuleSet("strict", () =>
