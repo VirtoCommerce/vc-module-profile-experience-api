@@ -33,7 +33,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
             {
                 RuleFor(x => x.FirstName).MatchesNamePattern(options.NameValidationPattern);
                 RuleFor(x => x.LastName).MatchesNamePattern(options.NameValidationPattern);
-                RuleFor(x => x.Name).MatchesNamePattern(options.NameValidationPattern);
             });
 
             When(_ => hasOrgNamePattern, () =>
