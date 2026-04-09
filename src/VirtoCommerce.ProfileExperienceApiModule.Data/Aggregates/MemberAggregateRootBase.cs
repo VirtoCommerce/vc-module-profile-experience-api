@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
 {
@@ -37,16 +38,16 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
         public virtual bool IsDuplicateAddress(Address address)
         {
             return Member.Addresses.Any(x =>
-                x.FirstName == address.FirstName &&
-                x.LastName == address.LastName &&
-                x.City == address.City &&
-                x.Line1 == address.Line1 &&
-                x.Line2 == address.Line2 &&
-                x.CountryCode == address.CountryCode &&
-                x.RegionId == address.RegionId &&
-                x.PostalCode == address.PostalCode &&
-                x.Phone == address.Phone &&
-                x.Email == address.Email);
+                x.FirstName.EqualsIgnoreCase(address.FirstName) &&
+                x.LastName.EqualsIgnoreCase(address.LastName) &&
+                x.City.EqualsIgnoreCase(address.City) &&
+                x.Line1.EqualsIgnoreCase(address.Line1) &&
+                x.Line2.EqualsIgnoreCase(address.Line2) &&
+                x.CountryCode.EqualsIgnoreCase(address.CountryCode) &&
+                x.RegionId.EqualsIgnoreCase(address.RegionId) &&
+                x.PostalCode.EqualsIgnoreCase(address.PostalCode) &&
+                x.Phone.EqualsIgnoreCase(address.Phone) &&
+                x.Email.EqualsIgnoreCase(address.Email));
         }
 
         public virtual MemberAggregateRootBase DeleteAddresses(IList<Address> addresses)
