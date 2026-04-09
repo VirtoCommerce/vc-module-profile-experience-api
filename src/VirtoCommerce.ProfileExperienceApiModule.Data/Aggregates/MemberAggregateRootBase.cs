@@ -23,11 +23,30 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
                 {
                     // If we are adding new entry, we shouldn't manage the ids.
                     address.Key = null;
-                    Member.Addresses.Add(address);
+
+                    if (!IsDuplicateAddress(address))
+                    {
+                        Member.Addresses.Add(address);
+                    }
                 }
             }
 
             return this;
+        }
+
+        public virtual bool IsDuplicateAddress(Address address)
+        {
+            return Member.Addresses.Any(x =>
+                x.FirstName == address.FirstName &&
+                x.LastName == address.LastName &&
+                x.City == address.City &&
+                x.Line1 == address.Line1 &&
+                x.Line2 == address.Line2 &&
+                x.CountryCode == address.CountryCode &&
+                x.RegionId == address.RegionId &&
+                x.PostalCode == address.PostalCode &&
+                x.Phone == address.Phone &&
+                x.Email == address.Email);
         }
 
         public virtual MemberAggregateRootBase DeleteAddresses(IList<Address> addresses)
