@@ -9,6 +9,20 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
     {
         public virtual Member Member { get; set; }
 
+        private static readonly IEqualityComparer<Address> _addressComparer = AnonymousComparer.Create((Address x) => new
+        {
+            x.FirstName,
+            x.LastName,
+            x.City,
+            x.Line1,
+            x.Line2,
+            x.CountryCode,
+            x.RegionId,
+            x.PostalCode,
+            x.Phone,
+            x.Email,
+        });
+
         public virtual MemberAggregateRootBase UpdateAddresses(IList<Address> addresses)
         {
             foreach (var address in addresses)
@@ -37,17 +51,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
 
         public virtual bool IsDuplicateAddress(Address address)
         {
-            return Member.Addresses.Any(x =>
-                x.FirstName.EqualsIgnoreCase(address.FirstName) &&
-                x.LastName.EqualsIgnoreCase(address.LastName) &&
-                x.City.EqualsIgnoreCase(address.City) &&
-                x.Line1.EqualsIgnoreCase(address.Line1) &&
-                x.Line2.EqualsIgnoreCase(address.Line2) &&
-                x.CountryCode.EqualsIgnoreCase(address.CountryCode) &&
-                x.RegionId.EqualsIgnoreCase(address.RegionId) &&
-                x.PostalCode.EqualsIgnoreCase(address.PostalCode) &&
-                x.Phone.EqualsIgnoreCase(address.Phone) &&
-                x.Email.EqualsIgnoreCase(address.Email));
+            return Member.Addresses.Any(x => _addressComparer.Equals(x, address));
         }
 
         public virtual MemberAggregateRootBase DeleteAddresses(IList<Address> addresses)
