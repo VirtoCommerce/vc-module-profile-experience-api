@@ -10,6 +10,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using OpenIddict.Abstractions;
 using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Security.Authorization;
@@ -465,6 +466,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             var type = GenericTypeHelper.GetActualType<ChangePasswordCommand>();
                             var command = (ChangePasswordCommand)context.GetArgument(type, _commandName);
                             await CheckAuthAsync(context, command, checkPasswordExpired: false);
+
+                            command.SessionGroupId = context.User.FindFirstValue(OpenIddictConstants.Claims.Private.AuthorizationId);
 
                             return await _mediator.Send(command);
                         })
