@@ -4,7 +4,7 @@
   <version>3.1005.0</version>
   <version-tag />
 
-  <platformVersion>3.1020.1</platformVersion>
+  <platformVersion>3.1022.0-alpha.13258-vcst-4576</platformVersion>
   <dependencies>
     <dependency id="VirtoCommerce.Customer" version="3.1000.0" />
     <dependency id="VirtoCommerce.Marketing" version="3.1000.0" optional="true" />
