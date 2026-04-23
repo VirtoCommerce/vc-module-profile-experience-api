@@ -12,6 +12,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Vendor;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries.AddressesQuery;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
@@ -100,6 +101,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                 case CurrentCustomerAddressesQuery when currentMember != null:
                 case CurrentOrganizationAddressesQuery when currentMember != null:
                     result = true;
+                    break;
+                case CheckDuplicateAddressQuery duplicateAddressQuery:
+                    result = await HasSameOrganizationOrCurrentMemberAsync(duplicateAddressQuery.MemberId, userManager, currentMember, currentContact);
                     break;
                 case MemberCommand memberCommand:
                     result = await HasSameOrganizationOrCurrentMemberAsync(memberCommand.MemberId, userManager, currentMember, currentContact);

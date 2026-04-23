@@ -1,4 +1,4 @@
-namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries
+namespace VirtoCommerce.ProfileExperienceApiModule.Data.Models
 {
     public class CheckDuplicateAddressResult
     {
