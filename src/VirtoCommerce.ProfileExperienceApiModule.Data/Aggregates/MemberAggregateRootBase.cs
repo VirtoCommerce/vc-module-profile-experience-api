@@ -11,7 +11,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
         public virtual Member Member { get; set; }
 
         private static readonly IEqualityComparer<Address> _addressComparer = AnonymousComparer.Create((Address x) =>
-            $"{x.FirstName}-{x.LastName}-{x.City}-{x.Line1}-{x.Line2}-{x.CountryCode}-{x.RegionId}-{x.PostalCode}-{x.Phone}-{x.Email}",
+            $"{x.FirstName}|{x.LastName}|{x.City}|{x.Line1}|{x.Line2}|{x.CountryCode}|{x.RegionId}|{x.PostalCode}|{x.Phone}|{x.Email}",
             StringComparer.OrdinalIgnoreCase);
 
 
@@ -21,10 +21,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
             {
                 var addressForReplacement = Member.Addresses.FirstOrDefault(x => x.Key == address.Key);
 
-                if (addressForReplacement != null && !IsDuplicateAddress(address, address.Key))
+                if (addressForReplacement != null)
                 {
-                    var index = Member.Addresses.IndexOf(addressForReplacement);
-                    Member.Addresses[index] = address;
+                    if (!IsDuplicateAddress(address, address.Key))
+                    {
+                        var index = Member.Addresses.IndexOf(addressForReplacement);
+                        Member.Addresses[index] = address;
+                    }
                 }
                 else
                 {
@@ -41,16 +44,16 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
             return this;
         }
 
-        public virtual bool IsDuplicateAddress(Address address, string updateKey = null)
+        public virtual bool IsDuplicateAddress(Address address, string excludedUpdateKey = null)
         {
-            if (updateKey == null)
+            if (excludedUpdateKey == null)
             {
                 return Member.Addresses.Any(x => _addressComparer.Equals(x, address));
             }
             else
             {
                 // exclude the address with the matching updateKey from the comparison
-                return Member.Addresses.Where(x => x.Key != updateKey).Any(x => _addressComparer.Equals(x, address));
+                return Member.Addresses.Where(x => x.Key != excludedUpdateKey).Any(x => _addressComparer.Equals(x, address));
             }
         }
 
