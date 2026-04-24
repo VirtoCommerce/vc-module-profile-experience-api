@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using VirtoCommerce.CustomerModule.Core.Model;
@@ -9,24 +10,20 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
     {
         public virtual Member Member { get; set; }
 
-        private static readonly IEqualityComparer<Address> _addressComparer = AnonymousComparer.Create((Address x) => new
-        {
-            x.FirstName,
-            x.LastName,
-            x.City,
-            x.Line1,
-            x.Line2,
-            x.CountryCode,
-            x.RegionId,
-            x.PostalCode,
-            x.Phone,
-            x.Email,
-        });
+        private static readonly IEqualityComparer<Address> _addressComparer = AnonymousComparer.Create((Address x) =>
+            $"{x.FirstName}-{x.LastName}-{x.City}-{x.Line1}-{x.Line2}-{x.CountryCode}-{x.RegionId}-{x.PostalCode}-{x.Phone}-{x.Email}",
+            StringComparer.OrdinalIgnoreCase);
+
 
         public virtual MemberAggregateRootBase UpdateAddresses(IList<Address> addresses)
         {
             foreach (var address in addresses)
             {
+                if (IsDuplicateAddress(address))
+                {
+                    continue;
+                }
+
                 var addressForReplacement = Member.Addresses.FirstOrDefault(x => x.Key == address.Key);
 
                 if (addressForReplacement != null)
@@ -38,11 +35,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
                 {
                     // If we are adding new entry, we shouldn't manage the ids.
                     address.Key = null;
-
-                    if (!IsDuplicateAddress(address))
-                    {
-                        Member.Addresses.Add(address);
-                    }
                 }
             }
 
