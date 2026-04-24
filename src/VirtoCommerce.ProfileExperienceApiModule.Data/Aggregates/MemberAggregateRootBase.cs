@@ -19,14 +19,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
         {
             foreach (var address in addresses)
             {
-                if (IsDuplicateAddress(address))
-                {
-                    continue;
-                }
-
                 var addressForReplacement = Member.Addresses.FirstOrDefault(x => x.Key == address.Key);
 
-                if (addressForReplacement != null)
+                if (addressForReplacement != null && !IsDuplicateAddress(address, address.Key))
                 {
                     var index = Member.Addresses.IndexOf(addressForReplacement);
                     Member.Addresses[index] = address;
@@ -35,15 +30,28 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
                 {
                     // If we are adding new entry, we shouldn't manage the ids.
                     address.Key = null;
+
+                    if (!IsDuplicateAddress(address))
+                    {
+                        Member.Addresses.Add(address);
+                    }
                 }
             }
 
             return this;
         }
 
-        public virtual bool IsDuplicateAddress(Address address)
+        public virtual bool IsDuplicateAddress(Address address, string updateKey = null)
         {
-            return Member.Addresses.Any(x => _addressComparer.Equals(x, address));
+            if (updateKey == null)
+            {
+                return Member.Addresses.Any(x => _addressComparer.Equals(x, address));
+            }
+            else
+            {
+                // exclude the address with the matching updateKey from the comparison
+                return Member.Addresses.Where(x => x.Key != updateKey).Any(x => _addressComparer.Equals(x, address));
+            }
         }
 
         public virtual MemberAggregateRootBase DeleteAddresses(IList<Address> addresses)
