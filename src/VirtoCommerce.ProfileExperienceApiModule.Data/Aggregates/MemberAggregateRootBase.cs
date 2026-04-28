@@ -1,12 +1,19 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
 {
     public abstract class MemberAggregateRootBase : IMemberAggregateRoot
     {
         public virtual Member Member { get; set; }
+
+        private static readonly IEqualityComparer<Address> _addressComparer = AnonymousComparer.Create((Address x) =>
+            $"{x.FirstName}|{x.LastName}|{x.City}|{x.Line1}|{x.Line2}|{x.CountryCode}|{x.RegionId}|{x.PostalCode}|{x.Phone}|{x.Email}",
+            StringComparer.OrdinalIgnoreCase);
+
 
         public virtual MemberAggregateRootBase UpdateAddresses(IList<Address> addresses)
         {
@@ -16,18 +23,38 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
 
                 if (addressForReplacement != null)
                 {
-                    var index = Member.Addresses.IndexOf(addressForReplacement);
-                    Member.Addresses[index] = address;
+                    if (!IsDuplicateAddress(address, address.Key))
+                    {
+                        var index = Member.Addresses.IndexOf(addressForReplacement);
+                        Member.Addresses[index] = address;
+                    }
                 }
                 else
                 {
                     // If we are adding new entry, we shouldn't manage the ids.
                     address.Key = null;
-                    Member.Addresses.Add(address);
+
+                    if (!IsDuplicateAddress(address))
+                    {
+                        Member.Addresses.Add(address);
+                    }
                 }
             }
 
             return this;
+        }
+
+        public virtual bool IsDuplicateAddress(Address address, string excludedUpdateKey = null)
+        {
+            if (excludedUpdateKey == null)
+            {
+                return Member.Addresses.Any(x => _addressComparer.Equals(x, address));
+            }
+            else
+            {
+                // exclude the address with the matching updateKey from the comparison
+                return Member.Addresses.Where(x => x.Key != excludedUpdateKey).Any(x => _addressComparer.Equals(x, address));
+            }
         }
 
         public virtual MemberAggregateRootBase DeleteAddresses(IList<Address> addresses)

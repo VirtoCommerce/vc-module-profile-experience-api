@@ -66,7 +66,8 @@ public class ContactType : MemberBaseType<ContactAggregate>
         Field<StringGraphType>("organizationId")
             .ResolveAsync(async context => await GetCurrentOrganizationId(context));
 
-        ExtendableFieldAsync<OrganizationType>("organization", resolve: async context => {
+        ExtendableFieldAsync<OrganizationType>("organization", resolve: async context =>
+        {
             var organizationId = await GetCurrentOrganizationId(context);
             if (organizationId.IsNullOrEmpty())
             {

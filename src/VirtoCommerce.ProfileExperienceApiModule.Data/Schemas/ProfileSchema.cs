@@ -201,7 +201,37 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             });
 
 #pragma warning disable S125 // Sections of code should not be commented out
-            /*                         
+            /*
+               query {
+                     checkDuplicateAddress(memberId: "memberId", address: { city: "city", countryCode: "US", line1: "line1", postalCode: "12345" })
+                     {
+                         isDuplicated
+                     }
+               }
+            */
+#pragma warning restore S125 // Sections of code should not be commented out
+
+            _ = schema.Query.AddField(new FieldType
+            {
+                Name = "checkDuplicateAddress",
+                Arguments = new QueryArguments(
+                    new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "memberId" },
+                    new QueryArgument<NonNullGraphType<InputMemberAddressType>> { Name = "address" }),
+                Type = GraphTypeExtensionHelper.GetActualType<AddressDuplicatedResultType>(),
+                Resolver = new FuncFieldResolver<object>(async context =>
+                {
+                    var result = await _mediator.Send(new CheckDuplicateAddressQuery
+                    {
+                        MemberId = context.GetArgument<string>("memberId"),
+                        Address = context.GetArgument<MemberAddress>("address"),
+                    });
+
+                    return result;
+                })
+            });
+
+#pragma warning disable S125 // Sections of code should not be commented out
+            /*
                query {
                      requestPasswordReset(loginOrEmail: "user@email")
                }                         
