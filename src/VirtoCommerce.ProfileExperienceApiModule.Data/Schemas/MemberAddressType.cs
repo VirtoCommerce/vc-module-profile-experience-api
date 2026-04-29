@@ -1,6 +1,12 @@
+using System.Collections.Generic;
+using System.Linq;
 using GraphQL.Types;
+using GraphQL.Types.Relay;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
+using VirtoCommerce.Xapi.Core.Infrastructure;
+using VirtoCommerce.Xapi.Core.Models.Facets;
 using VirtoCommerce.Xapi.Core.Schemas;
+using CoreFacets = VirtoCommerce.Xapi.Core.Schemas.Facets;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
@@ -32,5 +38,25 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field(x => x.Description, nullable: true).Description("Description");
             Field<IntGraphType>(nameof(MemberAddress.AddressType)).Resolve(context => (int)context.Source.AddressType);
         }
+    }
+
+    public class MemberAddressConnectionType<TNodeType> : ConnectionType<TNodeType>
+        where TNodeType : IGraphType
+    {
+        public MemberAddressConnectionType()
+        {
+            Field<NonNullGraphType<ListGraphType<NonNullGraphType<CoreFacets.TermFacetResultType>>>>("term_facets").Description("Term facets")
+                .Resolve(context => ((MemberAddressConnection<MemberAddress>)context.Source).Facets?.OfType<TermFacetResult>() ?? []);
+        }
+    }
+
+    public class MemberAddressConnection<TNode> : PagedConnection<TNode>
+    {
+        public MemberAddressConnection(IEnumerable<TNode> superset, int skip, int take, int totalCount)
+            : base(superset, skip, take, totalCount)
+        {
+        }
+
+        public IList<FacetResult> Facets { get; set; }
     }
 }

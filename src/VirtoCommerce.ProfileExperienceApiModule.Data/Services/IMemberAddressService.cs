@@ -7,6 +7,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 
 public interface IMemberAddressService
 {
+    Task<MemberAddressSearchResult> SearchMemberAddressesAsync(MemberAddressSearchCriteria criteria);
     Task<MemberAddress> ToMemberAddressAsync(Address address, string userId);
     Task<IList<MemberAddress>> ToMemberAddressesAsync(IList<Address> addresses, string userId);
 }
