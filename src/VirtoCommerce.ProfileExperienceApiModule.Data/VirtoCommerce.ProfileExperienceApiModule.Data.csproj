@@ -10,7 +10,7 @@
     <PackageReference Include="VirtoCommerce.CustomerModule.Core" Version="3.1007.0" />
     <PackageReference Include="VirtoCommerce.MarketingModule.Core" Version="3.1000.0" />
     <PackageReference Include="VirtoCommerce.NotificationsModule.Core" Version="3.1000.0" />
-    <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.1026.0-alpha.13278-vcst-4576" />
+    <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.1027.0-alpha.13286-vcst-4576" />
     <PackageReference Include="VirtoCommerce.PricingModule.Core" Version="3.1000.0" />
     <PackageReference Include="VirtoCommerce.TaxModule.Core" Version="3.1000.0" />
     <PackageReference Include="VirtoCommerce.Xapi.Core" Version="3.1000.0" />
