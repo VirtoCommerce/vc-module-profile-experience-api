@@ -130,6 +130,7 @@ public class MemberAddressService : IMemberAddressService
     {
         var addressSearchCriteria = AbstractTypeFactory<AddressSearchCriteria>.TryCreateInstance();
 
+        addressSearchCriteria.ObjectIds = criteria.Ids;
         addressSearchCriteria.MemberId = criteria.MemberId;
         addressSearchCriteria.UserId = criteria.UserId;
         addressSearchCriteria.Take = criteria.Take;
