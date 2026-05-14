@@ -29,6 +29,7 @@ public abstract class BaseAddressesQueryHandler
     {
         var addressSearchCriteria = AbstractTypeFactory<MemberAddressSearchCriteria>.TryCreateInstance();
 
+        addressSearchCriteria.Ids = criteria.Ids;
         addressSearchCriteria.UserId = criteria.UserId;
         addressSearchCriteria.MemberId = memberId;
 
