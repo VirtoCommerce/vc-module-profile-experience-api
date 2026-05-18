@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
@@ -13,11 +15,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
     public class ResetPasswordByTokenCommandHandler : UserCommandHandlerBase, IRequestHandler<ResetPasswordByTokenCommand, IdentityResultResponse>
     {
+        private readonly Func<(IUserSessionsService SessionService, IServiceScope Scope)> _userSessionsServiceFactory;
+        private readonly ILogger<ResetPasswordByTokenCommandHandler> _logger;
+
         public ResetPasswordByTokenCommandHandler(
             Func<UserManager<ApplicationUser>> userManagerFactory,
-            IOptions<AuthorizationOptions> securityOptions)
+            IOptions<AuthorizationOptions> securityOptions,
+            Func<(IUserSessionsService SessionService, IServiceScope Scope)> userSessionsServiceFactory,
+            ILogger<ResetPasswordByTokenCommandHandler> logger)
             : base(userManagerFactory, securityOptions)
         {
+            _userSessionsServiceFactory = userSessionsServiceFactory;
+            _logger = logger;
         }
 
         public virtual async Task<IdentityResultResponse> Handle(ResetPasswordByTokenCommand request, CancellationToken cancellationToken)
@@ -49,12 +58,32 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                     user.PasswordExpired = false;
                     await userManager.UpdateAsync(user);
                 }
+
+                if (identityResult.Succeeded)
+                {
+                    // terminate all user's sessions for password reset request
+                    await TryTerminateAllUserSessions(user.Id);
+                }
             }
 
             result.Errors = identityResult?.Errors.Select(x => x.MapToIdentityErrorInfo()).ToList();
             result.Succeeded = identityResult?.Succeeded ?? false;
 
             return result;
+        }
+
+        private async Task TryTerminateAllUserSessions(string userId)
+        {
+            try
+            {
+                var (SessionService, Scope) = _userSessionsServiceFactory();
+                using var scope = Scope;
+                await SessionService.TerminateAllUserSessions(userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to terminate sessions for user {userId} after password reset", userId);
+            }
         }
     }
 }

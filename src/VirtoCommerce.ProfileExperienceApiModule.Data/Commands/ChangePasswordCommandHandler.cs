@@ -4,7 +4,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
@@ -14,11 +17,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
     public class ChangePasswordCommandHandler : UserCommandHandlerBase, IRequestHandler<ChangePasswordCommand, IdentityResultResponse>
     {
+        private readonly Func<(IUserSessionsService SessionService, IServiceScope Scope)> _userSessionsServiceFactory;
+        private readonly ILogger<ChangePasswordCommandHandler> _logger;
+
         public ChangePasswordCommandHandler(
             Func<UserManager<ApplicationUser>> userManagerFactory,
-            IOptions<AuthorizationOptions> securityOptions)
+            IOptions<AuthorizationOptions> securityOptions,
+            Func<(IUserSessionsService SessionService, IServiceScope Scope)> userSessionsServiceFactory,
+            ILogger<ChangePasswordCommandHandler> logger)
             : base(userManagerFactory, securityOptions)
         {
+            _userSessionsServiceFactory = userSessionsServiceFactory;
+            _logger = logger;
         }
 
         public async Task<IdentityResultResponse> Handle(ChangePasswordCommand request, CancellationToken cancellationToken)
@@ -65,6 +75,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 }
             }
 
+            if (result.Succeeded)
+            {
+                await TryTerminateUserSessions(request);
+            }
+
             return CreateResponse(result);
         }
 
@@ -75,6 +90,31 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 Errors = identityResult?.Errors.Select(x => x.MapToIdentityErrorInfo()).ToList(),
                 Succeeded = identityResult?.Succeeded ?? false
             };
+        }
+
+        private async Task TryTerminateUserSessions(ChangePasswordCommand command)
+        {
+            try
+            {
+                var (SessionService, Scope) = _userSessionsServiceFactory();
+                using var scope = Scope;
+
+                var terminateSessionsRequest = new TerminateUserSessionsRequest
+                {
+                    UserId = command.UserId,
+                };
+
+                if (!command.SessionGroupId.IsNullOrEmpty())
+                {
+                    terminateSessionsRequest.ExcludedSessionGroupIds = [command.SessionGroupId];
+                }
+
+                await SessionService.TerminateUserSessions(terminateSessionsRequest);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to terminate sessions for user {userId} after password change", command.UserId);
+            }
         }
     }
 }
