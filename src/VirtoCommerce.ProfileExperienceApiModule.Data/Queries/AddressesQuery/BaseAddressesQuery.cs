@@ -17,6 +17,7 @@ public abstract class BaseAddressesQuery : SearchQuery<MemberAddressSearchResult
 
     public IList<string> Cities { get; set; }
 
+    public IList<string> Ids { get; set; }
 
     public override IEnumerable<QueryArgument> GetArguments()
     {
@@ -28,6 +29,7 @@ public abstract class BaseAddressesQuery : SearchQuery<MemberAddressSearchResult
         yield return Argument<ListGraphType<StringGraphType>>(nameof(CountryCodes));
         yield return Argument<ListGraphType<StringGraphType>>(nameof(RegionIds));
         yield return Argument<ListGraphType<StringGraphType>>(nameof(Cities));
+        yield return Argument<ListGraphType<StringGraphType>>(nameof(Ids));
     }
 
     public override void Map(IResolveFieldContext context)
@@ -37,6 +39,7 @@ public abstract class BaseAddressesQuery : SearchQuery<MemberAddressSearchResult
         CountryCodes = context.GetArgument<List<string>>(nameof(CountryCodes));
         RegionIds = context.GetArgument<List<string>>(nameof(RegionIds));
         Cities = context.GetArgument<List<string>>(nameof(Cities));
+        Ids = context.GetArgument<List<string>>(nameof(Ids));
 
         UserId = context.GetCurrentUserId();
     }
