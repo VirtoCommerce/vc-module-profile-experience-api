@@ -1,15 +1,15 @@
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
-using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.Platform.Core.Security;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 
@@ -18,14 +18,20 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
     public class ChangeOrganizationContactRoleCommandHandler : UserCommandHandlerBase, IRequestHandler<ChangeOrganizationContactRoleCommand, IdentityResultResponse>
     {
         private readonly Func<RoleManager<Role>> _roleManagerFactory;
+        private readonly IOrganizationMembershipService _organizationMembershipService;
+        private readonly IContactAggregateRepository _contactAggregateRepository;
 
         public ChangeOrganizationContactRoleCommandHandler(
             Func<UserManager<ApplicationUser>> userManager,
             Func<RoleManager<Role>> roleManagerFactory,
+            IOrganizationMembershipService organizationMembershipService,
+            IContactAggregateRepository contactAggregateRepository,
             IOptions<AuthorizationOptions> securityOptions)
             : base(userManager, securityOptions)
         {
             _roleManagerFactory = roleManagerFactory;
+            _organizationMembershipService = organizationMembershipService;
+            _contactAggregateRepository = contactAggregateRepository;
         }
 
         public async Task<IdentityResultResponse> Handle(ChangeOrganizationContactRoleCommand request, CancellationToken cancellationToken)
@@ -35,19 +41,34 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 Errors = new List<IdentityErrorInfo>(),
                 Succeeded = false,
             };
-            // Get the requested user
+
+            if (string.IsNullOrEmpty(request.OrganizationId))
+            {
+                result.Errors.Add(new IdentityErrorInfo { Code = "OrganizationIdRequired", Description = "OrganizationId is required for organization-scoped role assignment." });
+                return result;
+            }
+
+            var contactAggregate = await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.UserId)
+                ?? throw new ArgumentException($"Contact '{request.UserId}' not found.", nameof(request.UserId));
+
+            var userId = contactAggregate.Contact?.SecurityAccounts?.FirstOrDefault()?.Id;
+            if (string.IsNullOrEmpty(userId))
+            {
+                result.Errors.Add(new IdentityErrorInfo { Description = "It is forbidden to edit this user." });
+                return result;
+            }
+
             using var userManager = _userManagerFactory();
-            using var roleManager = _roleManagerFactory();
-            var user = (await userManager.FindByIdAsync(request.UserId)).Clone() as ApplicationUser; // Clone required to update user later. Otherwise, the userManager replaces instance data in update
+            var user = await userManager.FindByIdAsync(userId);
             if (user == null || !IsUserEditable(user.UserName))
             {
                 result.Errors.Add(new IdentityErrorInfo { Description = "It is forbidden to edit this user." });
+                return result;
             }
 
+            using var roleManager = _roleManagerFactory();
             var roles = new List<Role>();
-
-            // Check passed roles existence
-            foreach (var roleId in request.RoleIds)
+            foreach (var roleId in request.RoleIds ?? [])
             {
                 var role = await roleManager.FindByIdAsync(roleId) ?? await roleManager.FindByNameAsync(roleId);
                 if (role != null)
@@ -65,12 +86,29 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return result;
             }
 
-            user.Roles = roles;
+            var membership = await _organizationMembershipService.GetByUserAndOrgAsync(userId, request.OrganizationId);
+            if (membership == null)
+            {
+                result.Errors.Add(new IdentityErrorInfo
+                {
+                    Code = "MembershipNotFound",
+                    Description = $"User '{request.UserId}' has no membership in organization '{request.OrganizationId}'.",
+                });
+                return result;
+            }
 
-            var assignResult = await userManager.UpdateAsync(user);
-            result.Errors.AddRange(assignResult.Errors.Select(x => x.MapToIdentityErrorInfo()));
-            result.Succeeded = result.Errors.Count == 0;
+            membership.Roles = roles
+                .Select(r => new OrganizationMembershipRole
+                {
+                    MembershipId = membership.Id,
+                    RoleId = r.Id,
+                    RoleName = r.Name,
+                })
+                .ToList();
 
+            await _organizationMembershipService.SaveChangesAsync([membership]);
+
+            result.Succeeded = true;
             return result;
         }
     }

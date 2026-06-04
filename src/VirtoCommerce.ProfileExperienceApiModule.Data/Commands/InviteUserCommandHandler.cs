@@ -34,12 +34,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly INotificationSearchService _notificationSearchService;
         private readonly INotificationSender _notificationSender;
         private readonly IStoreService _storeService;
+        private readonly IOrganizationMembershipService _organizationMembershipService;
 
         public InviteUserCommandHandler(
             IWebHostEnvironment environment,
-            Func<UserManager<ApplicationUser>> userManager, IMemberService memberService,
-            INotificationSearchService notificationSearchService, INotificationSender notificationSender,
-            IStoreService storeService, Func<RoleManager<Role>> roleManagerFactory)
+            Func<UserManager<ApplicationUser>> userManager,
+            IMemberService memberService,
+            INotificationSearchService notificationSearchService,
+            INotificationSender notificationSender,
+            IStoreService storeService,
+            Func<RoleManager<Role>> roleManagerFactory,
+            IOrganizationMembershipService organizationMembershipService)
         {
             _environment = environment;
             _userManagerFactory = userManager;
@@ -48,6 +53,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _notificationSender = notificationSender;
             _storeService = storeService;
             _roleManagerFactory = roleManagerFactory;
+            _organizationMembershipService = organizationMembershipService;
         }
 
         public virtual async Task<IdentityResultResponse> Handle(InviteUserCommand request, CancellationToken cancellationToken)
@@ -87,7 +93,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                         }
                         else
                         {
-                            result.Errors.AddRange(await AssignUserRoles(user, request.RoleIds));
+                            result.Errors.AddRange(await AssignUserRoles(user, request.RoleIds, request.OrganizationId));
                             await SendNotificationAsync(request, store, email);
                         }
                     }
@@ -141,10 +147,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return user;
         }
 
-        protected virtual async Task<List<IdentityErrorInfo>> AssignUserRoles(ApplicationUser user, string[] roleIds)
+        protected virtual async Task<List<IdentityErrorInfo>> AssignUserRoles(ApplicationUser user, string[] roleIds, string organizationId)
         {
             var errors = new List<IdentityErrorInfo>();
-            var roles = new List<Role>();
 
             if (roleIds.IsNullOrEmpty())
             {
@@ -152,8 +157,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             }
 
             using var roleManager = _roleManagerFactory();
-            using var userManager = _userManagerFactory();
 
+            var roles = new List<Role>();
             foreach (var roleId in roleIds)
             {
                 var role = await roleManager.FindByIdAsync(roleId) ?? await roleManager.FindByNameAsync(roleId);
@@ -167,8 +172,33 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 }
             }
 
-            var assignResult = await userManager.AddToRolesAsync(user, roles.Select(x => x.NormalizedName).ToArray());
-            errors.AddRange(assignResult.Errors.Select(x => x.MapToIdentityErrorInfo()));
+            if (errors.Count > 0)
+            {
+                return errors;
+            }
+
+            if (!string.IsNullOrEmpty(organizationId))
+            {
+                var membership = new OrganizationMembership
+                {
+                    UserId = user.Id,
+                    OrganizationId = organizationId,
+                    Roles = roles
+                        .Select(r => new OrganizationMembershipRole
+                        {
+                            RoleId = r.Id,
+                            RoleName = r.Name,
+                        })
+                        .ToList(),
+                };
+                await _organizationMembershipService.SaveChangesAsync([membership]);
+            }
+            else
+            {
+                using var userManager = _userManagerFactory();
+                var assignResult = await userManager.AddToRolesAsync(user, roles.Select(x => x.NormalizedName).ToArray());
+                errors.AddRange(assignResult.Errors.Select(x => x.MapToIdentityErrorInfo()));
+            }
 
             return errors;
         }
@@ -178,6 +208,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             using var userManager = _userManagerFactory();
 
             var user = await userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                return;
+            }
+
             var token = await userManager.GeneratePasswordResetTokenAsync(user);
 
             // take notification

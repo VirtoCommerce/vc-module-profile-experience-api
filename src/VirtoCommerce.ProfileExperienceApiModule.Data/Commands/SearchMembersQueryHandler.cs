@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -13,10 +16,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         IRequestHandler<SearchOrganizationsQuery, MemberSearchResult>
     {
         private readonly IMemberSearchService _memberSearchService;
+        private readonly IOrganizationMembershipService _organizationMembershipService;
 
-        public SearchMembersQueryHandler(IMemberSearchService memberSearchService)
+        public SearchMembersQueryHandler(
+            IMemberSearchService memberSearchService,
+            IOrganizationMembershipService organizationMembershipService)
         {
             _memberSearchService = memberSearchService;
+            _organizationMembershipService = organizationMembershipService;
         }
 
         public virtual Task<MemberSearchResult> Handle(SearchContactsQuery request, CancellationToken cancellationToken)
@@ -26,11 +33,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return _memberSearchService.SearchMembersAsync(searchCriteria);
         }
 
-        public virtual Task<MemberSearchResult> Handle(SearchOrganizationsQuery request, CancellationToken cancellationToken)
+        public virtual async Task<MemberSearchResult> Handle(SearchOrganizationsQuery request, CancellationToken cancellationToken)
         {
             var searchCriteria = BuildMembersSearchCriteria(request, nameof(Organization));
+            var result = await _memberSearchService.SearchMembersAsync(searchCriteria);
 
-            return _memberSearchService.SearchMembersAsync(searchCriteria);
+            if (!string.IsNullOrEmpty(request.UserId) && result.Results.Count > 0)
+            {
+                result = await FilterLockedOrganizationsAsync(result, request.UserId);
+            }
+
+            return result;
         }
 
         protected virtual MembersSearchCriteria BuildMembersSearchCriteria(SearchMembersQueryBase request, string memberType)
@@ -46,6 +59,27 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             result.MemberId = request.MemberId;
 
             return result;
+        }
+
+        private async Task<MemberSearchResult> FilterLockedOrganizationsAsync(MemberSearchResult result, string userId)
+        {
+            var lockedOrgIds = await _organizationMembershipService.GetLockedOrganizationIdsAsync(userId);
+            if (lockedOrgIds.Count == 0)
+            {
+                return result;
+            }
+
+            var lockedSet = new HashSet<string>(lockedOrgIds, StringComparer.OrdinalIgnoreCase);
+
+            var filtered = result.Results
+                .Where(m => !lockedSet.Contains(m.Id))
+                .ToList();
+
+            return new MemberSearchResult
+            {
+                Results = filtered,
+                TotalCount = result.TotalCount - (result.Results.Count - filtered.Count),
+            };
         }
     }
 }

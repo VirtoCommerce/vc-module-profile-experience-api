@@ -6,6 +6,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
     public class ChangeOrganizationContactRoleCommand : ICommand<IdentityResultResponse>
     {
         public string UserId { get; set; }
+        public string OrganizationId { get; set; }
         public string[] RoleIds { get; set; }
     }
 }

@@ -123,6 +123,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
                 var query = context.GetSearchMembersQuery<SearchOrganizationsQuery>();
                 query.DeepSearch = true;
+                query.UserId = context.GetCurrentPrincipal()?.FindFirstValue(ClaimTypes.NameIdentifier);
 
                 var response = await _mediator.Send(query);
 

@@ -8,6 +8,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
         public InputLockUnlockOrganizationContactType()
         {
             Field<StringGraphType>("UserId");
+            Field<StringGraphType>("OrganizationId");
         }
     }
 }

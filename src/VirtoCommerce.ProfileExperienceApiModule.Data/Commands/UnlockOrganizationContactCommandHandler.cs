@@ -1,35 +1,46 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
+using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
     public class UnlockOrganizationContactCommandHandler : IRequestHandler<UnlockOrganizationContactCommand, ContactAggregate>
     {
         private readonly IContactAggregateRepository _contactAggregateRepository;
-        private readonly IAccountService _accountService;
+        private readonly IOrganizationMembershipService _organizationMembershipService;
 
-        public UnlockOrganizationContactCommandHandler(IContactAggregateRepository contactAggregateRepository, IAccountService accountService)
+        public UnlockOrganizationContactCommandHandler(
+            IContactAggregateRepository contactAggregateRepository,
+            IOrganizationMembershipService organizationMembershipService)
         {
             _contactAggregateRepository = contactAggregateRepository;
-            _accountService = accountService;
+            _organizationMembershipService = organizationMembershipService;
         }
 
         public virtual async Task<ContactAggregate> Handle(UnlockOrganizationContactCommand request, CancellationToken cancellationToken)
         {
-            var contactAggregate = await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.UserId);
-
-            contactAggregate.Contact.Status = ModuleConstants.ContactStatuses.Approved;
-
-            await _contactAggregateRepository.SaveAsync(contactAggregate);
-
-            var account = contactAggregate.Contact.SecurityAccounts?.FirstOrDefault();
-            if (account != null)
+            if (string.IsNullOrEmpty(request.OrganizationId))
             {
-                await _accountService.UnlockAccountByIdAsync(account.Id);
+                throw new ArgumentException("OrganizationId is required for organization-scoped unlock.", nameof(request.OrganizationId));
+            }
+
+            var contactAggregate = await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.UserId)
+                ?? throw new ArgumentException($"Contact '{request.UserId}' not found.", nameof(request.UserId));
+
+            var userId = contactAggregate.Contact?.SecurityAccounts?.FirstOrDefault()?.Id;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return contactAggregate;
+            }
+
+            var membership = await _organizationMembershipService.GetByUserAndOrgAsync(userId, request.OrganizationId);
+            if (membership != null)
+            {
+                await _organizationMembershipService.UnlockAsync(membership.Id);
             }
 
             return contactAggregate;

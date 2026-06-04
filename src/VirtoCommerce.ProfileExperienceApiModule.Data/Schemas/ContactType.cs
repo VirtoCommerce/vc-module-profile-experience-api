@@ -38,11 +38,32 @@ public class ContactType : MemberBaseType<ContactAggregate>
         Func<UserManager<ApplicationUser>> userManagerFactory,
         ICustomerPreferenceService customerPreferenceService,
         IMediator mediator,
-        IMemberAggregateFactory memberAggregateFactory)
+        IMemberAggregateFactory memberAggregateFactory,
+        IOrganizationMembershipService organizationMembershipService)
         : base(storeService, dynamicPropertyResolverService, memberAddressService)
     {
         _userManagerFactory = userManagerFactory;
         _customerPreferenceService = customerPreferenceService;
+
+        Field<BooleanGraphType>("isLockedInOrganization")
+            .Argument<StringGraphType>("organizationId", "Organization ID to check lock status for")
+            .ResolveAsync(async context =>
+            {
+                var organizationId = context.GetArgument<string>("organizationId");
+                if (string.IsNullOrEmpty(organizationId))
+                {
+                    return false;
+                }
+
+                var userId = context.Source.Contact.SecurityAccounts?.FirstOrDefault()?.Id;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return false;
+                }
+
+                var membership = await organizationMembershipService.GetByUserAndOrgAsync(userId, organizationId);
+                return membership is { IsLocked: true };
+            });
 
         Field(x => x.Contact.FirstName);
         Field(x => x.Contact.LastName);
