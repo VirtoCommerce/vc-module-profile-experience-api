@@ -511,6 +511,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         {
                             var type = GenericTypeHelper.GetActualType<LockOrganizationContactCommand>();
                             var command = (LockOrganizationContactCommand)context.GetArgument(type, _commandName);
+                            command.OrganizationId = context.GetCurrentOrganizationId();
                             await CheckAuthAsync(context, command, ProfilePermissions.MyOrganizationEdit);
                             return await _mediator.Send(command);
                         })
@@ -523,6 +524,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         {
                             var type = GenericTypeHelper.GetActualType<UnlockOrganizationContactCommand>();
                             var command = (UnlockOrganizationContactCommand)context.GetArgument(type, _commandName);
+                            command.OrganizationId = context.GetCurrentOrganizationId();
                             await CheckAuthAsync(context, command, ProfilePermissions.MyOrganizationEdit);
                             return await _mediator.Send(command);
                         })
@@ -734,6 +736,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         {
                             var type = GenericTypeHelper.GetActualType<ChangeOrganizationContactRoleCommand>();
                             var command = (ChangeOrganizationContactRoleCommand)context.GetArgument(type, _commandName);
+                            command.OrganizationId = context.GetCurrentOrganizationId();
                             await CheckAuthAsync(context, command, ProfilePermissions.MyOrganizationEdit);
                             return await _mediator.Send(command);
                         })

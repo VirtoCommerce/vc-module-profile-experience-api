@@ -68,7 +68,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             };
 
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentException>(() =>
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 handler.Handle(command, CancellationToken.None));
         }
 

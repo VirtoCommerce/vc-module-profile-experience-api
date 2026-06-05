@@ -25,7 +25,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             var command = new UnlockOrganizationContactCommand { UserId = "contact-1", OrganizationId = null };
 
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentException>(() =>
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 handler.Handle(command, CancellationToken.None));
         }
 
@@ -41,7 +41,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             var command = new UnlockOrganizationContactCommand { UserId = "missing-contact", OrganizationId = "org-1" };
 
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentException>(() =>
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 handler.Handle(command, CancellationToken.None));
         }
 

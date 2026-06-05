@@ -49,7 +49,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             }
 
             var contactAggregate = await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.UserId)
-                ?? throw new ArgumentException($"Contact '{request.UserId}' not found.", nameof(request.UserId));
+                ?? throw new InvalidOperationException($"Contact '{request.UserId}' not found.");
 
             var userId = contactAggregate.Contact?.SecurityAccounts?.FirstOrDefault()?.Id;
             if (string.IsNullOrEmpty(userId))

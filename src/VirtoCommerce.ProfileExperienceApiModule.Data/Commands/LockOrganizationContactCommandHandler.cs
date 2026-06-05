@@ -25,11 +25,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         {
             if (string.IsNullOrEmpty(request.OrganizationId))
             {
-                throw new ArgumentException("OrganizationId is required for organization-scoped lock.", nameof(request.OrganizationId));
+                throw new InvalidOperationException("OrganizationId is required for organization-scoped lock.");
             }
 
             var contactAggregate = await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.UserId)
-                ?? throw new ArgumentException($"Contact '{request.UserId}' not found.", nameof(request.UserId));
+                ?? throw new InvalidOperationException($"Contact '{request.UserId}' not found.");
 
             var userId = contactAggregate.Contact?.SecurityAccounts?.FirstOrDefault()?.Id;
             if (string.IsNullOrEmpty(userId))
