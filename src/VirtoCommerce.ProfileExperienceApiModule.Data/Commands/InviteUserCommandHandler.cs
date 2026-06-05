@@ -147,6 +147,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return user;
         }
 
+        [Obsolete("Use AssignUserRoles(user, roleIds, organizationId) instead.", DiagnosticId = "VC0014")]
+        protected virtual Task<List<IdentityErrorInfo>> AssignUserRoles(ApplicationUser user, string[] roleIds)
+            => AssignUserRoles(user, roleIds, organizationId: null);
+
         protected virtual async Task<List<IdentityErrorInfo>> AssignUserRoles(ApplicationUser user, string[] roleIds, string organizationId)
         {
             var errors = new List<IdentityErrorInfo>();
