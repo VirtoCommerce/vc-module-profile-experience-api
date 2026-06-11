@@ -99,7 +99,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         }
 
         [Fact]
-        public async Task Handle_MembershipNotFound_ReturnsContactWithoutLocking()
+        public async Task Handle_MembershipNotFound_ThrowsInvalidOperationException()
         {
             // Arrange
             const string securityUserId = "user-1";
@@ -121,12 +121,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             var handler = BuildHandler();
             var command = new LockOrganizationContactCommand { MemberId = "contact-1", OrganizationId = "org-1" };
 
-            // Act
-            var result = await handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            Assert.Same(aggregate, result);
-            _membershipServiceMock.Verify(x => x.LockAsync(It.IsAny<string>(), It.IsAny<DateTime?>()), Times.Never);
+            // Act & Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                handler.Handle(command, CancellationToken.None));
         }
 
         private LockOrganizationContactCommandHandler BuildHandler() =>

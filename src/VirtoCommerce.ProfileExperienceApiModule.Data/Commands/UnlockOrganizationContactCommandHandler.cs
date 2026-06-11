@@ -37,11 +37,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return contactAggregate;
             }
 
-            var membership = await _organizationMembershipService.GetByUserAndOrgAsync(userId, request.OrganizationId);
-            if (membership != null)
-            {
-                await _organizationMembershipService.UnlockAsync(membership.Id);
-            }
+            var membership = await _organizationMembershipService.GetByUserAndOrgAsync(userId, request.OrganizationId)
+                ?? throw new InvalidOperationException($"Contact '{request.MemberId}' has no membership in organization '{request.OrganizationId}'.");
+
+            await _organizationMembershipService.UnlockAsync(membership.Id);
 
             return contactAggregate;
         }
