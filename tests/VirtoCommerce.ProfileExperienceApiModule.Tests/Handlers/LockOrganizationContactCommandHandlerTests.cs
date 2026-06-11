@@ -22,7 +22,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         {
             // Arrange
             var handler = BuildHandler();
-            var command = new LockOrganizationContactCommand { UserId = "contact-1", OrganizationId = null };
+            var command = new LockOrganizationContactCommand { MemberId = "contact-1", OrganizationId = null };
 
             // Act & Assert
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -38,7 +38,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 .ReturnsAsync((ContactAggregate)null);
 
             var handler = BuildHandler();
-            var command = new LockOrganizationContactCommand { UserId = "missing-contact", OrganizationId = "org-1" };
+            var command = new LockOrganizationContactCommand { MemberId = "missing-contact", OrganizationId = "org-1" };
 
             // Act & Assert
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -57,7 +57,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 .ReturnsAsync(aggregate);
 
             var handler = BuildHandler();
-            var command = new LockOrganizationContactCommand { UserId = "contact-1", OrganizationId = "org-1" };
+            var command = new LockOrganizationContactCommand { MemberId = "contact-1", OrganizationId = "org-1" };
 
             // Act
             var result = await handler.Handle(command, CancellationToken.None);
@@ -89,7 +89,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 .ReturnsAsync(new OrganizationMembership { Id = membershipId });
 
             var handler = BuildHandler();
-            var command = new LockOrganizationContactCommand { UserId = "contact-1", OrganizationId = "org-1" };
+            var command = new LockOrganizationContactCommand { MemberId = "contact-1", OrganizationId = "org-1" };
 
             // Act
             await handler.Handle(command, CancellationToken.None);
@@ -119,7 +119,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 .ReturnsAsync((OrganizationMembership)null);
 
             var handler = BuildHandler();
-            var command = new LockOrganizationContactCommand { UserId = "contact-1", OrganizationId = "org-1" };
+            var command = new LockOrganizationContactCommand { MemberId = "contact-1", OrganizationId = "org-1" };
 
             // Act
             var result = await handler.Handle(command, CancellationToken.None);

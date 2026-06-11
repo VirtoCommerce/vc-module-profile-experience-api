@@ -38,7 +38,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             var handler = BuildHandler();
             var command = new ChangeOrganizationContactRoleCommand
             {
-                UserId = "contact-1",
+                MemberId = "contact-1",
                 OrganizationId = null,
                 RoleIds = ["role-1"]
             };
@@ -62,7 +62,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             var handler = BuildHandler();
             var command = new ChangeOrganizationContactRoleCommand
             {
-                UserId = "missing-contact",
+                MemberId = "missing-contact",
                 OrganizationId = "org-1",
                 RoleIds = ["role-1"]
             };
@@ -95,7 +95,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             var handler = BuildHandler();
             var command = new ChangeOrganizationContactRoleCommand
             {
-                UserId = "contact-1",
+                MemberId = "contact-1",
                 OrganizationId = "org-1",
                 RoleIds = ["role-1"]
             };
@@ -133,7 +133,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             var handler = BuildHandler();
             var command = new ChangeOrganizationContactRoleCommand
             {
-                UserId = "contact-1",
+                MemberId = "contact-1",
                 OrganizationId = "org-1",
                 RoleIds = ["role-1"]
             };

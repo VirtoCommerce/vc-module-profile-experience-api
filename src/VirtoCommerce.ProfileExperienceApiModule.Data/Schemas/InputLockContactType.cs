@@ -7,7 +7,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
     {
         public InputLockUnlockOrganizationContactType()
         {
-            Field<StringGraphType>("UserId");
+            Field<NonNullGraphType<StringGraphType>>("MemberId").Description("Contact member ID");
         }
     }
 }

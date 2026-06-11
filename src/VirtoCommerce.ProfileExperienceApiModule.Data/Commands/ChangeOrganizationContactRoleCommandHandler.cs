@@ -48,13 +48,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return result;
             }
 
-            var contactAggregate = await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.UserId)
-                ?? throw new InvalidOperationException($"Contact '{request.UserId}' not found.");
+            var contactAggregate = await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.MemberId)
+                ?? throw new InvalidOperationException($"Contact '{request.MemberId}' not found.");
 
             var userId = contactAggregate.Contact?.SecurityAccounts?.FirstOrDefault()?.Id;
             if (string.IsNullOrEmpty(userId))
             {
-                result.Errors.Add(new IdentityErrorInfo { Description = "It is forbidden to edit this user." });
+                result.Errors.Add(new IdentityErrorInfo { Code = "Forbidden", Description = "It is forbidden to edit this user." });
                 return result;
             }
 
@@ -62,7 +62,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             var user = await userManager.FindByIdAsync(userId);
             if (user == null || !IsUserEditable(user.UserName))
             {
-                result.Errors.Add(new IdentityErrorInfo { Description = "It is forbidden to edit this user." });
+                result.Errors.Add(new IdentityErrorInfo { Code = "Forbidden", Description = "It is forbidden to edit this user." });
                 return result;
             }
 
@@ -92,7 +92,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 result.Errors.Add(new IdentityErrorInfo
                 {
                     Code = "MembershipNotFound",
-                    Description = $"User '{request.UserId}' has no membership in organization '{request.OrganizationId}'.",
+                    Description = $"Contact '{request.MemberId}' has no membership in organization '{request.OrganizationId}'.",
                 });
                 return result;
             }

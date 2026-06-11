@@ -65,6 +65,27 @@ public class ContactType : MemberBaseType<ContactAggregate>
                 return membership is { IsLocked: true };
             });
 
+        Field<ListGraphType<RoleType>>("rolesInOrganization")
+            .Argument<StringGraphType>("organizationId", "Organization ID to get roles for")
+            .ResolveAsync(async context =>
+            {
+                var organizationId = context.GetArgument<string>("organizationId");
+                if (string.IsNullOrEmpty(organizationId))
+                {
+                    return null;
+                }
+
+                var userId = context.Source.Contact.SecurityAccounts?.FirstOrDefault()?.Id;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return null;
+                }
+
+                var membership = await organizationMembershipService.GetByUserAndOrgAsync(userId, organizationId);
+
+                return membership?.Roles?.Select(r => new Role { Id = r.RoleId, Name = r.RoleName }).ToList();
+            });
+
         Field(x => x.Contact.FirstName);
         Field(x => x.Contact.LastName);
         Field(x => x.Contact.MiddleName, true);

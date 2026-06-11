@@ -28,8 +28,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 throw new InvalidOperationException("OrganizationId is required for organization-scoped lock.");
             }
 
-            var contactAggregate = await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.UserId)
-                ?? throw new InvalidOperationException($"Contact '{request.UserId}' not found.");
+            var contactAggregate = await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.MemberId)
+                ?? throw new InvalidOperationException($"Contact '{request.MemberId}' not found.");
 
             var userId = contactAggregate.Contact?.SecurityAccounts?.FirstOrDefault()?.Id;
             if (string.IsNullOrEmpty(userId))
