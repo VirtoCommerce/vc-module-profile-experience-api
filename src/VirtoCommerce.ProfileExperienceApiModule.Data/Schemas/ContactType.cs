@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using GraphQL;
@@ -47,44 +48,11 @@ public class ContactType : MemberBaseType<ContactAggregate>
 
         Field<BooleanGraphType>("isLockedInOrganization")
             .Argument<StringGraphType>("organizationId", "Organization ID to check lock status for")
-            .ResolveAsync(async context =>
-            {
-                var organizationId = context.GetArgument<string>("organizationId");
-                if (string.IsNullOrEmpty(organizationId))
-                {
-                    return false;
-                }
-
-                var userId = context.Source.Contact.SecurityAccounts?.FirstOrDefault()?.Id;
-                if (string.IsNullOrEmpty(userId))
-                {
-                    return false;
-                }
-
-                var membership = await organizationMembershipService.GetByUserAndOrgAsync(userId, organizationId);
-                return membership is { IsLocked: true };
-            });
+            .ResolveAsync(async context => await GetIsLockedInOrganizationAsync(context, organizationMembershipService));
 
         Field<ListGraphType<RoleType>>("rolesInOrganization")
             .Argument<StringGraphType>("organizationId", "Organization ID to get roles for")
-            .ResolveAsync(async context =>
-            {
-                var organizationId = context.GetArgument<string>("organizationId");
-                if (string.IsNullOrEmpty(organizationId))
-                {
-                    return null;
-                }
-
-                var userId = context.Source.Contact.SecurityAccounts?.FirstOrDefault()?.Id;
-                if (string.IsNullOrEmpty(userId))
-                {
-                    return null;
-                }
-
-                var membership = await organizationMembershipService.GetByUserAndOrgAsync(userId, organizationId);
-
-                return membership?.Roles?.Select(r => new Role { Id = r.RoleId, Name = r.RoleName }).ToList();
-            });
+            .ResolveAsync(async context => await GetRolesInOrganizationAsync(context, organizationMembershipService));
 
         Field(x => x.Contact.FirstName);
         Field(x => x.Contact.LastName);
@@ -157,6 +125,48 @@ public class ContactType : MemberBaseType<ContactAggregate>
         AddField(organizationsConnectionBuilder.FieldType);
 
         #endregion
+    }
+
+    private static async Task<bool> GetIsLockedInOrganizationAsync(
+        IResolveFieldContext<ContactAggregate> context,
+        IOrganizationMembershipService organizationMembershipService)
+    {
+        var organizationId = context.GetArgument<string>("organizationId");
+        if (string.IsNullOrEmpty(organizationId))
+        {
+            return false;
+        }
+
+        var userId = context.Source.Contact.SecurityAccounts?.FirstOrDefault()?.Id;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return false;
+        }
+
+        var membership = await organizationMembershipService.GetByUserAndOrgAsync(userId, organizationId);
+
+        return membership is { IsLocked: true };
+    }
+
+    private static async Task<IEnumerable<Role>> GetRolesInOrganizationAsync(
+        IResolveFieldContext<ContactAggregate> context,
+        IOrganizationMembershipService organizationMembershipService)
+    {
+        var organizationId = context.GetArgument<string>("organizationId");
+        if (string.IsNullOrEmpty(organizationId))
+        {
+            return null;
+        }
+
+        var userId = context.Source.Contact.SecurityAccounts?.FirstOrDefault()?.Id;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return null;
+        }
+
+        var membership = await organizationMembershipService.GetByUserAndOrgAsync(userId, organizationId);
+
+        return membership?.Roles?.Select(r => new Role { Id = r.RoleId, Name = r.RoleName });
     }
 
     private static async Task<Store> GetStore(IResolveFieldContext<ContactAggregate> context, IStoreService storeService)
