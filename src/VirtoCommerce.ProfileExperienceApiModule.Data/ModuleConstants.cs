@@ -7,8 +7,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data
             public static class Permissions
             {
                 public const string MyOrganizationEdit = "xapi:my_organization:edit";
+                public const string MyOrganizationUserInvite = "xapi:my_organization:user:invite";
+                public const string MyOrganizationOrderView = "xapi:my_organization:order:view";
 
-                public static string[] AllPermissions { get; } = { MyOrganizationEdit };
+                public static string[] AllPermissions { get; } = { MyOrganizationEdit, MyOrganizationUserInvite, MyOrganizationOrderView };
             }
         }
 
