@@ -62,13 +62,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries
 
             if (result != null)
             {
-                await AugmentWithOrganizationRolesAsync(result);
+                await ApplyOrganizationRolesAsync(result);
             }
 
             return result;
         }
 
-        protected virtual async Task AugmentWithOrganizationRolesAsync(ApplicationUser user)
+        protected virtual async Task ApplyOrganizationRolesAsync(ApplicationUser user)
         {
             var organizationId = _httpContextAccessor?.HttpContext?.User?.FindFirstValue("organization_id");
 
