@@ -44,6 +44,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly OrganizationValidator _organizationValidator;
         private readonly IOptions<FrontendSecurityOptions> _securityOptions;
         private readonly IMediator _mediator;
+        private readonly IOrganizationMembershipService _organizationMembershipService;
 
         protected Store CurrentStore { get; private set; }
         protected string EmailVerificationFlow { get; private set; }
@@ -64,7 +65,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             AddressValidator addressValidator,
             OrganizationValidator organizationValidator,
             IOptions<FrontendSecurityOptions> securityOptions,
-            IMediator mediator)
+            IMediator mediator,
+            IOrganizationMembershipService organizationMembershipService)
 #pragma warning restore S107
         {
             _mapper = mapper;
@@ -78,6 +80,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _organizationValidator = organizationValidator;
             _securityOptions = securityOptions;
             _mediator = mediator;
+            _organizationMembershipService = organizationMembershipService;
         }
 
         public virtual async Task<RegisterOrganizationResult> Handle(RegisterRequestCommand request, CancellationToken cancellationToken)
@@ -145,7 +148,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             if (request.Organization != null)
             {
                 organization = await ToOrganization(request.Organization, contact, account);
-                account.Roles = new List<Role> { MaintainerRole };
             }
 
             // Validate parameters & stop processing if any error is occurred
@@ -190,6 +192,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             // Save account to result
             result.Contact.SecurityAccounts = new List<ApplicationUser> { account };
 
+            if (organization != null)
+            {
+                await CreateOrganizationMembershipAsync(account, organization.Id, MaintainerRole);
+            }
+
             // Send email notifications
             switch (EmailVerificationFlow)
             {
@@ -225,6 +232,25 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                     }
                     break;
             }
+        }
+
+        protected virtual async Task CreateOrganizationMembershipAsync(ApplicationUser account, string organizationId, Role role)
+        {
+            var membership = new OrganizationMembership
+            {
+                UserId = account.Id,
+                OrganizationId = organizationId,
+                Roles =
+                [
+                    new OrganizationMembershipRole
+                    {
+                        RoleId = role.Id,
+                        RoleName = role.Name,
+                    }
+                ],
+            };
+
+            await _organizationMembershipService.SaveChangesAsync([membership]);
         }
 
         protected virtual void LockAccount(ApplicationUser account, bool requireAccountLock)

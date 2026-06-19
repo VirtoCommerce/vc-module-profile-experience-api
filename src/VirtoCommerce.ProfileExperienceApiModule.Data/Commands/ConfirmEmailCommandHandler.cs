@@ -60,8 +60,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
                 if (identityResult.Succeeded)
                 {
-                    var unlockContactCommand = new UnlockOrganizationContactCommand { UserId = user.MemberId };
-                    await _mediator.Send(unlockContactCommand, cancellationToken);
+                    await userManager.SetLockoutEndDateAsync(user, null);
 
                     await SendRegistrationNotification(user, cancellationToken);
                 }

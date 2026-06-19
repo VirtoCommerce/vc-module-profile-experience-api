@@ -1,16 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Identity;
-using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
+using VirtoCommerce.Xapi.Core.Infrastructure;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
     public class UnlockOrganizationContactCommand : ICommand<ContactAggregate>
     {
-        public string UserId { get; set; }
+        public string MemberId { get; set; }
+        public string OrganizationId { get; set; }
     }
 }

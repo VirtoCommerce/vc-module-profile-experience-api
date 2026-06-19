@@ -123,6 +123,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
                 var query = context.GetSearchMembersQuery<SearchOrganizationsQuery>();
                 query.DeepSearch = true;
+                query.UserId = context.GetCurrentPrincipal()?.FindFirstValue(ClaimTypes.NameIdentifier);
 
                 var response = await _mediator.Send(query);
 
@@ -510,6 +511,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         {
                             var type = GenericTypeHelper.GetActualType<LockOrganizationContactCommand>();
                             var command = (LockOrganizationContactCommand)context.GetArgument(type, _commandName);
+                            command.OrganizationId = context.GetCurrentOrganizationId();
                             await CheckAuthAsync(context, command, ProfilePermissions.MyOrganizationEdit);
                             return await _mediator.Send(command);
                         })
@@ -522,6 +524,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         {
                             var type = GenericTypeHelper.GetActualType<UnlockOrganizationContactCommand>();
                             var command = (UnlockOrganizationContactCommand)context.GetArgument(type, _commandName);
+                            command.OrganizationId = context.GetCurrentOrganizationId();
                             await CheckAuthAsync(context, command, ProfilePermissions.MyOrganizationEdit);
                             return await _mediator.Send(command);
                         })
@@ -624,7 +627,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         {
                             var type = GenericTypeHelper.GetActualType<InviteUserCommand>();
                             var command = (InviteUserCommand)context.GetArgument(type, _commandName);
-                            await CheckAuthAsync(context, command);
+                            await CheckAuthAsync(context, command, ProfilePermissions.MyOrganizationUserInvite);
                             return await _mediator.Send(command);
                         })
                         .FieldType);
@@ -733,6 +736,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         {
                             var type = GenericTypeHelper.GetActualType<ChangeOrganizationContactRoleCommand>();
                             var command = (ChangeOrganizationContactRoleCommand)context.GetArgument(type, _commandName);
+                            command.OrganizationId = context.GetCurrentOrganizationId();
                             await CheckAuthAsync(context, command, ProfilePermissions.MyOrganizationEdit);
                             return await _mediator.Send(command);
                         })
@@ -823,7 +827,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                     throw AuthorizationError.PasswordExpired();
                 }
 
-                // Why do we create a new principal???
                 var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
 
                 if (!string.IsNullOrEmpty(permission) && PermissionRequired(user, resource))
@@ -833,7 +836,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         throw AuthorizationError.AnonymousAccessDenied();
                     }
 
-                    var permissionAuthorizationResult = await _authorizationService.AuthorizeAsync(userPrincipal,
+                    // Use the principal from the HTTP context (JWT) rather than the DB-reconstructed principal,
+                    // because org-scoped permissions are added to the JWT by OrganizationIdClaimProvider
+                    // and are not present in roles loaded from the database.
+                    var permissionAuthorizationResult = await _authorizationService.AuthorizeAsync(principal,
                         null, new PermissionAuthorizationRequirement(permission));
                     if (!permissionAuthorizationResult.Succeeded)
                     {

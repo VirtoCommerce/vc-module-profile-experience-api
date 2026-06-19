@@ -5,6 +5,7 @@ using GraphQL.Resolvers;
 using GraphQL.Types;
 using MediatR;
 using Microsoft.Extensions.Options;
+using VirtoCommerce.Platform.Core;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Security.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
@@ -38,7 +39,22 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field(x => x.PhoneNumberConfirmed);
             Field(x => x.PhotoUrl, true);
             Field<ListGraphType<RoleType>>("roles").Resolve(x => x.Source.Roles);
-            Field<ListGraphType<StringGraphType>>("permissions").Resolve(x => x.Source.Roles?.SelectMany(r => r.Permissions?.Select(p => p.Name)).Distinct()).Description("Account permissions");
+            Field<ListGraphType<StringGraphType>>("permissions")
+                .Resolve(x =>
+                {
+                    // Prefer JWT claims: OrganizationIdClaimProvider merges global + org-scoped permissions
+                    // into the token, so the token is authoritative for the current org context.
+                    // Fallback to database roles for internal calls without an auth context.
+                    var permissionsFromToken = x.GetCurrentPrincipal()
+                        ?.FindAll(PlatformConstants.Security.Claims.PermissionClaimType)
+                        .Select(c => c.Value)
+                        .ToList();
+
+                    return permissionsFromToken?.Count > 0
+                        ? permissionsFromToken.Distinct()
+                        : x.Source.Roles?.SelectMany(r => r.Permissions?.Select(p => p.Name)).Distinct();
+                })
+                .Description("Account permissions");
             Field(x => x.SecurityStamp);
             Field(x => x.StoreId, true);
             Field(x => x.TwoFactorEnabled);

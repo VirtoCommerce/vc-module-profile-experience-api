@@ -8,8 +8,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
     {
         public InputChangeOrganizationContactRoleType()
         {
-            Field<StringGraphType>(nameof(ChangeOrganizationContactRoleCommand.UserId)).Description("User identifier to be changed");
-            Field<ListGraphType<NonNullGraphType<StringGraphType>>>(nameof(ChangeOrganizationContactRoleCommand.RoleIds)).Description("Role IDs or names to be assigned to the user");
+            Field<NonNullGraphType<StringGraphType>>(nameof(ChangeOrganizationContactRoleCommand.MemberId)).Description("Contact member ID to be changed");
+            Field<ListGraphType<NonNullGraphType<StringGraphType>>>(nameof(ChangeOrganizationContactRoleCommand.RoleIds)).Description("Role IDs or names to be assigned to the user within the organization");
         }
     }
 }

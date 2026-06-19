@@ -147,13 +147,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     }
                     break;
                 case LockOrganizationContactCommand lockOrganizationContact:
-                    result = await HasSameOrganizationAsync(currentContact, lockOrganizationContact.UserId, userManager);
+                    result = await HasSameOrganizationAsync(currentContact, lockOrganizationContact.MemberId, userManager);
                     break;
                 case UnlockOrganizationContactCommand unlockOrganizationContact:
-                    result = await HasSameOrganizationAsync(currentContact, unlockOrganizationContact.UserId, userManager);
+                    result = await HasSameOrganizationAsync(currentContact, unlockOrganizationContact.MemberId, userManager);
                     break;
                 case ChangeOrganizationContactRoleCommand changeOrganizationContactRoleCommand:
-                    result = await HasSameOrganizationAsync(currentContact, changeOrganizationContactRoleCommand.UserId, userManager);
+                    result = await HasSameOrganizationAsync(currentContact, changeOrganizationContactRoleCommand.MemberId, userManager);
                     break;
                 case RemoveMemberFromOrganizationCommand removeMemberFromOrganizationCommand:
                     result = await HasSameOrganizationAsync(currentContact, removeMemberFromOrganizationCommand.ContactId, userManager);

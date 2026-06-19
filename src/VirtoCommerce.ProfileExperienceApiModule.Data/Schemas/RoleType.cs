@@ -12,7 +12,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field(x => x.Id);
             Field(x => x.Name);
             Field(x => x.NormalizedName);
-            Field("permissions", x => x.Permissions.Select(x => x.Name).ToArray()).Description("Permissions in Role");
+            Field<ListGraphType<StringGraphType>>("permissions")
+                .Resolve(x => x.Source.Permissions?.Select(p => p.Name).ToArray() ?? [])
+                .Description("Permissions in Role");
         }
     }
 }
