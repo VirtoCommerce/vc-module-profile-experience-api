@@ -137,15 +137,20 @@ public class ContactType : MemberBaseType<ContactAggregate>
             return false;
         }
 
-        var userId = context.Source.Contact.SecurityAccounts?.FirstOrDefault()?.Id;
-        if (string.IsNullOrEmpty(userId))
+        var userIds = context.Source.Contact.SecurityAccounts?
+            .Select(sa => sa.Id)
+            .Where(id => !string.IsNullOrEmpty(id))
+            .ToList() ?? [];
+
+        if (userIds.Count == 0)
         {
             return false;
         }
 
-        var membership = await organizationMembershipService.GetByUserAndOrgAsync(userId, organizationId);
+        var memberships = await Task.WhenAll(
+            userIds.Select(uid => organizationMembershipService.GetByUserAndOrgAsync(uid, organizationId)));
 
-        return membership is { IsLocked: true };
+        return memberships.Any(m => m?.IsCurrentlyLocked == true);
     }
 
     private static async Task<IEnumerable<Role>> GetRolesInOrganizationAsync(
@@ -158,15 +163,23 @@ public class ContactType : MemberBaseType<ContactAggregate>
             return null;
         }
 
-        var userId = context.Source.Contact.SecurityAccounts?.FirstOrDefault()?.Id;
-        if (string.IsNullOrEmpty(userId))
-        {
-            return null;
-        }
+        var userIds = context.Source.Contact.SecurityAccounts?
+            .Select(sa => sa.Id)
+            .Where(id => !string.IsNullOrEmpty(id))
+            .ToList() ?? [];
 
-        var membership = await organizationMembershipService.GetByUserAndOrgAsync(userId, organizationId);
+        var allRoles = await Task.WhenAll(
+            userIds.Select(uid => organizationMembershipService.GetRolesByUserAndOrgAsync(uid, organizationId)));
 
-        return membership?.Roles?.Select(r => new Role { Id = r.RoleId, Name = r.RoleName });
+        var seenIds = new HashSet<string>();
+
+        var result = allRoles
+            .SelectMany(roles => roles)
+            .Where(r => seenIds.Add(r.RoleId))
+            .Select(r => new Role { Id = r.RoleId, Name = r.RoleName })
+            .ToList();
+
+        return result.Count > 0 ? result : null;
     }
 
     private static async Task<Store> GetStore(IResolveFieldContext<ContactAggregate> context, IStoreService storeService)
