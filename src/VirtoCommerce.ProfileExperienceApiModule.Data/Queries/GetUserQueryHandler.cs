@@ -3,7 +3,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentValidation;
 using Microsoft.AspNetCore.Identity;
-using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.Xapi.Core.Infrastructure;
@@ -27,21 +26,21 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries
 
             using var userManager = _userManagerFactory();
 
-            if (!request.Id.IsNullOrEmpty())
+            if (!string.IsNullOrEmpty(request.Id))
             {
                 result = await userManager.FindByIdAsync(request.Id);
             }
-            else if (!request.LoginProvider.IsNullOrEmpty() && !request.ProviderKey.IsNullOrEmpty())
+            else if (!string.IsNullOrEmpty(request.LoginProvider) && !string.IsNullOrEmpty(request.ProviderKey))
             {
                 result = await userManager.FindByLoginAsync(request.LoginProvider, request.ProviderKey);
             }
             else
             {
-                if (!request.UserName.IsNullOrEmpty())
+                if (!string.IsNullOrEmpty(request.UserName))
                 {
                     result = await userManager.FindByNameAsync(request.UserName);
                 }
-                if (result == null && !request.Email.IsNullOrEmpty())
+                if (result == null && !string.IsNullOrEmpty(request.Email))
                 {
                     result = await userManager.FindByEmailAsync(request.Email);
                 }
