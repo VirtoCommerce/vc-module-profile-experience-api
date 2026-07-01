@@ -16,14 +16,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         IRequestHandler<SearchOrganizationsQuery, MemberSearchResult>
     {
         private readonly IMemberSearchService _memberSearchService;
-        private readonly IOrganizationMembershipService _organizationMembershipService;
+        private readonly IOrganizationMembershipSearchService _organizationMembershipSearchService;
 
         public SearchMembersQueryHandler(
             IMemberSearchService memberSearchService,
-            IOrganizationMembershipService organizationMembershipService)
+            IOrganizationMembershipSearchService organizationMembershipSearchService)
         {
             _memberSearchService = memberSearchService;
-            _organizationMembershipService = organizationMembershipService;
+            _organizationMembershipSearchService = organizationMembershipSearchService;
         }
 
         public virtual Task<MemberSearchResult> Handle(SearchContactsQuery request, CancellationToken cancellationToken)
@@ -63,7 +63,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         private async Task<MemberSearchResult> FilterLockedOrganizationsAsync(MemberSearchResult result, string userId)
         {
-            var lockedOrgIds = await _organizationMembershipService.GetLockedOrganizationIdsAsync(userId);
+            var lockedMemberships = await _organizationMembershipSearchService.SearchAllNoCloneAsync(
+                new OrganizationMembershipSearchCriteria
+                {
+                    UserId = userId,
+                    OnlyLocked = true
+                });
+
+            var lockedOrgIds = lockedMemberships
+                .Select(x => x.OrganizationId)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .ToList();
+
             if (lockedOrgIds.Count == 0)
             {
                 return result;

@@ -19,6 +19,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
     {
         private readonly Mock<IContactAggregateRepository> _contactRepoMock = new();
         private readonly Mock<IOrganizationMembershipService> _membershipServiceMock = new();
+        private readonly Mock<IOrganizationMembershipSearchService> _membershipSearchServiceMock = new();
         private readonly Mock<UserManager<ApplicationUser>> _userManagerMock;
         private readonly Mock<RoleManager<Role>> _roleManagerMock;
 
@@ -88,9 +89,15 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 .Setup(x => x.FindByIdAsync("role-1"))
                 .ReturnsAsync(new Role { Id = "role-1", Name = "TestRole", NormalizedName = "TESTROLE" });
 
-            _membershipServiceMock
-                .Setup(x => x.GetByUserAndOrgAsync(securityUserId, "org-1"))
-                .ReturnsAsync((OrganizationMembership)null);
+            _membershipSearchServiceMock
+                .Setup(x => x.SearchAsync(
+                    It.Is<OrganizationMembershipSearchCriteria>(c => c.UserId == securityUserId && c.OrganizationId == "org-1"),
+                    It.IsAny<bool>()))
+                .ReturnsAsync(new OrganizationMembershipSearchResult
+                {
+                    Results = [],
+                    TotalCount = 0
+                });
 
             var handler = BuildHandler();
             var command = new ChangeOrganizationContactRoleCommand
@@ -126,9 +133,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 .ReturnsAsync(new Role { Id = "role-1", Name = "TestRole", NormalizedName = "TESTROLE" });
 
             var membership = new OrganizationMembership { Id = membershipId, Roles = [] };
-            _membershipServiceMock
-                .Setup(x => x.GetByUserAndOrgAsync(securityUserId, "org-1"))
-                .ReturnsAsync(membership);
+
+            _membershipSearchServiceMock
+                .Setup(x => x.SearchAsync(
+                    It.Is<OrganizationMembershipSearchCriteria>(c => c.UserId == securityUserId && c.OrganizationId == "org-1"),
+                    It.IsAny<bool>()))
+                .ReturnsAsync(
+                    new OrganizationMembershipSearchResult
+                    {
+                        Results = [membership],
+                        TotalCount = 1
+                    });
 
             var handler = BuildHandler();
             var command = new ChangeOrganizationContactRoleCommand
@@ -169,6 +184,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 () => userManager,
                 () => roleManager,
                 _membershipServiceMock.Object,
+                _membershipSearchServiceMock.Object,
                 _contactRepoMock.Object,
                 Options.Create(new AuthorizationOptions()));
         }

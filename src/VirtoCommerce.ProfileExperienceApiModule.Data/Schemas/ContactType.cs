@@ -7,6 +7,7 @@ using GraphQL.Types;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using VirtoCommerce.CustomerModule.Core.Extensions;
+using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Model.Search;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
@@ -40,7 +41,7 @@ public class ContactType : MemberBaseType<ContactAggregate>
         ICustomerPreferenceService customerPreferenceService,
         IMediator mediator,
         IMemberAggregateFactory memberAggregateFactory,
-        IOrganizationMembershipService organizationMembershipService)
+        IOrganizationMembershipSearchService organizationMembershipSearchService)
         : base(storeService, dynamicPropertyResolverService, memberAddressService)
     {
         _userManagerFactory = userManagerFactory;
@@ -48,11 +49,11 @@ public class ContactType : MemberBaseType<ContactAggregate>
 
         Field<BooleanGraphType>("isLockedInOrganization")
             .Argument<StringGraphType>("organizationId", "Organization ID to check lock status for")
-            .ResolveAsync(async context => await GetIsLockedInOrganizationAsync(context, organizationMembershipService));
+            .ResolveAsync(async context => await GetIsLockedInOrganizationAsync(context, organizationMembershipSearchService));
 
         Field<ListGraphType<RoleType>>("rolesInOrganization")
             .Argument<StringGraphType>("organizationId", "Organization ID to get roles for")
-            .ResolveAsync(async context => await GetRolesInOrganizationAsync(context, organizationMembershipService));
+            .ResolveAsync(async context => await GetRolesInOrganizationAsync(context, organizationMembershipSearchService));
 
         Field(x => x.Contact.FirstName);
         Field(x => x.Contact.LastName);
@@ -129,7 +130,7 @@ public class ContactType : MemberBaseType<ContactAggregate>
 
     private static async Task<bool> GetIsLockedInOrganizationAsync(
         IResolveFieldContext<ContactAggregate> context,
-        IOrganizationMembershipService organizationMembershipService)
+        IOrganizationMembershipSearchService organizationMembershipSearchService)
     {
         var organizationId = context.GetArgument<string>("organizationId");
         if (string.IsNullOrEmpty(organizationId))
@@ -147,15 +148,21 @@ public class ContactType : MemberBaseType<ContactAggregate>
             return false;
         }
 
-        var memberships = await Task.WhenAll(
-            userIds.Select(uid => organizationMembershipService.GetByUserAndOrgAsync(uid, organizationId)));
+        var result = await organizationMembershipSearchService.SearchAsync(
+            new OrganizationMembershipSearchCriteria
+            {
+                UserIds = userIds,
+                OrganizationId = organizationId,
+                OnlyLocked = true,
+                Take = 1,
+            });
 
-        return memberships.Any(m => m?.IsCurrentlyLocked == true);
+        return result.TotalCount > 0;
     }
 
     private static async Task<IEnumerable<Role>> GetRolesInOrganizationAsync(
         IResolveFieldContext<ContactAggregate> context,
-        IOrganizationMembershipService organizationMembershipService)
+        IOrganizationMembershipSearchService organizationMembershipService)
     {
         var organizationId = context.GetArgument<string>("organizationId");
         if (string.IsNullOrEmpty(organizationId))
@@ -168,12 +175,15 @@ public class ContactType : MemberBaseType<ContactAggregate>
             .Where(id => !string.IsNullOrEmpty(id))
             .ToList() ?? [];
 
-        var allRoles = await Task.WhenAll(
-            userIds.Select(uid => organizationMembershipService.GetRolesByUserAndOrgAsync(uid, organizationId)));
+        if (userIds.Count == 0)
+        {
+            return null;
+        }
+
+        var rolesByUser = await organizationMembershipService.GetRolesForUsersInOrgAsync(userIds, organizationId);
 
         var seenIds = new HashSet<string>();
-
-        var result = allRoles
+        var result = rolesByUser.Values
             .SelectMany(roles => roles)
             .Where(r => seenIds.Add(r.RoleId))
             .Select(r => new Role { Id = r.RoleId, Name = r.RoleName })

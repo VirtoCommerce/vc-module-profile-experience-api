@@ -8,7 +8,9 @@ using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.CustomerModule.Core.Model.Search;
 using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
@@ -32,7 +34,8 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
         IMediator mediator,
         IMemberAggregateFactory factory,
         IMemberService memberService,
-        IOrganizationMembershipService organizationMembershipService,
+        IMemberSearchService memberSearchService,
+        IOrganizationMembershipSearchService organizationMembershipService,
         Func<RoleManager<Role>> roleManagerFactory,
         Func<UserManager<ApplicationUser>> userManagerFactory)
         : base(storeService, dynamicPropertyResolverService, memberAddressService)
@@ -67,6 +70,7 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
                     orgId,
                     roleIds,
                     memberService,
+                    memberSearchService,
                     organizationMembershipService,
                     roleManagerFactory,
                     userManagerFactory);
@@ -95,6 +99,7 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
 
     private static async Task<IEnumerable<string>> GetContactIdsByGlobalRoleAsync(
         string roleId,
+        IReadOnlyCollection<ApplicationUser> orgUsers,
         RoleManager<Role> roleManager,
         UserManager<ApplicationUser> userManager)
     {
@@ -104,16 +109,29 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
             return [];
         }
 
-        var usersInRole = await userManager.GetUsersInRoleAsync(role.NormalizedName);
+        var result = new List<string>();
 
-        return usersInRole.Where(u => !string.IsNullOrEmpty(u.MemberId)).Select(u => u.MemberId);
+        foreach (var user in orgUsers)
+        {
+            if (await userManager.IsInRoleAsync(user, role.NormalizedName))
+            {
+                var contactId = user.MemberId ?? user.Id;
+                if (!string.IsNullOrEmpty(contactId))
+                {
+                    result.Add(contactId);
+                }
+            }
+        }
+
+        return result;
     }
 
     private static async Task<(bool filterRequired, IReadOnlyCollection<string> ids)> ResolveRoleFilterAsync(
         string orgId,
         IList<string> roleIds,
         IMemberService memberService,
-        IOrganizationMembershipService organizationMembershipService,
+        IMemberSearchService memberSearchService,
+        IOrganizationMembershipSearchService organizationMembershipService,
         Func<RoleManager<Role>> roleManagerFactory,
         Func<UserManager<ApplicationUser>> userManagerFactory)
     {
@@ -125,24 +143,53 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
             return (filterRequired: false, ids: []);
         }
 
-        using var roleManager = roleManagerFactory();
-        using var userManager = userManagerFactory();
+        var membershipsTask = organizationMembershipService.SearchAllNoCloneAsync(
+            new OrganizationMembershipSearchCriteria { OrganizationId = orgId });
+        var contactsTask = memberSearchService.SearchAllAsync(
+            new MembersSearchCriteria { MemberId = orgId });
 
-        var membershipTask = organizationMembershipService.GetUserIdsByRoleInOrgAsync(orgId, roleIds);
-        var globalResults = await Task.WhenAll(
-            roleIds.Select(roleId => GetContactIdsByGlobalRoleAsync(roleId, roleManager, userManager)));
+        await Task.WhenAll(membershipsTask, contactsTask);
 
-        var qualifyingContactIds = globalResults.SelectMany(result => result).ToHashSet();
+        var allOrgMemberships = membershipsTask.Result;
+        var orgMembershipUserIds = allOrgMemberships.Select(m => m.UserId).ToHashSet();
+        var orgContactIds = contactsTask.Result.Select(c => c.Id).ToHashSet();
 
-        var membershipUserIds = await membershipTask;
-        if (membershipUserIds.Count > 0)
+        IReadOnlyList<ApplicationUser> orgUsers;
+        using (var um = userManagerFactory())
         {
-            var memberContactIds = await userManager.Users
-                .Where(u => membershipUserIds.Contains(u.Id) && !string.IsNullOrEmpty(u.MemberId))
-                .Select(u => u.MemberId)
+            orgUsers = await um.Users
+                .Where(u => orgMembershipUserIds.Contains(u.Id) ||
+                            (!string.IsNullOrEmpty(u.MemberId) && orgContactIds.Contains(u.MemberId)))
                 .ToListAsync();
-            qualifyingContactIds.UnionWith(memberContactIds);
         }
+
+        if (orgUsers.Count == 0)
+        {
+            return (filterRequired: true, ids: []);
+        }
+
+        var membershipUserIds = allOrgMemberships
+            .Where(m => m.Roles?.Any(r => roleIds.Contains(r.RoleId)) == true)
+            .Select(m => m.UserId)
+            .ToHashSet();
+
+        // Each task creates its own RoleManager/UserManager — EF Core DbContext is not
+        // thread-safe for concurrent operations on a shared instance.
+        var globalResults = await Task.WhenAll(
+            roleIds.Select(async roleId =>
+            {
+                using var roleManager = roleManagerFactory();
+                using var userManager = userManagerFactory();
+                return await GetContactIdsByGlobalRoleAsync(roleId, orgUsers, roleManager, userManager);
+            }));
+
+        var qualifyingContactIds = globalResults.SelectMany(x => x).ToHashSet();
+
+        qualifyingContactIds.UnionWith(
+            orgUsers
+                .Where(u => membershipUserIds.Contains(u.Id))
+                .Select(u => u.MemberId ?? u.Id)
+                .Where(id => !string.IsNullOrEmpty(id)));
 
         return (filterRequired: true, ids: qualifyingContactIds);
     }

@@ -19,18 +19,21 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
     {
         private readonly Func<RoleManager<Role>> _roleManagerFactory;
         private readonly IOrganizationMembershipService _organizationMembershipService;
+        private readonly IOrganizationMembershipSearchService _organizationMembershipSearchService;
         private readonly IContactAggregateRepository _contactAggregateRepository;
 
         public ChangeOrganizationContactRoleCommandHandler(
             Func<UserManager<ApplicationUser>> userManager,
             Func<RoleManager<Role>> roleManagerFactory,
             IOrganizationMembershipService organizationMembershipService,
+            IOrganizationMembershipSearchService organizationMembershipSearchService,
             IContactAggregateRepository contactAggregateRepository,
             IOptions<AuthorizationOptions> securityOptions)
             : base(userManager, securityOptions)
         {
             _roleManagerFactory = roleManagerFactory;
             _organizationMembershipService = organizationMembershipService;
+            _organizationMembershipSearchService = organizationMembershipSearchService;
             _contactAggregateRepository = contactAggregateRepository;
         }
 
@@ -86,7 +89,15 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return result;
             }
 
-            var membership = await _organizationMembershipService.GetByUserAndOrgAsync(userId, request.OrganizationId);
+            var searchResult = await _organizationMembershipSearchService.SearchAsync(
+                new OrganizationMembershipSearchCriteria
+                {
+                    UserId = userId,
+                    OrganizationId = request.OrganizationId,
+                    Take = 1
+                });
+
+            var membership = searchResult.Results.FirstOrDefault();
             if (membership == null)
             {
                 result.Errors.Add(new IdentityErrorInfo
