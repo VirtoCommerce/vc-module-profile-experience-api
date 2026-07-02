@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,14 +34,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         public virtual async Task<MemberSearchResult> Handle(SearchOrganizationsQuery request, CancellationToken cancellationToken)
         {
             var searchCriteria = BuildMembersSearchCriteria(request, nameof(Organization));
-            var result = await _memberSearchService.SearchMembersAsync(searchCriteria);
 
-            if (!string.IsNullOrEmpty(request.UserId) && result.Results.Count > 0)
+            // Exclude locked organizations before pagination, so page sizes and TotalCount stay consistent
+            if (!string.IsNullOrEmpty(request.UserId))
             {
-                result = await FilterLockedOrganizationsAsync(result, request.UserId);
+                var lockedOrgIds = await _organizationMembershipSearchService.GetLockedOrganizationIdsAsync(request.UserId);
+                if (lockedOrgIds.Count > 0)
+                {
+                    searchCriteria.ExcludedObjectIds = lockedOrgIds.ToArray();
+                }
             }
 
-            return result;
+            return await _memberSearchService.SearchMembersAsync(searchCriteria);
         }
 
         protected virtual MembersSearchCriteria BuildMembersSearchCriteria(SearchMembersQueryBase request, string memberType)
@@ -61,26 +63,5 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return result;
         }
 
-        private async Task<MemberSearchResult> FilterLockedOrganizationsAsync(MemberSearchResult result, string userId)
-        {
-            var lockedOrgIds = await _organizationMembershipSearchService.GetLockedOrganizationIdsAsync(userId);
-
-            if (lockedOrgIds.Count == 0)
-            {
-                return result;
-            }
-
-            var lockedSet = new HashSet<string>(lockedOrgIds, StringComparer.OrdinalIgnoreCase);
-
-            var filtered = result.Results
-                .Where(m => !lockedSet.Contains(m.Id))
-                .ToList();
-
-            return new MemberSearchResult
-            {
-                Results = filtered,
-                TotalCount = result.TotalCount - (result.Results.Count - filtered.Count),
-            };
-        }
     }
 }
