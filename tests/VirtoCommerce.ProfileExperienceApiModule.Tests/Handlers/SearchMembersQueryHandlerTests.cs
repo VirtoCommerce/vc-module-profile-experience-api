@@ -39,7 +39,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             // Assert
             Assert.Equal(2, result.TotalCount);
             _membershipSearchServiceMock.Verify(
-                x => x.SearchAsync(It.IsAny<OrganizationMembershipSearchCriteria>(), It.IsAny<bool>()),
+                x => x.GetLockedOrganizationIdsAsync(It.IsAny<string>()),
                 Times.Never);
         }
 
@@ -59,17 +59,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 .ReturnsAsync(new MemberSearchResult { Results = organizations, TotalCount = 3 });
 
             _membershipSearchServiceMock
-                .Setup(x => x.SearchAsync(
-                    It.Is<OrganizationMembershipSearchCriteria>(c => c.UserId == "user-1" && c.OnlyLocked),
-                    It.IsAny<bool>()))
-                .ReturnsAsync(new OrganizationMembershipSearchResult
-                {
-                    Results = [new OrganizationMembership
-                    {
-                        OrganizationId = "org-2"
-                    }],
-                    TotalCount = 1,
-                });
+                .Setup(x => x.GetLockedOrganizationIdsAsync("user-1"))
+                .ReturnsAsync(["org-2"]);
 
             var handler = BuildHandler();
             var query = new SearchOrganizationsQuery { UserId = "user-1" };
@@ -97,15 +88,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 .ReturnsAsync(new MemberSearchResult { Results = organizations, TotalCount = 2 });
 
             _membershipSearchServiceMock
-                .Setup(x => x.SearchAsync(
-                    It.Is<OrganizationMembershipSearchCriteria>(c => c.UserId == "user-1" && c.OnlyLocked),
-                    It.IsAny<bool>()))
-                .ReturnsAsync(
-                    new OrganizationMembershipSearchResult
-                    {
-                        Results = [],
-                        TotalCount = 0
-                    });
+                .Setup(x => x.GetLockedOrganizationIdsAsync("user-1"))
+                .ReturnsAsync([]);
 
             var handler = BuildHandler();
             var query = new SearchOrganizationsQuery { UserId = "user-1" };

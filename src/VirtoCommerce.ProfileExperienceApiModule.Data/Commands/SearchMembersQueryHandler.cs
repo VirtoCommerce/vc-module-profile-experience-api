@@ -63,17 +63,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         private async Task<MemberSearchResult> FilterLockedOrganizationsAsync(MemberSearchResult result, string userId)
         {
-            var lockedMemberships = await _organizationMembershipSearchService.SearchAllNoCloneAsync(
-                new OrganizationMembershipSearchCriteria
-                {
-                    UserId = userId,
-                    OnlyLocked = true
-                });
-
-            var lockedOrgIds = lockedMemberships
-                .Select(x => x.OrganizationId)
-                .Where(id => !string.IsNullOrEmpty(id))
-                .ToList();
+            var lockedOrgIds = await _organizationMembershipSearchService.GetLockedOrganizationIdsAsync(userId);
 
             if (lockedOrgIds.Count == 0)
             {
