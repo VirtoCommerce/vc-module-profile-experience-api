@@ -51,11 +51,9 @@ public class ContactType : MemberBaseType<ContactAggregate>
         _customerPreferenceService = customerPreferenceService;
 
         Field<BooleanGraphType>("isLockedInOrganization")
-            .Argument<StringGraphType>("organizationId", "Organization ID to check lock status for")
             .Resolve(context => ResolveIsLockedInOrganization(context, organizationMembershipSearchService, dataLoader));
 
         Field<ListGraphType<RoleType>>("rolesInOrganization")
-            .Argument<StringGraphType>("organizationId", "Organization ID to get roles for")
             .Resolve(context => ResolveRolesInOrganization(
                 context, organizationMembershipSearchService, dataLoader, roleManagerFactory, userManagerFactory));
 
@@ -137,9 +135,6 @@ public class ContactType : MemberBaseType<ContactAggregate>
         IOrganizationMembershipSearchService organizationMembershipSearchService,
         IDataLoaderContextAccessor dataLoader)
     {
-        // The organizationId argument is not trusted: top-level contact access only requires sharing
-        // ANY organization with the caller, so an arbitrary argument value could disclose lock/role data
-        // from an organization the caller has no relation to. Always scope to the caller's own current org.
         var organizationId = context.GetCurrentOrganizationId();
         if (string.IsNullOrEmpty(organizationId))
         {
@@ -182,7 +177,6 @@ public class ContactType : MemberBaseType<ContactAggregate>
         Func<RoleManager<Role>> roleManagerFactory,
         Func<UserManager<ApplicationUser>> userManagerFactory)
     {
-        // See ResolveIsLockedInOrganization: the organizationId argument is not trusted for the same reason
         var organizationId = context.GetCurrentOrganizationId();
         if (string.IsNullOrEmpty(organizationId))
         {
@@ -248,6 +242,9 @@ public class ContactType : MemberBaseType<ContactAggregate>
         using var roleManager = roleManagerFactory();
         using var userManager = userManagerFactory();
 
+        // The role set is small — load it once instead of issuing a filtered query per user
+        var rolesByName = roleManager.Roles.ToList().ToLookup(r => r.Name);
+
         var result = new Dictionary<string, IReadOnlyCollection<Role>>();
 
         foreach (var userId in userIds)
@@ -264,8 +261,8 @@ public class ContactType : MemberBaseType<ContactAggregate>
                 continue;
             }
 
-            result[userId] = roleManager.Roles
-                .Where(r => roleNames.Contains(r.Name))
+            result[userId] = roleNames
+                .SelectMany(roleName => rolesByName[roleName])
                 .Select(r => new Role { Id = r.Id, Name = r.Name })
                 .ToList();
         }

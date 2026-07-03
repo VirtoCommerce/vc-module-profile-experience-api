@@ -4,7 +4,6 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.DataLoader;
-using GraphQL.Execution;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Moq;
@@ -107,29 +106,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Schemas
         }
 
         [Fact]
-        public async Task RolesInOrganization_ArgumentOrganizationIdDiffersFromCallerOrg_UsesCallersOrganization()
-        {
-            // Arrange — the caller's session is scoped to OrgId, but the GraphQL argument requests a different org
-            const string otherOrgId = "org-attacker-target";
-            _membershipSearchServiceMock
-                .Setup(x => x.GetRolesForUsersInOrgAsync(It.IsAny<IList<string>>(), OrgId))
-                .ReturnsAsync((IList<string> ids, string _) => ids.ToDictionary(
-                    id => id,
-                    id => (IReadOnlyCollection<OrganizationRole>)[new OrganizationRole { RoleId = "r1", RoleName = "Admin" }]));
-
-            var context = BuildContext(contactId: "contact-1", userId: "user-1", argumentOrganizationId: otherOrgId, callerOrganizationId: OrgId);
-            await ResolveFieldAsync("rolesInOrganization", context);
-
-            // Assert — the query used the caller's own organization, never the argument's organization
-            _membershipSearchServiceMock.Verify(
-                x => x.GetRolesForUsersInOrgAsync(It.IsAny<IList<string>>(), OrgId),
-                Times.Once);
-            _membershipSearchServiceMock.Verify(
-                x => x.GetRolesForUsersInOrgAsync(It.IsAny<IList<string>>(), otherOrgId),
-                Times.Never);
-        }
-
-        [Fact]
         public async Task RolesInOrganization_CallerHasNoCurrentOrganization_ReturnsNull()
         {
             // Arrange — no organization_id claim on the caller (e.g. anonymous or org-less user)
@@ -173,27 +149,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Schemas
                 Times.Once);
 
             Assert.Equal([false, true, false], results.Cast<bool>());
-        }
-
-        [Fact]
-        public async Task IsLockedInOrganization_ArgumentOrganizationIdDiffersFromCallerOrg_UsesCallersOrganization()
-        {
-            // Arrange — the caller's session is scoped to OrgId, but the GraphQL argument requests a different org
-            const string otherOrgId = "org-attacker-target";
-            _membershipSearchServiceMock
-                .Setup(x => x.SearchAsync(It.IsAny<OrganizationMembershipSearchCriteria>(), It.IsAny<bool>()))
-                .ReturnsAsync(new OrganizationMembershipSearchResult { Results = [], TotalCount = 0 });
-
-            var context = BuildContext(contactId: "contact-1", userId: "user-1", argumentOrganizationId: otherOrgId, callerOrganizationId: OrgId);
-            await ResolveFieldAsync("isLockedInOrganization", context);
-
-            // Assert — the query used the caller's own organization, never the argument's organization
-            _membershipSearchServiceMock.Verify(
-                x => x.SearchAsync(It.Is<OrganizationMembershipSearchCriteria>(c => c.OrganizationId == OrgId), It.IsAny<bool>()),
-                Times.Once);
-            _membershipSearchServiceMock.Verify(
-                x => x.SearchAsync(It.Is<OrganizationMembershipSearchCriteria>(c => c.OrganizationId == otherOrgId), It.IsAny<bool>()),
-                Times.Never);
         }
 
         [Fact]
@@ -252,7 +207,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Schemas
         private static ResolveFieldContext<ContactAggregate> BuildContext(
             string contactId,
             string userId,
-            string argumentOrganizationId = OrgId,
             string callerOrganizationId = OrgId) =>
             new()
             {
@@ -263,10 +217,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Schemas
                         Id = contactId,
                         SecurityAccounts = [new ApplicationUser { Id = userId }],
                     },
-                },
-                Arguments = new Dictionary<string, ArgumentValue>
-                {
-                    ["organizationId"] = new ArgumentValue(argumentOrganizationId, ArgumentSource.Literal),
                 },
                 UserContext = new GraphQLUserContext(BuildPrincipal(callerOrganizationId)),
             };

@@ -154,7 +154,7 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
         var orgMembershipUserIds = allOrgMemberships.Select(m => m.UserId).ToHashSet();
         var orgContactIds = contactsTask.Result.Select(c => c.Id).ToHashSet();
 
-        IReadOnlyList<ApplicationUser> orgUsers;
+        List<ApplicationUser> orgUsers;
         using (var um = userManagerFactory())
         {
             orgUsers = await um.Users
