@@ -243,7 +243,7 @@ public class ContactType : MemberBaseType<ContactAggregate>
         using var userManager = userManagerFactory();
 
         // The role set is small — load it once instead of issuing a filtered query per user
-        var rolesByName = roleManager.Roles.ToList().ToLookup(r => r.Name);
+        var rolesByName = roleManager.Roles.ToLookup(r => r.Name);
 
         var result = new Dictionary<string, IReadOnlyCollection<Role>>();
 
