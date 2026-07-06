@@ -97,23 +97,29 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
         #endregion
     }
 
-    private static async Task<IEnumerable<string>> GetContactIdsByGlobalRoleAsync(
-        string roleId,
+    private static async Task<IReadOnlyCollection<string>> GetContactIdsByGlobalRolesAsync(
+        IList<string> roleIds,
         IReadOnlyCollection<ApplicationUser> orgUsers,
         RoleManager<Role> roleManager,
         UserManager<ApplicationUser> userManager)
     {
-        var role = await roleManager.FindByIdAsync(roleId);
-        if (role == null)
+        var requestedRoleNames = await roleManager.Roles
+            .Where(r => roleIds.Contains(r.Id))
+            .Select(r => r.Name)
+            .ToListAsync();
+
+        if (requestedRoleNames.Count == 0)
         {
             return [];
         }
 
+        var requestedRoleNameSet = requestedRoleNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var result = new List<string>();
 
         foreach (var user in orgUsers)
         {
-            if (await userManager.IsInRoleAsync(user, role.NormalizedName))
+            var userRoleNames = await userManager.GetRolesAsync(user);
+            if (userRoleNames.Any(requestedRoleNameSet.Contains))
             {
                 var contactId = user.MemberId ?? user.Id;
                 if (!string.IsNullOrEmpty(contactId))
@@ -173,17 +179,10 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
             .Select(m => m.UserId)
             .ToHashSet();
 
-        // Each task creates its own RoleManager/UserManager — EF Core DbContext is not
-        // thread-safe for concurrent operations on a shared instance.
-        var globalResults = await Task.WhenAll(
-            roleIds.Select(async roleId =>
-            {
-                using var roleManager = roleManagerFactory();
-                using var userManager = userManagerFactory();
-                return await GetContactIdsByGlobalRoleAsync(roleId, orgUsers, roleManager, userManager);
-            }));
-
-        var qualifyingContactIds = globalResults.SelectMany(x => x).ToHashSet();
+        using var globalRoleManager = roleManagerFactory();
+        using var globalUserManager = userManagerFactory();
+        var qualifyingContactIds = (await GetContactIdsByGlobalRolesAsync(roleIds, orgUsers, globalRoleManager, globalUserManager))
+            .ToHashSet();
 
         qualifyingContactIds.UnionWith(
             orgUsers

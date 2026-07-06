@@ -97,6 +97,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                     Take = 1
                 });
 
+            // At most one membership per (userId, organizationId)
             var membership = searchResult.Results.FirstOrDefault();
             if (membership == null)
             {
