@@ -34,11 +34,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _contactAggregateRepository = contactAggregateRepository;
         }
 
-        public async Task<IdentityResultResponse> Handle(ChangeOrganizationContactRoleCommand request, CancellationToken cancellationToken)
+        public virtual async Task<IdentityResultResponse> Handle(ChangeOrganizationContactRoleCommand request, CancellationToken cancellationToken)
         {
             var result = new IdentityResultResponse
             {
-                Errors = new List<IdentityErrorInfo>(),
+                Errors = [],
                 Succeeded = false,
             };
 
@@ -48,27 +48,72 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return result;
             }
 
-            var contactAggregate = await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.MemberId)
+            var contactAggregate = await GetContactAggregateAsync(request.MemberId)
                 ?? throw new InvalidOperationException($"Contact '{request.MemberId}' not found.");
 
-            var userId = contactAggregate.Contact?.SecurityAccounts?.FirstOrDefault()?.Id;
+            var userId = GetSecurityAccountId(contactAggregate);
             if (string.IsNullOrEmpty(userId))
             {
                 result.Errors.Add(new IdentityErrorInfo { Code = "Forbidden", Description = "It is forbidden to edit this user." });
                 return result;
             }
 
+            if (!await ValidateUserEditableAsync(userId, result))
+            {
+                return result;
+            }
+
+            var roles = await ResolveRolesAsync(request.RoleIds, result);
+            if (result.Errors.Count > 0)
+            {
+                return result;
+            }
+
+            var membership = await GetMembershipAsync(userId, request.OrganizationId);
+            if (membership == null)
+            {
+                result.Errors.Add(new IdentityErrorInfo
+                {
+                    Code = "MembershipNotFound",
+                    Description = $"Contact '{request.MemberId}' has no membership in organization '{request.OrganizationId}'.",
+                });
+                return result;
+            }
+
+            await ApplyRolesAsync(membership, roles, cancellationToken);
+
+            result.Succeeded = true;
+            return result;
+        }
+
+        protected virtual Task<ContactAggregate> GetContactAggregateAsync(string memberId)
+        {
+            return _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(memberId);
+        }
+
+        protected virtual string GetSecurityAccountId(ContactAggregate contactAggregate)
+        {
+            return contactAggregate.Contact?.SecurityAccounts?.FirstOrDefault()?.Id;
+        }
+
+        protected virtual async Task<bool> ValidateUserEditableAsync(string userId, IdentityResultResponse result)
+        {
             using var userManager = _userManagerFactory();
             var user = await userManager.FindByIdAsync(userId);
             if (user == null || !IsUserEditable(user.UserName))
             {
                 result.Errors.Add(new IdentityErrorInfo { Code = "Forbidden", Description = "It is forbidden to edit this user." });
-                return result;
+                return false;
             }
 
+            return true;
+        }
+
+        protected virtual async Task<IList<Role>> ResolveRolesAsync(string[] roleIds, IdentityResultResponse result)
+        {
             using var roleManager = _roleManagerFactory();
             var roles = new List<Role>();
-            foreach (var roleId in request.RoleIds ?? [])
+            foreach (var roleId in roleIds ?? [])
             {
                 var role = await roleManager.FindByIdAsync(roleId) ?? await roleManager.FindByNameAsync(roleId);
                 if (role != null)
@@ -81,23 +126,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 }
             }
 
-            if (result.Errors.Count > 0)
-            {
-                return result;
-            }
+            return roles;
+        }
 
-            var membership = await _organizationMembershipService.GetByUserAndOrgAsync(userId, request.OrganizationId);
-            if (membership == null)
-            {
-                result.Errors.Add(new IdentityErrorInfo
-                {
-                    Code = "MembershipNotFound",
-                    Description = $"Contact '{request.MemberId}' has no membership in organization '{request.OrganizationId}'.",
-                });
-                return result;
-            }
+        protected virtual Task<OrganizationMembership> GetMembershipAsync(string userId, string organizationId)
+        {
+            return _organizationMembershipService.GetByUserAndOrgAsync(userId, organizationId);
+        }
 
-            membership.Roles = roles
+        protected virtual IList<OrganizationMembershipRole> BuildMembershipRoles(OrganizationMembership membership, IList<Role> roles)
+        {
+            return roles
                 .Select(r => new OrganizationMembershipRole
                 {
                     MembershipId = membership.Id,
@@ -105,11 +144,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                     RoleName = r.Name,
                 })
                 .ToList();
+        }
 
+        protected virtual async Task ApplyRolesAsync(OrganizationMembership membership, IList<Role> roles, CancellationToken cancellationToken)
+        {
+            membership.Roles = BuildMembershipRoles(membership, roles);
             await _organizationMembershipService.SaveChangesAsync([membership]);
-
-            result.Succeeded = true;
-            return result;
         }
     }
 }
