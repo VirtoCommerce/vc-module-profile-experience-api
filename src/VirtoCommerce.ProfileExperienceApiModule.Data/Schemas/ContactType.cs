@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using GraphQL;
+using GraphQL.DataLoader;
 using GraphQL.Types;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using VirtoCommerce.CustomerModule.Core.Extensions;
+using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Model.Search;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
@@ -37,22 +39,23 @@ public class ContactType : MemberBaseType<ContactAggregate>
         IDynamicPropertyResolverService dynamicPropertyResolverService,
         IMemberAddressService memberAddressService,
         Func<UserManager<ApplicationUser>> userManagerFactory,
+        Func<RoleManager<Role>> roleManagerFactory,
         ICustomerPreferenceService customerPreferenceService,
         IMediator mediator,
         IMemberAggregateFactory memberAggregateFactory,
-        IOrganizationMembershipService organizationMembershipService)
+        IOrganizationMembershipSearchService organizationMembershipSearchService,
+        IDataLoaderContextAccessor dataLoader)
         : base(storeService, dynamicPropertyResolverService, memberAddressService)
     {
         _userManagerFactory = userManagerFactory;
         _customerPreferenceService = customerPreferenceService;
 
         Field<BooleanGraphType>("isLockedInOrganization")
-            .Argument<StringGraphType>("organizationId", "Organization ID to check lock status for")
-            .ResolveAsync(async context => await GetIsLockedInOrganizationAsync(context, organizationMembershipService));
+            .Resolve(context => ResolveIsLockedInOrganization(context, organizationMembershipSearchService, dataLoader));
 
         Field<ListGraphType<RoleType>>("rolesInOrganization")
-            .Argument<StringGraphType>("organizationId", "Organization ID to get roles for")
-            .ResolveAsync(async context => await GetRolesInOrganizationAsync(context, organizationMembershipService));
+            .Resolve(context => ResolveRolesInOrganization(
+                context, organizationMembershipSearchService, dataLoader, roleManagerFactory, userManagerFactory));
 
         Field(x => x.Contact.FirstName);
         Field(x => x.Contact.LastName);
@@ -127,47 +130,151 @@ public class ContactType : MemberBaseType<ContactAggregate>
         #endregion
     }
 
-    private static async Task<bool> GetIsLockedInOrganizationAsync(
+    private static IDataLoaderResult<bool> ResolveIsLockedInOrganization(
         IResolveFieldContext<ContactAggregate> context,
-        IOrganizationMembershipService organizationMembershipService)
+        IOrganizationMembershipSearchService organizationMembershipSearchService,
+        IDataLoaderContextAccessor dataLoader)
     {
-        var organizationId = context.GetArgument<string>("organizationId");
+        var organizationId = context.GetCurrentOrganizationId();
         if (string.IsNullOrEmpty(organizationId))
         {
-            return false;
+            return new DataLoaderResult<bool>(false);
         }
 
-        var userId = context.Source.Contact.SecurityAccounts?.FirstOrDefault()?.Id;
-        if (string.IsNullOrEmpty(userId))
+        var userIds = GetSecurityAccountIds(context);
+        if (userIds.Count == 0)
         {
-            return false;
+            return new DataLoaderResult<bool>(false);
         }
 
-        var membership = await organizationMembershipService.GetByUserAndOrgAsync(userId, organizationId);
+        // User ids without a locked membership are missing from the dictionary and resolve to the default (false)
+        var loader = dataLoader.Context.GetOrAddBatchLoader<string, bool>(
+            $"contact_lockedInOrg_{organizationId}",
+            async ids =>
+            {
+                var idsList = ids.ToList();
+                var lockedMemberships = await organizationMembershipSearchService.SearchAllNoCloneAsync(
+                    new OrganizationMembershipSearchCriteria
+                    {
+                        OrganizationId = organizationId,
+                        UserIds = idsList,
+                        OnlyLocked = true,
+                        Take = idsList.Count,
+                    });
 
-        return membership is { IsLocked: true };
+                return (IDictionary<string, bool>)lockedMemberships
+                    .GroupBy(m => m.UserId)
+                    .ToDictionary(g => g.Key, _ => true);
+            });
+
+        return loader.LoadAsync(userIds).Then(lockedFlags => lockedFlags.Any(locked => locked));
     }
 
-    private static async Task<IEnumerable<Role>> GetRolesInOrganizationAsync(
+    private static IDataLoaderResult<List<Role>> ResolveRolesInOrganization(
         IResolveFieldContext<ContactAggregate> context,
-        IOrganizationMembershipService organizationMembershipService)
+        IOrganizationMembershipSearchService organizationMembershipSearchService,
+        IDataLoaderContextAccessor dataLoader,
+        Func<RoleManager<Role>> roleManagerFactory,
+        Func<UserManager<ApplicationUser>> userManagerFactory)
     {
-        var organizationId = context.GetArgument<string>("organizationId");
+        var organizationId = context.GetCurrentOrganizationId();
         if (string.IsNullOrEmpty(organizationId))
         {
-            return null;
+            return new DataLoaderResult<List<Role>>((List<Role>)null);
         }
 
-        var userId = context.Source.Contact.SecurityAccounts?.FirstOrDefault()?.Id;
-        if (string.IsNullOrEmpty(userId))
+        var userIds = GetSecurityAccountIds(context);
+        if (userIds.Count == 0)
         {
-            return null;
+            return new DataLoaderResult<List<Role>>((List<Role>)null);
         }
 
-        var membership = await organizationMembershipService.GetByUserAndOrgAsync(userId, organizationId);
+        // The loader is keyed by user id (finer than the contact), so the per-contact union happens in Then
+        var loader = dataLoader.Context.GetOrAddBatchLoader<string, IReadOnlyCollection<Role>>(
+            $"contact_rolesInOrg_{organizationId}",
+            async ids =>
+            {
+                var idsList = ids.ToList();
 
-        return membership?.Roles?.Select(r => new Role { Id = r.RoleId, Name = r.RoleName });
+                var membershipRolesTask = organizationMembershipSearchService.GetRolesForUsersInOrgAsync(idsList, organizationId);
+                var globalRolesTask = GetGlobalRolesByUserAsync(idsList, roleManagerFactory, userManagerFactory);
+
+                await Task.WhenAll(membershipRolesTask, globalRolesTask);
+
+                var membershipRoles = membershipRolesTask.Result;
+                var globalRoles = globalRolesTask.Result;
+
+                return (IDictionary<string, IReadOnlyCollection<Role>>)idsList.ToDictionary(
+                    id => id,
+                    id =>
+                    {
+                        var orgRoles = membershipRoles.TryGetValue(id, out var roles)
+                            ? roles.Select(r => new Role { Id = r.RoleId, Name = r.RoleName })
+                            : [];
+                        var userGlobalRoles = globalRoles.TryGetValue(id, out var gRoles) ? gRoles : [];
+
+                        return (IReadOnlyCollection<Role>)orgRoles
+                            .Concat(userGlobalRoles)
+                            .DistinctBy(r => r.Id)
+                            .ToList();
+                    });
+            });
+
+        return loader.LoadAsync(userIds).Then(rolesPerAccount =>
+        {
+            var roles = rolesPerAccount
+                .Where(accountRoles => accountRoles != null)
+                .SelectMany(accountRoles => accountRoles)
+                .DistinctBy(r => r.Id)
+                .ToList();
+
+            return roles.Count > 0 ? roles : null;
+        });
     }
+
+    // Mirrors OrganizationType's global-role check: a user can hold an ASP.NET Identity role
+    // that is not tied to any OrganizationMembership or org-level role assignment
+    private static async Task<IDictionary<string, IReadOnlyCollection<Role>>> GetGlobalRolesByUserAsync(
+        IList<string> userIds,
+        Func<RoleManager<Role>> roleManagerFactory,
+        Func<UserManager<ApplicationUser>> userManagerFactory)
+    {
+        using var roleManager = roleManagerFactory();
+        using var userManager = userManagerFactory();
+
+        // The role set is small — load it once instead of issuing a filtered query per user
+        var rolesByName = roleManager.Roles.ToLookup(r => r.Name);
+
+        var result = new Dictionary<string, IReadOnlyCollection<Role>>();
+
+        foreach (var userId in userIds)
+        {
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                continue;
+            }
+
+            var roleNames = await userManager.GetRolesAsync(user);
+            if (roleNames.Count == 0)
+            {
+                continue;
+            }
+
+            result[userId] = roleNames
+                .SelectMany(roleName => rolesByName[roleName])
+                .Select(r => new Role { Id = r.Id, Name = r.Name })
+                .ToList();
+        }
+
+        return result;
+    }
+
+    private static List<string> GetSecurityAccountIds(IResolveFieldContext<ContactAggregate> context) =>
+        context.Source.Contact.SecurityAccounts?
+            .Select(sa => sa.Id)
+            .Where(id => !string.IsNullOrEmpty(id))
+            .ToList() ?? [];
 
     private static async Task<Store> GetStore(IResolveFieldContext<ContactAggregate> context, IStoreService storeService)
     {
