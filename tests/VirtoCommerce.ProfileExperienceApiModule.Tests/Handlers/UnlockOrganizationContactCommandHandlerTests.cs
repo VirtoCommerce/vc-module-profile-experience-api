@@ -16,6 +16,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
     {
         private readonly Mock<IContactAggregateRepository> _contactRepoMock = new();
         private readonly Mock<IOrganizationMembershipService> _membershipServiceMock = new();
+        private readonly Mock<IOrganizationMembershipSearchService> _membershipSearchServiceMock = new();
 
         [Fact]
         public async Task Handle_EmptyOrganizationId_ThrowsArgumentException()
@@ -62,9 +63,21 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 .Setup(x => x.GetMemberAggregateRootByIdAsync<ContactAggregate>(It.IsAny<string>()))
                 .ReturnsAsync(aggregate);
 
-            _membershipServiceMock
-                .Setup(x => x.GetByUserAndOrgAsync(securityUserId, "org-1"))
-                .ReturnsAsync(new OrganizationMembership { Id = membershipId });
+            _membershipSearchServiceMock
+                .Setup(x => x.SearchAsync(
+                    It.Is<OrganizationMembershipSearchCriteria>(c => c.UserId == securityUserId && c.OrganizationId == "org-1"),
+                    It.IsAny<bool>()))
+                .ReturnsAsync(new OrganizationMembershipSearchResult
+                {
+                    Results =
+                        [
+                            new OrganizationMembership
+                            {
+                                Id = membershipId
+                            }
+                        ],
+                    TotalCount = 1,
+                });
 
             var handler = BuildHandler();
             var command = new UnlockOrganizationContactCommand { MemberId = "contact-1", OrganizationId = "org-1" };
@@ -92,9 +105,15 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 .Setup(x => x.GetMemberAggregateRootByIdAsync<ContactAggregate>(It.IsAny<string>()))
                 .ReturnsAsync(aggregate);
 
-            _membershipServiceMock
-                .Setup(x => x.GetByUserAndOrgAsync(securityUserId, "org-1"))
-                .ReturnsAsync((OrganizationMembership)null);
+            _membershipSearchServiceMock
+                .Setup(x => x.SearchAsync(
+                    It.Is<OrganizationMembershipSearchCriteria>(c => c.UserId == securityUserId && c.OrganizationId == "org-1"),
+                    It.IsAny<bool>()))
+                .ReturnsAsync(new OrganizationMembershipSearchResult
+                {
+                    Results = [],
+                    TotalCount = 0
+                });
 
             var handler = BuildHandler();
             var command = new UnlockOrganizationContactCommand { MemberId = "contact-1", OrganizationId = "org-1" };
@@ -105,6 +124,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         }
 
         private UnlockOrganizationContactCommandHandler BuildHandler() =>
-            new(_contactRepoMock.Object, _membershipServiceMock.Object);
+            new(_contactRepoMock.Object, _membershipServiceMock.Object, _membershipSearchServiceMock.Object);
     }
 }

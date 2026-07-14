@@ -19,18 +19,21 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
     {
         private readonly Func<RoleManager<Role>> _roleManagerFactory;
         private readonly IOrganizationMembershipService _organizationMembershipService;
+        private readonly IOrganizationMembershipSearchService _organizationMembershipSearchService;
         private readonly IContactAggregateRepository _contactAggregateRepository;
 
         public ChangeOrganizationContactRoleCommandHandler(
             Func<UserManager<ApplicationUser>> userManager,
             Func<RoleManager<Role>> roleManagerFactory,
             IOrganizationMembershipService organizationMembershipService,
+            IOrganizationMembershipSearchService organizationMembershipSearchService,
             IContactAggregateRepository contactAggregateRepository,
             IOptions<AuthorizationOptions> securityOptions)
             : base(userManager, securityOptions)
         {
             _roleManagerFactory = roleManagerFactory;
             _organizationMembershipService = organizationMembershipService;
+            _organizationMembershipSearchService = organizationMembershipSearchService;
             _contactAggregateRepository = contactAggregateRepository;
         }
 
@@ -129,9 +132,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return roles;
         }
 
-        protected virtual Task<OrganizationMembership> GetMembership(string userId, string organizationId)
+        protected virtual async Task<OrganizationMembership> GetMembership(string userId, string organizationId)
         {
-            return _organizationMembershipService.GetByUserAndOrgAsync(userId, organizationId);
+            var searchResult = await _organizationMembershipSearchService.SearchAsync(
+                new OrganizationMembershipSearchCriteria
+                {
+                    UserId = userId,
+                    OrganizationId = organizationId,
+                    Take = 1
+                });
+
+            // At most one membership per (userId, organizationId)
+            return searchResult.Results.FirstOrDefault();
         }
 
         protected virtual IList<OrganizationMembershipRole> BuildMembershipRoles(OrganizationMembership membership, IList<Role> roles)

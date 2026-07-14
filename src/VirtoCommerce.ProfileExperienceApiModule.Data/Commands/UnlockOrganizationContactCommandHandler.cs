@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
+using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 
@@ -12,13 +13,16 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
     {
         private readonly IContactAggregateRepository _contactAggregateRepository;
         private readonly IOrganizationMembershipService _organizationMembershipService;
+        private readonly IOrganizationMembershipSearchService _organizationMembershipSearchService;
 
         public UnlockOrganizationContactCommandHandler(
             IContactAggregateRepository contactAggregateRepository,
-            IOrganizationMembershipService organizationMembershipService)
+            IOrganizationMembershipService organizationMembershipService,
+            IOrganizationMembershipSearchService organizationMembershipSearchService)
         {
             _contactAggregateRepository = contactAggregateRepository;
             _organizationMembershipService = organizationMembershipService;
+            _organizationMembershipSearchService = organizationMembershipSearchService;
         }
 
         public virtual async Task<ContactAggregate> Handle(UnlockOrganizationContactCommand request, CancellationToken cancellationToken)
@@ -37,7 +41,15 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return contactAggregate;
             }
 
-            var membership = await _organizationMembershipService.GetByUserAndOrgAsync(userId, request.OrganizationId)
+            var searchResult = await _organizationMembershipSearchService.SearchAsync(
+                new OrganizationMembershipSearchCriteria
+                {
+                    UserId = userId,
+                    OrganizationId = request.OrganizationId,
+                    Take = 1
+                });
+
+            var membership = searchResult.Results.FirstOrDefault()
                 ?? throw new InvalidOperationException($"Contact '{request.MemberId}' has no membership in organization '{request.OrganizationId}'.");
 
             await _organizationMembershipService.UnlockAsync(membership.Id);
