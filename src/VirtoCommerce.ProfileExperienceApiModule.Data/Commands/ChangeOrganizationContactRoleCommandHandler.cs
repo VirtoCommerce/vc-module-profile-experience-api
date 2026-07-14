@@ -48,7 +48,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return result;
             }
 
-            var contactAggregate = await GetContactAggregateAsync(request.MemberId)
+            var contactAggregate = await GetContactAggregate(request.MemberId)
                 ?? throw new InvalidOperationException($"Contact '{request.MemberId}' not found.");
 
             var userId = GetSecurityAccountId(contactAggregate);
@@ -58,18 +58,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return result;
             }
 
-            if (!await ValidateUserEditableAsync(userId, result))
+            if (!await ValidateUserEditable(userId, result))
             {
                 return result;
             }
 
-            var roles = await ResolveRolesAsync(request.RoleIds, result);
+            var roles = await ResolveRoles(request.RoleIds, result);
             if (result.Errors.Count > 0)
             {
                 return result;
             }
 
-            var membership = await GetMembershipAsync(userId, request.OrganizationId);
+            var membership = await GetMembership(userId, request.OrganizationId);
             if (membership == null)
             {
                 result.Errors.Add(new IdentityErrorInfo
@@ -80,13 +80,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return result;
             }
 
-            await ApplyRolesAsync(membership, roles, cancellationToken);
+            await ApplyRoles(membership, roles, cancellationToken);
 
             result.Succeeded = true;
             return result;
         }
 
-        protected virtual Task<ContactAggregate> GetContactAggregateAsync(string memberId)
+        protected virtual Task<ContactAggregate> GetContactAggregate(string memberId)
         {
             return _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(memberId);
         }
@@ -96,7 +96,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return contactAggregate.Contact?.SecurityAccounts?.FirstOrDefault()?.Id;
         }
 
-        protected virtual async Task<bool> ValidateUserEditableAsync(string userId, IdentityResultResponse result)
+        protected virtual async Task<bool> ValidateUserEditable(string userId, IdentityResultResponse result)
         {
             using var userManager = _userManagerFactory();
             var user = await userManager.FindByIdAsync(userId);
@@ -109,7 +109,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return true;
         }
 
-        protected virtual async Task<IList<Role>> ResolveRolesAsync(string[] roleIds, IdentityResultResponse result)
+        protected virtual async Task<IList<Role>> ResolveRoles(string[] roleIds, IdentityResultResponse result)
         {
             using var roleManager = _roleManagerFactory();
             var roles = new List<Role>();
@@ -129,7 +129,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return roles;
         }
 
-        protected virtual Task<OrganizationMembership> GetMembershipAsync(string userId, string organizationId)
+        protected virtual Task<OrganizationMembership> GetMembership(string userId, string organizationId)
         {
             return _organizationMembershipService.GetByUserAndOrgAsync(userId, organizationId);
         }
@@ -146,7 +146,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 .ToList();
         }
 
-        protected virtual async Task ApplyRolesAsync(OrganizationMembership membership, IList<Role> roles, CancellationToken cancellationToken)
+        protected virtual async Task ApplyRoles(OrganizationMembership membership, IList<Role> roles, CancellationToken cancellationToken)
         {
             membership.Roles = BuildMembershipRoles(membership, roles);
             await _organizationMembershipService.SaveChangesAsync([membership]);
