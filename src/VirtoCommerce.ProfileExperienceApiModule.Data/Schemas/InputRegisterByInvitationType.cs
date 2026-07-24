@@ -16,6 +16,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field<NonNullGraphType<StringGraphType>>(nameof(RegisterByInvitationCommand.Username)).Description("Username");
             Field<NonNullGraphType<StringGraphType>>(nameof(RegisterByInvitationCommand.Password)).Description("Password");
             Field<StringGraphType>(nameof(RegisterByInvitationCommand.CustomerOrderId)).Description("Customer order Id to be associated with this user.");
+            Field<StringGraphType>(nameof(RegisterByInvitationCommand.OrganizationId)).Description("ID of the organization this invite was for. Only this organization's pending invite is approved on registration.");
         }
     }
 }

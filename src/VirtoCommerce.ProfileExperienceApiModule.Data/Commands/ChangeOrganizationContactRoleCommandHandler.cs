@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using VirtoCommerce.CustomerModule.Core.Extensions;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.Platform.Core.Security;
@@ -72,7 +73,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return result;
             }
 
-            var membership = await GetMembership(userId, request.OrganizationId);
+            var membership = await _organizationMembershipSearchService.GetMembershipAsync(userId, request.OrganizationId);
             if (membership == null)
             {
                 result.Errors.Add(new IdentityErrorInfo
@@ -130,20 +131,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             }
 
             return roles;
-        }
-
-        protected virtual async Task<OrganizationMembership> GetMembership(string userId, string organizationId)
-        {
-            var searchResult = await _organizationMembershipSearchService.SearchAsync(
-                new OrganizationMembershipSearchCriteria
-                {
-                    UserId = userId,
-                    OrganizationId = organizationId,
-                    Take = 1
-                });
-
-            // At most one membership per (userId, organizationId)
-            return searchResult.Results.FirstOrDefault();
         }
 
         protected virtual IList<OrganizationMembershipRole> BuildMembershipRoles(OrganizationMembership membership, IList<Role> roles)

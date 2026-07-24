@@ -158,6 +158,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                 case RemoveMemberFromOrganizationCommand removeMemberFromOrganizationCommand:
                     result = await HasSameOrganizationAsync(currentContact, removeMemberFromOrganizationCommand.ContactId, userManager);
                     break;
+                case AcceptOrganizationInviteCommand acceptOrganizationInviteCommand:
+                    result = acceptOrganizationInviteCommand.UserId == currentUserId;
+                    break;
+                case RejectOrganizationInviteCommand rejectOrganizationInviteCommand:
+                    result = rejectOrganizationInviteCommand.UserId == currentUserId;
+                    break;
+                case RevokeOrganizationInviteCommand revokeOrganizationInviteCommand:
+                    result = await HasSameOrganizationAsync(currentContact, revokeOrganizationInviteCommand.MemberId, userManager);
+                    break;
+                case ResendOrganizationInviteCommand resendOrganizationInviteCommand:
+                    result = await HasSameOrganizationAsync(currentContact, resendOrganizationInviteCommand.MemberId, userManager);
+                    break;
                 case ChangePasswordCommand changePasswordCommand:
                     result = changePasswordCommand.UserId == currentUserId;
                     break;

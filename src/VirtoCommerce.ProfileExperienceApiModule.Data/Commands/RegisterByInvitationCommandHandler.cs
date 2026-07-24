@@ -27,6 +27,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly IMediator _mediator;
         private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
         private readonly RegisterByInvitationCommandValidator _validator;
+        private readonly IOrganizationMembershipService _organizationMembershipService;
+        private readonly IOrganizationMembershipSearchService _organizationMembershipSearchService;
 
         public RegisterByInvitationCommandHandler(
             IWebHostEnvironment environment,
@@ -34,7 +36,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             IMemberService memberService,
             IStoreService storeService,
             IMediator mediator,
-            RegisterByInvitationCommandValidator validator)
+            RegisterByInvitationCommandValidator validator,
+            IOrganizationMembershipService organizationMembershipService,
+            IOrganizationMembershipSearchService organizationMembershipSearchService)
         {
             _environment = environment;
             _userManagerFactory = userManager;
@@ -42,6 +46,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _storeService = storeService;
             _mediator = mediator;
             _validator = validator;
+            _organizationMembershipService = organizationMembershipService;
+            _organizationMembershipSearchService = organizationMembershipSearchService;
         }
 
         public virtual async Task<IdentityResultResponse> Handle(RegisterByInvitationCommand request, CancellationToken cancellationToken)
@@ -108,6 +114,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             await _memberService.SaveChangesAsync([contact]);
 
+            await ApproveInvitedMembershipsAsync(user.Id, request.OrganizationId, contact.Organizations);
+
             // associate order
             if (!string.IsNullOrEmpty(request.CustomerOrderId))
             {
@@ -117,6 +125,31 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             await SendRegistrationNotificationAsync(user, contact, cancellationToken);
 
             return SetResponse(identityResult);
+        }
+
+        protected virtual async Task ApproveInvitedMembershipsAsync(string userId, string organizationId, IList<string> contactOrganizationIds)
+        {
+            var organizationIds = !string.IsNullOrEmpty(organizationId)
+                ? [organizationId]
+                : contactOrganizationIds;
+
+            if (organizationIds.IsNullOrEmpty())
+            {
+                return;
+            }
+
+            var invitedMemberships = await _organizationMembershipSearchService.SearchAllNoCloneAsync(new OrganizationMembershipSearchCriteria
+            {
+                UserId = userId,
+                OrganizationIds = organizationIds,
+                Statuses = [CustomerModule.Core.ModuleConstants.MembershipStatuses.Invited],
+            });
+
+            foreach (var membership in invitedMemberships)
+            {
+                await _organizationMembershipService.SetStatusAsync(
+                    membership.Id, CustomerModule.Core.ModuleConstants.MembershipStatuses.Approved);
+            }
         }
 
         protected virtual void UpdateContact(Contact contact, RegisterByInvitationCommand request)

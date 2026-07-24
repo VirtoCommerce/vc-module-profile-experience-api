@@ -1,5 +1,5 @@
-using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
+using VirtoCommerce.Xapi.Core.Infrastructure;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -20,5 +20,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         public string Password { get; set; }
 
         public string CustomerOrderId { get; set; }
+
+        public string OrganizationId { get; set; }
     }
 }
