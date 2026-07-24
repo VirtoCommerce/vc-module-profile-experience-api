@@ -41,24 +41,32 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
     {
         public const string _commandName = "command";
 
-        private readonly IMediator _mediator;
         private readonly IAuthorizationService _authorizationService;
         private readonly Func<SignInManager<ApplicationUser>> _signInManagerFactory;
         private readonly IMemberAggregateFactory _factory;
         private readonly ILogger<ProfileSchema> _logger;
 
         public ProfileSchema(
-            IMediator mediator,
             IAuthorizationService authorizationService,
             Func<SignInManager<ApplicationUser>> signInManagerFactory,
             IMemberAggregateFactory factory,
             ILogger<ProfileSchema> logger)
         {
-            _mediator = mediator;
             _authorizationService = authorizationService;
             _signInManagerFactory = signInManagerFactory;
             _factory = factory;
             _logger = logger;
+        }
+
+        [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+        public ProfileSchema(
+            IMediator mediator,
+            IAuthorizationService authorizationService,
+            Func<SignInManager<ApplicationUser>> signInManagerFactory,
+            IMemberAggregateFactory factory,
+            ILogger<ProfileSchema> logger)
+            : this(authorizationService, signInManagerFactory, factory, logger)
+        {
         }
 
         public void Build(ISchema schema)
@@ -79,7 +87,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                     var userName = principal?.Identity?.Name;
                     if (!string.IsNullOrEmpty(userName))
                     {
-                        var result = await _mediator.Send(new GetUserQuery
+                        var result = await context.GetMediator().Send(new GetUserQuery
                         {
                             UserName = userName
                         });
@@ -101,13 +109,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             });
 
             schema.AddMemberQuery<OrganizationAggregate, OrganizationType, GetOrganizationByIdQuery>(
-                _mediator, "organization", (context, aggregate) => CheckAuthAsync(context, aggregate));
+                "organization", (context, aggregate) => CheckAuthAsync(context, aggregate));
 
             schema.AddMemberQuery<ContactAggregate, ContactType, GetContactByIdQuery>(
-                _mediator, "contact", (context, aggregate) => CheckAuthAsync(context, aggregate));
+                "contact", (context, aggregate) => CheckAuthAsync(context, aggregate));
 
             schema.AddMemberQuery<VendorAggregate, VendorType, GetVendorByIdQuery>(
-                _mediator, "vendor", (context, aggregate) => CheckAuthAsync(context, aggregate));
+                "vendor", (context, aggregate) => CheckAuthAsync(context, aggregate));
 
             var organizationsConnectionBuilder = GraphTypeExtensionHelper
                 .CreateConnection<OrganizationType, object>("organizations")
@@ -125,7 +133,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 query.DeepSearch = true;
                 query.UserId = context.GetCurrentPrincipal()?.FindFirstValue(ClaimTypes.NameIdentifier);
 
-                var response = await _mediator.Send(query);
+                var response = await context.GetMediator().Send(query);
 
                 return new PagedConnection<OrganizationAggregate>(response.Results.Select(x => _factory.Create<OrganizationAggregate>(x)), query.Skip, query.Take, response.TotalCount);
             });
@@ -147,7 +155,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 var query = context.GetSearchMembersQuery<SearchContactsQuery>();
                 query.DeepSearch = true;
 
-                var response = await _mediator.Send(query);
+                var response = await context.GetMediator().Send(query);
 
                 return new PagedConnection<ContactAggregate>(response.Results.Select(x => _factory.Create<ContactAggregate>(x)), query.Skip, query.Take, response.TotalCount);
             });
@@ -169,7 +177,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 Type = GraphTypeExtensionHelper.GetActualType<BooleanGraphType>(),
                 Resolver = new FuncFieldResolver<object>(async context =>
                 {
-                    var result = await _mediator.Send(new CheckUsernameUniquenessQuery
+                    var result = await context.GetMediator().Send(new CheckUsernameUniquenessQuery
                     {
                         Username = context.GetArgument<string>("username"),
                     });
@@ -193,7 +201,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 Type = GraphTypeExtensionHelper.GetActualType<BooleanGraphType>(),
                 Resolver = new FuncFieldResolver<object>(async context =>
                 {
-                    var result = await _mediator.Send(new CheckEmailUniquenessQuery
+                    var result = await context.GetMediator().Send(new CheckEmailUniquenessQuery
                     {
                         Email = context.GetArgument<string>("email"),
                     });
@@ -222,7 +230,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 Type = GraphTypeExtensionHelper.GetActualType<AddressDuplicatedResultType>(),
                 Resolver = new FuncFieldResolver<object>(async context =>
                 {
-                    var result = await _mediator.Send(new CheckDuplicateAddressQuery
+                    var result = await context.GetMediator().Send(new CheckDuplicateAddressQuery
                     {
                         MemberId = context.GetArgument<string>("memberId"),
                         Address = context.GetArgument<MemberAddress>("address"),
@@ -251,7 +259,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 Type = GraphTypeExtensionHelper.GetActualType<BooleanGraphType>(),
                 Resolver = new FuncFieldResolver<object>(async context =>
                 {
-                    var result = await _mediator.Send(new RequestPasswordResetQuery
+                    var result = await context.GetMediator().Send(new RequestPasswordResetQuery
                     {
                         StoreId = context.GetArgument<string>("storeId"),
                         CultureName = context.GetArgument<string>("cultureName"),
@@ -278,7 +286,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 Type = GraphTypeExtensionHelper.GetActualType<CustomIdentityResultType>(),
                 Resolver = new FuncFieldResolver<object>(async context =>
                 {
-                    var result = await _mediator.Send(new PasswordValidationQuery
+                    var result = await context.GetMediator().Send(new PasswordValidationQuery
                     {
                         Password = context.GetArgument<string>("password"),
                     });
@@ -319,7 +327,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                                 var type = GenericTypeHelper.GetActualType<UpdateMemberAddressesCommand>();
                                 var command = (UpdateMemberAddressesCommand)context.GetArgument(type, _commandName);
                                 await CheckAuthAsync(context, command);
-                                return await _mediator.Send(command);
+                                return await context.GetMediator().Send(command);
                             })
                             .FieldType);
 
@@ -331,7 +339,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                                 var type = GenericTypeHelper.GetActualType<DeleteMemberAddressesCommand>();
                                 var command = (DeleteMemberAddressesCommand)context.GetArgument(type, _commandName);
                                 await CheckAuthAsync(context, command);
-                                return await _mediator.Send(command);
+                                return await context.GetMediator().Send(command);
                             })
                             .FieldType);
 
@@ -343,7 +351,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                                 var type = GenericTypeHelper.GetActualType<UpdateOrganizationCommand>();
                                 var command = (UpdateOrganizationCommand)context.GetArgument(type, _commandName);
                                 await CheckAuthAsync(context, command, ProfilePermissions.MyOrganizationEdit);
-                                return await _mediator.Send(command);
+                                return await context.GetMediator().Send(command);
                             })
                             .FieldType);
 
@@ -355,7 +363,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                                 var type = GenericTypeHelper.GetActualType<CreateOrganizationCommand>();
                                 var command = (CreateOrganizationCommand)context.GetArgument(type, _commandName);
                                 await CheckAuthAsync(context, command);
-                                return await _mediator.Send(command);
+                                return await context.GetMediator().Send(command);
                             })
                             .FieldType);
 
@@ -367,7 +375,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                                 var type = GenericTypeHelper.GetActualType<RemoveMemberFromOrganizationCommand>();
                                 var command = (RemoveMemberFromOrganizationCommand)context.GetArgument(type, _commandName);
                                 await CheckAuthAsync(context, command, ProfilePermissions.MyOrganizationEdit);
-                                return await _mediator.Send(command);
+                                return await context.GetMediator().Send(command);
                             })
                             .FieldType);
 
@@ -378,7 +386,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             {
                                 var type = GenericTypeHelper.GetActualType<RegisterRequestCommand>();
                                 var command = (RegisterRequestCommand)context.GetArgument(type, _commandName);
-                                return await _mediator.Send(command);
+                                return await context.GetMediator().Send(command);
                             })
                             .FieldType);
 
@@ -391,7 +399,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                                 var command = (CreateContactCommand)context.GetArgument(type, _commandName);
                                 await CheckAuthAsync(context, command);
 
-                                return await _mediator.Send(command);
+                                return await context.GetMediator().Send(command);
                             })
                             .FieldType);
 
@@ -405,7 +413,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                                 command.UserId = context.GetCurrentUserId();
                                 command.OrganizationId = context.GetCurrentOrganizationId();
                                 await CheckAuthAsync(context, command);
-                                return await _mediator.Send(command);
+                                return await context.GetMediator().Send(command);
 
                             })
                             .FieldType);
@@ -418,7 +426,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                                 var type = GenericTypeHelper.GetActualType<DeleteContactCommand>();
                                 var command = (DeleteContactCommand)context.GetArgument(type, _commandName);
                                 await CheckAuthAsync(context, command, CustomerPermissions.Delete);
-                                return await _mediator.Send(command);
+                                return await context.GetMediator().Send(command);
                             })
                             .FieldType);
 
@@ -430,7 +438,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                               var type = GenericTypeHelper.GetActualType<UpdatePersonalDataCommand>();
                               var command = (UpdatePersonalDataCommand)context.GetArgument(type, _commandName);
                               await CheckAuthAsync(context, command);
-                              return await _mediator.Send(command);
+                              return await context.GetMediator().Send(command);
                           })
                           .FieldType);
 
@@ -443,7 +451,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             var command = (UpdateMemberDynamicPropertiesCommand)context.GetArgument(type, _commandName);
                             await CheckAuthAsync(context, command, CustomerPermissions.Update);
 
-                            return await _mediator.Send(command);
+                            return await context.GetMediator().Send(command);
                         })
                         .FieldType);
 
@@ -461,7 +469,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                                 command.Email = await GetUserEmailAsync(context.GetCurrentUserId());
                             }
 
-                            return await _mediator.Send(command);
+                            return await context.GetMediator().Send(command);
                         })
                         .FieldType);
 
@@ -473,7 +481,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             var type = GenericTypeHelper.GetActualType<ConfirmEmailCommand>();
                             var command = (ConfirmEmailCommand)context.GetArgument(type, _commandName);
 
-                            return await _mediator.Send(command);
+                            return await context.GetMediator().Send(command);
                         })
                         .FieldType);
 
@@ -485,7 +493,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             var type = GenericTypeHelper.GetActualType<ResetPasswordByTokenCommand>();
                             var command = (ResetPasswordByTokenCommand)context.GetArgument(type, _commandName);
 
-                            return await _mediator.Send(command);
+                            return await context.GetMediator().Send(command);
                         })
                         .FieldType);
 
@@ -500,7 +508,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
                             command.SessionGroupId = context.User.FindFirstValue(OpenIddictConstants.Claims.Private.AuthorizationId);
 
-                            return await _mediator.Send(command);
+                            return await context.GetMediator().Send(command);
                         })
                         .FieldType);
 
@@ -513,7 +521,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             var command = (LockOrganizationContactCommand)context.GetArgument(type, _commandName);
                             command.OrganizationId = context.GetCurrentOrganizationId();
                             await CheckAuthAsync(context, command, ProfilePermissions.MyOrganizationEdit);
-                            return await _mediator.Send(command);
+                            return await context.GetMediator().Send(command);
                         })
                         .FieldType);
 
@@ -526,7 +534,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             var command = (UnlockOrganizationContactCommand)context.GetArgument(type, _commandName);
                             command.OrganizationId = context.GetCurrentOrganizationId();
                             await CheckAuthAsync(context, command, ProfilePermissions.MyOrganizationEdit);
-                            return await _mediator.Send(command);
+                            return await context.GetMediator().Send(command);
                         })
                         .FieldType);
 
@@ -557,7 +565,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 Type = GraphTypeExtensionHelper.GetActualType<UserType>(),
                 Resolver = new FuncFieldResolver<object>(async context =>
                 {
-                    var user = await _mediator.Send(new GetUserQuery(
+                    var user = await context.GetMediator().Send(new GetUserQuery(
                         id: context.GetArgument<string>("id"),
                         email: context.GetArgument<string>("email"),
                         userName: context.GetArgument<string>("userName"),
@@ -592,7 +600,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 Type = GraphTypeExtensionHelper.GetActualType<RoleType>(),
                 Resolver = new FuncFieldResolver<object>(async context =>
                 {
-                    var result = await _mediator.Send(new GetRoleQuery(context.GetArgument<string>("roleName")));
+                    var result = await context.GetMediator().Send(new GetRoleQuery(context.GetArgument<string>("roleName")));
 
                     return result;
                 })
@@ -628,7 +636,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             var type = GenericTypeHelper.GetActualType<InviteUserCommand>();
                             var command = (InviteUserCommand)context.GetArgument(type, _commandName);
                             await CheckAuthAsync(context, command, ProfilePermissions.MyOrganizationUserInvite);
-                            return await _mediator.Send(command);
+                            return await context.GetMediator().Send(command);
                         })
                         .FieldType);
 
@@ -662,7 +670,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         {
                             var type = GenericTypeHelper.GetActualType<RegisterByInvitationCommand>();
                             var command = (RegisterByInvitationCommand)context.GetArgument(type, _commandName);
-                            return await _mediator.Send(command);
+                            return await context.GetMediator().Send(command);
                         })
                         .FieldType);
 
@@ -691,7 +699,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             var type = GenericTypeHelper.GetActualType<CreateUserCommand>();
                             var command = (CreateUserCommand)context.GetArgument(type, _commandName);
                             await CheckAuthAsync(context, command);
-                            return await _mediator.Send(command);
+                            return await context.GetMediator().Send(command);
                         })
                         .FieldType);
 
@@ -725,7 +733,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             var type = GenericTypeHelper.GetActualType<UpdateUserCommand>();
                             var command = (UpdateUserCommand)context.GetArgument(type, _commandName);
                             await CheckAuthAsync(context, command);
-                            return await _mediator.Send(command);
+                            return await context.GetMediator().Send(command);
                         })
                         .FieldType);
 
@@ -738,7 +746,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             var command = (ChangeOrganizationContactRoleCommand)context.GetArgument(type, _commandName);
                             command.OrganizationId = context.GetCurrentOrganizationId();
                             await CheckAuthAsync(context, command, ProfilePermissions.MyOrganizationEdit);
-                            return await _mediator.Send(command);
+                            return await context.GetMediator().Send(command);
                         })
             .FieldType);
 
@@ -767,7 +775,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             var type = GenericTypeHelper.GetActualType<DeleteUserCommand>();
                             var command = (DeleteUserCommand)context.GetArgument(type, _commandName);
                             await CheckAuthAsync(context, command, PlatformPermissions.SecurityDelete);
-                            return await _mediator.Send(command);
+                            return await context.GetMediator().Send(command);
                         })
                         .FieldType);
 
@@ -799,7 +807,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             var command = (UpdateRoleCommand)context.GetArgument(type, _commandName);
                             await CheckAuthAsync(context, command, PlatformPermissions.SecurityUpdate);
 
-                            return await _mediator.Send(command);
+                            return await context.GetMediator().Send(command);
                         })
                         .FieldType);
         }

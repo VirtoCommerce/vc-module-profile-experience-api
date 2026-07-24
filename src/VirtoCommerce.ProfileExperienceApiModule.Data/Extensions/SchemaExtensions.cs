@@ -7,13 +7,14 @@ using MediatR;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
+using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 
 public static class SchemaExtensions
 {
-    public static void AddMemberQuery<TAggregate, TType, TQuery>(this ISchema schema, IMediator mediator, string name, Func<IResolveFieldContext, object, Task> checkAuthAsync)
+    public static void AddMemberQuery<TAggregate, TType, TQuery>(this ISchema schema, string name, Func<IResolveFieldContext, object, Task> checkAuthAsync)
         where TAggregate : MemberAggregateRootBase
         where TType : MemberBaseType<TAggregate>
         where TQuery : GetMemberByIdQueryBase<TAggregate>, new()
@@ -29,7 +30,7 @@ public static class SchemaExtensions
             Resolver = new FuncFieldResolver<object>(async context =>
             {
                 var query = new TQuery { Id = context.GetArgument<string>("id") };
-                var aggregate = await mediator.Send(query);
+                var aggregate = await context.GetMediator().Send(query);
 
                 await checkAuthAsync(context, aggregate);
 
@@ -39,5 +40,14 @@ public static class SchemaExtensions
                 return aggregate;
             })
         });
+    }
+
+    [Obsolete("Use the overload without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    public static void AddMemberQuery<TAggregate, TType, TQuery>(this ISchema schema, IMediator mediator, string name, Func<IResolveFieldContext, object, Task> checkAuthAsync)
+        where TAggregate : MemberAggregateRootBase
+        where TType : MemberBaseType<TAggregate>
+        where TQuery : GetMemberByIdQueryBase<TAggregate>, new()
+    {
+        schema.AddMemberQuery<TAggregate, TType, TQuery>(name, checkAuthAsync);
     }
 }
