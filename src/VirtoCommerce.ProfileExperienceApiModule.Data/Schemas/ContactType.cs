@@ -57,6 +57,10 @@ public class ContactType : MemberBaseType<ContactAggregate>
             .Resolve(context => ResolveRolesInOrganization(
                 context, organizationMembershipSearchService, dataLoader, roleManagerFactory, userManagerFactory));
 
+        Field<StringGraphType>("statusInOrganization")
+            .Description("Effective status for the current organization: the organization-specific override if set, otherwise the contact's global status.")
+            .Resolve(context => ResolveStatusInOrganization(context, organizationMembershipSearchService, dataLoader));
+
         Field(x => x.Contact.FirstName);
         Field(x => x.Contact.LastName);
         Field(x => x.Contact.MiddleName, true);
@@ -105,19 +109,28 @@ public class ContactType : MemberBaseType<ContactAggregate>
             .CreateConnection<OrganizationType, ContactAggregate>("organizations")
             .Argument<StringGraphType>("searchPhrase", "Free text search")
             .Argument<StringGraphType>("sort", "Sort expression")
+            .Argument<ListGraphType<StringGraphType>>("statuses", "Filter by the current user's effective status/lock state in each organization (e.g. Invited, Approved, Locked)")
             .PageSize(20);
 
         organizationsConnectionBuilder.ResolveAsync(async context =>
         {
             var response = AbstractTypeFactory<MemberSearchResult>.TryCreateInstance();
             var query = context.GetSearchMembersQuery<SearchOrganizationsQuery>();
+            var organizationIds = context.Source.Contact.Organizations;
+
+            var statuses = context.GetArgument<IList<string>>("statuses");
+            if (statuses is { Count: > 0 } && !organizationIds.IsNullOrEmpty())
+            {
+                organizationIds = (await ResolveMyOrganizationIdsByStatusAsync(
+                    context, organizationMembershipSearchService, organizationIds, statuses)).ToList();
+            }
 
             // If user have no organizations, member search service would return all organizations
             // it means we don't need the search request when user's organization list is empty
-            if (!context.Source.Contact.Organizations.IsNullOrEmpty())
+            if (!organizationIds.IsNullOrEmpty())
             {
                 query.DeepSearch = true;
-                query.ObjectIds = context.Source.Contact.Organizations;
+                query.ObjectIds = organizationIds;
                 response = await mediator.Send(query);
             }
 
@@ -168,6 +181,113 @@ public class ContactType : MemberBaseType<ContactAggregate>
             });
 
         return loader.LoadAsync(userIds).Then(lockedFlags => lockedFlags.Any(locked => locked));
+    }
+
+    private static IDataLoaderResult<string> ResolveStatusInOrganization(
+        IResolveFieldContext<ContactAggregate> context,
+        IOrganizationMembershipSearchService organizationMembershipSearchService,
+        IDataLoaderContextAccessor dataLoader)
+    {
+        var organizationId = context.GetCurrentOrganizationId();
+        var globalStatus = context.Source.Contact.Status;
+
+        if (string.IsNullOrEmpty(organizationId))
+        {
+            return new DataLoaderResult<string>(globalStatus);
+        }
+
+        var userIds = GetSecurityAccountIds(context);
+        if (userIds.Count == 0)
+        {
+            return new DataLoaderResult<string>(globalStatus);
+        }
+
+        var loader = dataLoader.Context.GetOrAddBatchLoader<string, string>(
+            $"contact_statusInOrg_{organizationId}",
+            async ids =>
+            {
+                var idsList = ids.ToList();
+                var memberships = await organizationMembershipSearchService.SearchAllNoCloneAsync(
+                    new OrganizationMembershipSearchCriteria
+                    {
+                        OrganizationId = organizationId,
+                        UserIds = idsList,
+                        Take = idsList.Count,
+                    });
+
+                return (IDictionary<string, string>)memberships
+                    .Where(m => !string.IsNullOrEmpty(m.Status))
+                    .GroupBy(m => m.UserId)
+                    .ToDictionary(g => g.Key, g => g.First().Status);
+            });
+
+        return loader.LoadAsync(userIds).Then(statuses =>
+        {
+            var overrideStatus = statuses.FirstOrDefault(status => !string.IsNullOrEmpty(status));
+            return OrganizationMembership.ResolveEffectiveStatus(overrideStatus, globalStatus);
+        });
+    }
+
+    private const string LockedFilterValue = "Locked";
+
+    private static async Task<IReadOnlyCollection<string>> ResolveMyOrganizationIdsByStatusAsync(
+        IResolveFieldContext<ContactAggregate> context,
+        IOrganizationMembershipSearchService organizationMembershipSearchService,
+        IList<string> organizationIds,
+        IList<string> statuses)
+    {
+        var userId = context.GetCurrentUserId();
+        var globalStatus = context.Source.Contact.Status;
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            return [];
+        }
+
+        var wantsLocked = statuses.Contains(LockedFilterValue);
+        var lifecycleStatuses = statuses.Where(s => s != LockedFilterValue).ToHashSet();
+
+        var memberships = await organizationMembershipSearchService.SearchAllNoCloneAsync(
+            new OrganizationMembershipSearchCriteria
+            {
+                UserId = userId,
+                OrganizationIds = organizationIds,
+            });
+
+        var membershipByOrgId = memberships
+            .Where(m => m.OrganizationId != null)
+            .GroupBy(m => m.OrganizationId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var qualifyingOrgIds = new HashSet<string>();
+
+        foreach (var orgId in organizationIds)
+        {
+            membershipByOrgId.TryGetValue(orgId, out var membership);
+
+            if (membership?.IsCurrentlyLocked == true)
+            {
+                if (wantsLocked)
+                {
+                    qualifyingOrgIds.Add(orgId);
+                }
+
+                continue;
+            }
+
+            if (lifecycleStatuses.Count == 0)
+            {
+                continue;
+            }
+
+            var effectiveStatus = OrganizationMembership.ResolveEffectiveStatus(membership?.Status, globalStatus);
+            if (!string.IsNullOrEmpty(effectiveStatus) && lifecycleStatuses.Contains(effectiveStatus))
+            {
+                qualifyingOrgIds.Add(orgId);
+            }
+        }
+
+        return qualifyingOrgIds;
     }
 
     private static IDataLoaderResult<List<Role>> ResolveRolesInOrganization(

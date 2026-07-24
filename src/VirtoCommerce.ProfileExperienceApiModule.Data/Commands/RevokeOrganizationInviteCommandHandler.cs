@@ -3,33 +3,32 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using VirtoCommerce.CustomerModule.Core.Extensions;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
-    public class LockOrganizationContactCommandHandler : IRequestHandler<LockOrganizationContactCommand, ContactAggregate>
+    public class RevokeOrganizationInviteCommandHandler : IRequestHandler<RevokeOrganizationInviteCommand, ContactAggregate>
     {
         private readonly IContactAggregateRepository _contactAggregateRepository;
-        private readonly IOrganizationMembershipService _organizationMembershipService;
         private readonly IOrganizationMembershipSearchService _organizationMembershipSearchService;
+        private readonly IInviteCustomerService _inviteCustomerService;
 
-        public LockOrganizationContactCommandHandler(
+        public RevokeOrganizationInviteCommandHandler(
             IContactAggregateRepository contactAggregateRepository,
-            IOrganizationMembershipService organizationMembershipService,
-            IOrganizationMembershipSearchService organizationMembershipSearchService)
+            IOrganizationMembershipSearchService organizationMembershipSearchService,
+            IInviteCustomerService inviteCustomerService)
         {
             _contactAggregateRepository = contactAggregateRepository;
-            _organizationMembershipService = organizationMembershipService;
             _organizationMembershipSearchService = organizationMembershipSearchService;
+            _inviteCustomerService = inviteCustomerService;
         }
 
-        public virtual async Task<ContactAggregate> Handle(LockOrganizationContactCommand request, CancellationToken cancellationToken)
+        public virtual async Task<ContactAggregate> Handle(RevokeOrganizationInviteCommand request, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(request.OrganizationId))
             {
-                throw new InvalidOperationException("OrganizationId is required for organization-scoped lock.");
+                throw new InvalidOperationException("OrganizationId is required for revoking an organization invite.");
             }
 
             var contactAggregate = await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.MemberId)
@@ -41,12 +40,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return contactAggregate;
             }
 
-            var membership = await _organizationMembershipSearchService.GetMembershipAsync(userId, request.OrganizationId)
-                ?? throw new InvalidOperationException($"Contact '{request.MemberId}' has no membership in organization '{request.OrganizationId}'.");
+            var membership = await OrganizationInviteHelper.GetPendingInviteAsync(
+                _organizationMembershipSearchService, userId, request.OrganizationId);
 
-            await _organizationMembershipService.LockAsync(membership.Id);
+            await _inviteCustomerService.RevokeInviteAsync(membership.Id, cancellationToken);
 
-            return contactAggregate;
+            return await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.MemberId);
         }
     }
 }

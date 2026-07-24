@@ -632,6 +632,58 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         })
                         .FieldType);
 
+            _ = schema.Mutation.AddField(FieldBuilder<ContactAggregate, ContactAggregate>
+                        .Create("acceptOrganizationInvite", GraphTypeExtensionHelper.GetActualType<ContactType>())
+                        .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputAcceptRejectOrganizationInviteType>>(), _commandName)
+                        .ResolveAsync(async context =>
+                        {
+                            var type = GenericTypeHelper.GetActualType<AcceptOrganizationInviteCommand>();
+                            var command = (AcceptOrganizationInviteCommand)context.GetArgument(type, _commandName);
+                            command.UserId = context.GetCurrentUserId();
+                            await CheckAuthAsync(context, command);
+                            return await _mediator.Send(command);
+                        })
+                        .FieldType);
+
+            _ = schema.Mutation.AddField(FieldBuilder<ContactAggregate, ContactAggregate>
+                        .Create("rejectOrganizationInvite", GraphTypeExtensionHelper.GetActualType<ContactType>())
+                        .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputAcceptRejectOrganizationInviteType>>(), _commandName)
+                        .ResolveAsync(async context =>
+                        {
+                            var type = GenericTypeHelper.GetActualType<RejectOrganizationInviteCommand>();
+                            var command = (RejectOrganizationInviteCommand)context.GetArgument(type, _commandName);
+                            command.UserId = context.GetCurrentUserId();
+                            await CheckAuthAsync(context, command);
+                            return await _mediator.Send(command);
+                        })
+                        .FieldType);
+
+            _ = schema.Mutation.AddField(FieldBuilder<ContactAggregate, ContactAggregate>
+                        .Create("revokeOrganizationInvite", GraphTypeExtensionHelper.GetActualType<ContactType>())
+                        .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputLockUnlockOrganizationContactType>>(), _commandName)
+                        .ResolveAsync(async context =>
+                        {
+                            var type = GenericTypeHelper.GetActualType<RevokeOrganizationInviteCommand>();
+                            var command = (RevokeOrganizationInviteCommand)context.GetArgument(type, _commandName);
+                            command.OrganizationId = context.GetCurrentOrganizationId();
+                            await CheckAuthAsync(context, command, ProfilePermissions.MyOrganizationEdit);
+                            return await _mediator.Send(command);
+                        })
+                        .FieldType);
+
+            _ = schema.Mutation.AddField(FieldBuilder<object, IdentityResultResponse>
+                        .Create("resendOrganizationInvite", GraphTypeExtensionHelper.GetActualType<CustomIdentityResultType>())
+                        .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputResendOrganizationInviteType>>(), _commandName)
+                        .ResolveAsync(async context =>
+                        {
+                            var type = GenericTypeHelper.GetActualType<ResendOrganizationInviteCommand>();
+                            var command = (ResendOrganizationInviteCommand)context.GetArgument(type, _commandName);
+                            command.OrganizationId = context.GetCurrentOrganizationId();
+                            await CheckAuthAsync(context, command, ProfilePermissions.MyOrganizationEdit);
+                            return await _mediator.Send(command);
+                        })
+                        .FieldType);
+
             #region register by invitation
 
 #pragma warning disable S125 // Sections of code should not be commented out

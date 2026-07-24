@@ -3,7 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.CustomerModule.Core.Extensions;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 
@@ -41,15 +41,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return contactAggregate;
             }
 
-            var searchResult = await _organizationMembershipSearchService.SearchAsync(
-                new OrganizationMembershipSearchCriteria
-                {
-                    UserId = userId,
-                    OrganizationId = request.OrganizationId,
-                    Take = 1
-                });
-
-            var membership = searchResult.Results.FirstOrDefault()
+            var membership = await _organizationMembershipSearchService.GetMembershipAsync(userId, request.OrganizationId)
                 ?? throw new InvalidOperationException($"Contact '{request.MemberId}' has no membership in organization '{request.OrganizationId}'.");
 
             await _organizationMembershipService.UnlockAsync(membership.Id);
