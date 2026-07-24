@@ -41,7 +41,6 @@ public class ContactType : MemberBaseType<ContactAggregate>
         Func<UserManager<ApplicationUser>> userManagerFactory,
         Func<RoleManager<Role>> roleManagerFactory,
         ICustomerPreferenceService customerPreferenceService,
-        IMediator mediator,
         IMemberAggregateFactory memberAggregateFactory,
         IOrganizationMembershipSearchService organizationMembershipSearchService,
         IDataLoaderContextAccessor dataLoader)
@@ -90,7 +89,7 @@ public class ContactType : MemberBaseType<ContactAggregate>
             {
                 Id = organizationId,
             };
-            return await mediator.Send(query);
+            return await context.GetMediator().Send(query);
         });
 
         Field<StringGraphType>("selectedAddressId")
@@ -118,7 +117,7 @@ public class ContactType : MemberBaseType<ContactAggregate>
             {
                 query.DeepSearch = true;
                 query.ObjectIds = context.Source.Contact.Organizations;
-                response = await mediator.Send(query);
+                response = await context.GetMediator().Send(query);
             }
 
             return new PagedConnection<OrganizationAggregate>(
@@ -128,6 +127,22 @@ public class ContactType : MemberBaseType<ContactAggregate>
         AddField(organizationsConnectionBuilder.FieldType);
 
         #endregion
+    }
+
+    [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    public ContactType(
+        IStoreService storeService,
+        IDynamicPropertyResolverService dynamicPropertyResolverService,
+        IMemberAddressService memberAddressService,
+        Func<UserManager<ApplicationUser>> userManagerFactory,
+        Func<RoleManager<Role>> roleManagerFactory,
+        ICustomerPreferenceService customerPreferenceService,
+        IMediator mediator,
+        IMemberAggregateFactory memberAggregateFactory,
+        IOrganizationMembershipSearchService organizationMembershipSearchService,
+        IDataLoaderContextAccessor dataLoader)
+        : this(storeService, dynamicPropertyResolverService, memberAddressService, userManagerFactory, roleManagerFactory, customerPreferenceService, memberAggregateFactory, organizationMembershipSearchService, dataLoader)
+    {
     }
 
     private static IDataLoaderResult<bool> ResolveIsLockedInOrganization(
