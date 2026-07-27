@@ -25,6 +25,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _organizationMembershipSearchService = organizationMembershipSearchService;
         }
 
+        protected IContactAggregateRepository ContactAggregateRepository => _contactAggregateRepository;
+
         public virtual async Task<ContactAggregate> Handle(LockOrganizationContactCommand request, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(request.OrganizationId))
@@ -41,12 +43,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return contactAggregate;
             }
 
+            await ApplyLockAsync(contactAggregate, userId, request, cancellationToken);
+
+            return contactAggregate;
+        }
+
+        protected virtual async Task ApplyLockAsync(ContactAggregate contactAggregate, string userId, LockOrganizationContactCommand request, CancellationToken cancellationToken)
+        {
             var membership = await _organizationMembershipSearchService.GetMembershipAsync(userId, request.OrganizationId)
                 ?? throw new InvalidOperationException($"Contact '{request.MemberId}' has no membership in organization '{request.OrganizationId}'.");
 
             await _organizationMembershipService.LockAsync(membership.Id);
-
-            return contactAggregate;
         }
     }
 }
