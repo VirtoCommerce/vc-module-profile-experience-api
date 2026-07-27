@@ -19,6 +19,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.StoreModule.Core.Services;
+using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Services;
@@ -31,7 +32,6 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
         IStoreService storeService,
         IDynamicPropertyResolverService dynamicPropertyResolverService,
         IMemberAddressService memberAddressService,
-        IMediator mediator,
         IMemberAggregateFactory factory,
         IMemberService memberService,
         IMemberSearchService memberSearchService,
@@ -86,7 +86,7 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
                 }
             }
 
-            var response = await mediator.Send(query);
+            var response = await context.GetMediator().Send(query);
 
             return new PagedConnection<ContactAggregate>(
                 response.Results.Select(x => factory.Create<ContactAggregate>(x)), query.Skip, query.Take,
@@ -95,6 +95,22 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
         AddField(connectionBuilder.FieldType);
 
         #endregion
+    }
+
+    [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    public OrganizationType(
+        IStoreService storeService,
+        IDynamicPropertyResolverService dynamicPropertyResolverService,
+        IMemberAddressService memberAddressService,
+        IMediator mediator,
+        IMemberAggregateFactory factory,
+        IMemberService memberService,
+        IMemberSearchService memberSearchService,
+        IOrganizationMembershipSearchService organizationMembershipService,
+        Func<RoleManager<Role>> roleManagerFactory,
+        Func<UserManager<ApplicationUser>> userManagerFactory)
+        : this(storeService, dynamicPropertyResolverService, memberAddressService, factory, memberService, memberSearchService, organizationMembershipService, roleManagerFactory, userManagerFactory)
+    {
     }
 
     private static async Task<IReadOnlyCollection<string>> GetContactIdsByGlobalRolesAsync(
