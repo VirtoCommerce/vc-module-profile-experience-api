@@ -4,11 +4,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.Builders;
+using GraphQL.DataLoader;
 using GraphQL.Types;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using VirtoCommerce.CustomerModule.Core.Extensions;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Model.Search;
 using VirtoCommerce.CustomerModule.Core.Services;
@@ -40,7 +40,8 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
         IMemberSearchService memberSearchService,
         IOrganizationMembershipSearchService organizationMembershipService,
         Func<RoleManager<Role>> roleManagerFactory,
-        Func<UserManager<ApplicationUser>> userManagerFactory)
+        Func<UserManager<ApplicationUser>> userManagerFactory,
+        IDataLoaderContextAccessor dataLoader)
         : base(storeService, dynamicPropertyResolverService, memberAddressService)
     {
         Name = "Organization";
@@ -53,7 +54,7 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
 
         Field<StringGraphType>("myStatusInOrganization")
             .Description("Current user's effective status in this organization: the organization-specific override if set, otherwise the contact's global status.")
-            .ResolveAsync(async context => await ResolveMyStatusInOrganizationAsync(context, organizationMembershipService, memberService, userManagerFactory));
+            .Resolve(context => ResolveMyStatusInOrganization(context, organizationMembershipService, memberService, userManagerFactory, dataLoader));
 
         var connectionBuilder = GraphTypeExtensionHelper.CreateConnection<ContactType, OrganizationAggregate>("contacts")
             .Argument<StringGraphType>("searchPhrase", "Free text search")
@@ -132,31 +133,63 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
             response.TotalCount);
     }
 
-    private static async Task<string> ResolveMyStatusInOrganizationAsync(
+    private static IDataLoaderResult<string> ResolveMyStatusInOrganization(
         IResolveFieldContext<OrganizationAggregate> context,
         IOrganizationMembershipSearchService organizationMembershipSearchService,
         IMemberService memberService,
-        Func<UserManager<ApplicationUser>> userManagerFactory)
+        Func<UserManager<ApplicationUser>> userManagerFactory,
+        IDataLoaderContextAccessor dataLoader)
+    {
+        var loader = dataLoader.Context.GetOrAddBatchLoader<string, string>(
+            "organization_myStatusInOrg",
+            async organizationIds => await ResolveMyStatusesByOrganizationAsync(
+                context, organizationMembershipSearchService, memberService, userManagerFactory, organizationIds));
+
+        return loader.LoadAsync(context.Source.Organization.Id);
+    }
+
+    private static async Task<IDictionary<string, string>> ResolveMyStatusesByOrganizationAsync(
+        IResolveFieldContext<OrganizationAggregate> context,
+        IOrganizationMembershipSearchService organizationMembershipSearchService,
+        IMemberService memberService,
+        Func<UserManager<ApplicationUser>> userManagerFactory,
+        IEnumerable<string> organizationIds)
     {
         var userId = context.GetCurrentUserId();
         if (string.IsNullOrEmpty(userId))
         {
-            return null;
+            return new Dictionary<string, string>();
         }
 
         using var userManager = userManagerFactory();
         var user = await userManager.FindByIdAsync(userId);
         if (string.IsNullOrEmpty(user?.MemberId))
         {
-            return null;
+            return new Dictionary<string, string>();
         }
 
-        var memberTask = memberService.GetByIdAsync(user.MemberId);
-        var membershipTask = organizationMembershipSearchService.GetMembershipAsync(userId, context.Source.Organization.Id);
+        var member = await memberService.GetByIdAsync(user.MemberId);
+        var globalStatus = member?.Status;
 
-        await Task.WhenAll(memberTask, membershipTask);
+        var idsList = organizationIds.ToList();
+        var memberships = await organizationMembershipSearchService.SearchAllNoCloneAsync(new OrganizationMembershipSearchCriteria
+        {
+            UserId = userId,
+            OrganizationIds = idsList,
+        });
 
-        return OrganizationMembership.ResolveEffectiveStatus(membershipTask.Result?.Status, memberTask.Result?.Status);
+        var membershipByOrgId = memberships
+            .Where(m => m.OrganizationId != null)
+            .GroupBy(m => m.OrganizationId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        return idsList.ToDictionary(
+            orgId => orgId,
+            orgId =>
+            {
+                membershipByOrgId.TryGetValue(orgId, out var membership);
+                return OrganizationMembership.ResolveEffectiveStatus(membership?.Status, globalStatus);
+            });
     }
 
     private static async Task<IReadOnlyCollection<string>> GetContactIdsByGlobalRolesAsync(

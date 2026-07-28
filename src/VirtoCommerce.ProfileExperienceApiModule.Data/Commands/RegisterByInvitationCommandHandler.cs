@@ -16,6 +16,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.XOrder.Core.Commands;
+using CustomerModuleConstants = VirtoCommerce.CustomerModule.Core.ModuleConstants;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -142,14 +143,20 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             {
                 UserId = userId,
                 OrganizationIds = organizationIds,
-                Statuses = [CustomerModule.Core.ModuleConstants.MembershipStatuses.Invited],
+                Statuses = [CustomerModuleConstants.MembershipStatuses.Invited],
             });
+
+            if (invitedMemberships.Count == 0)
+            {
+                return;
+            }
 
             foreach (var membership in invitedMemberships)
             {
-                await _organizationMembershipService.SetStatusAsync(
-                    membership.Id, CustomerModule.Core.ModuleConstants.MembershipStatuses.Approved);
+                membership.Status = CustomerModuleConstants.MembershipStatuses.Approved;
             }
+
+            await _organizationMembershipService.SaveChangesAsync(invitedMemberships);
         }
 
         protected virtual void UpdateContact(Contact contact, RegisterByInvitationCommand request)

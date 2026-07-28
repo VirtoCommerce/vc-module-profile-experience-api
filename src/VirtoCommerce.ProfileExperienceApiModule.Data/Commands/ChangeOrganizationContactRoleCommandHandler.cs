@@ -55,7 +55,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             var contactAggregate = await GetContactAggregate(request.MemberId)
                 ?? throw new InvalidOperationException($"Contact '{request.MemberId}' not found.");
 
-            var userId = GetSecurityAccountId(contactAggregate);
+            var (userId, knownMembership) = await ResolveSecurityAccountAsync(contactAggregate, request.OrganizationId);
             if (string.IsNullOrEmpty(userId))
             {
                 result.Errors.Add(new IdentityErrorInfo { Code = "Forbidden", Description = "It is forbidden to edit this user." });
@@ -73,7 +73,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return result;
             }
 
-            var membership = await _organizationMembershipSearchService.GetMembershipAsync(userId, request.OrganizationId);
+            var membership = knownMembership ?? await _organizationMembershipSearchService.GetMembershipAsync(userId, request.OrganizationId);
             if (membership == null)
             {
                 result.Errors.Add(new IdentityErrorInfo
@@ -95,9 +95,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(memberId);
         }
 
-        protected virtual string GetSecurityAccountId(ContactAggregate contactAggregate)
+        protected virtual Task<(string UserId, OrganizationMembership Membership)> ResolveSecurityAccountAsync(ContactAggregate contactAggregate, string organizationId)
         {
-            return contactAggregate.Contact?.SecurityAccounts?.FirstOrDefault()?.Id;
+            return _organizationMembershipSearchService.ResolveMembershipForOrganizationAsync(contactAggregate.Contact, organizationId);
         }
 
         protected virtual async Task<bool> ValidateUserEditable(string userId, IdentityResultResponse result)

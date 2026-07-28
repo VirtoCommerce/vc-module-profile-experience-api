@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -37,13 +36,15 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         private async Task RemoveMembershipAsync(ContactAggregate contactAggregate, string organizationId)
         {
-            var userId = contactAggregate.Contact?.SecurityAccounts?.FirstOrDefault()?.Id;
+            var (userId, membership) = await _organizationMembershipSearchService.ResolveMembershipForOrganizationAsync(
+                contactAggregate.Contact, organizationId);
+
             if (string.IsNullOrEmpty(userId))
             {
                 return;
             }
 
-            var membership = await _organizationMembershipSearchService.GetMembershipAsync(userId, organizationId);
+            membership ??= await _organizationMembershipSearchService.GetMembershipAsync(userId, organizationId);
 
             if (membership != null)
             {

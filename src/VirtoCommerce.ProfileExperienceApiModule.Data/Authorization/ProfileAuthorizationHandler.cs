@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using VirtoCommerce.CustomerModule.Core.Extensions;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.Platform.Core;
@@ -14,18 +15,24 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Vendor;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries.AddressesQuery;
+using CustomerModuleConstants = VirtoCommerce.CustomerModule.Core.ModuleConstants;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
 {
     public class ProfileAuthorizationHandler : AuthorizationHandler<ProfileAuthorizationRequirement>
     {
         private readonly IMemberService _memberService;
+        private readonly IOrganizationMembershipSearchService _organizationMembershipSearchService;
         private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
 
 
-        public ProfileAuthorizationHandler(IMemberService memberService, Func<UserManager<ApplicationUser>> userManagerFactory)
+        public ProfileAuthorizationHandler(
+            IMemberService memberService,
+            IOrganizationMembershipSearchService organizationMembershipSearchService,
+            Func<UserManager<ApplicationUser>> userManagerFactory)
         {
             _memberService = memberService;
+            _organizationMembershipSearchService = organizationMembershipSearchService;
             _userManagerFactory = userManagerFactory;
         }
 
@@ -58,7 +65,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     result = result || await HasSameOrganizationAsync(currentContact, applicationUser.Id, userManager);
                     break;
                 case OrganizationAggregate organizationAggregate when currentContact != null:
-                    result = currentContact.Organizations.Contains(organizationAggregate.Organization.Id);
+                    result = await HasActiveAccessToOrganizationAsync(currentContact, currentUserId, organizationAggregate.Organization.Id);
                     break;
                 case VendorAggregate:
                     result = true;
@@ -219,6 +226,24 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             }
 
             return result;
+        }
+
+        private async Task<bool> HasActiveAccessToOrganizationAsync(Contact currentContact, string userId, string organizationId)
+        {
+            if (!currentContact.Organizations.Contains(organizationId))
+            {
+                return false;
+            }
+
+            var membership = await _organizationMembershipSearchService.GetMembershipAsync(userId, organizationId);
+            if (membership?.IsCurrentlyLocked == true)
+            {
+                return false;
+            }
+
+            var effectiveStatus = OrganizationMembership.ResolveEffectiveStatus(membership?.Status, currentContact.Status);
+
+            return !CustomerModuleConstants.MembershipStatuses.IsBlocking(effectiveStatus);
         }
 
         private async Task<bool> HasSameOrganizationAsync(Contact currentContact, string contactId, UserManager<ApplicationUser> userManager)

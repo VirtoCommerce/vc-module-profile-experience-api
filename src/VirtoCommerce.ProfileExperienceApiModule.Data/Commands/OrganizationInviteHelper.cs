@@ -10,6 +10,7 @@ using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
+using CustomerModuleConstants = VirtoCommerce.CustomerModule.Core.ModuleConstants;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -18,15 +19,16 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         public static async Task<OrganizationMembership> GetPendingInviteAsync(
             IOrganizationMembershipSearchService organizationMembershipSearchService,
             string userId,
-            string organizationId)
+            string organizationId,
+            OrganizationMembership knownMembership = null)
         {
             if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(organizationId))
             {
                 throw new InvalidOperationException("UserId and OrganizationId are required.");
             }
 
-            var membership = await organizationMembershipSearchService.GetMembershipAsync(userId, organizationId);
-            if (membership == null || membership.Status != VirtoCommerce.CustomerModule.Core.ModuleConstants.MembershipStatuses.Invited)
+            var membership = knownMembership ?? await organizationMembershipSearchService.GetMembershipAsync(userId, organizationId);
+            if (membership == null || membership.Status != CustomerModuleConstants.MembershipStatuses.Invited)
             {
                 throw new InvalidOperationException($"No pending invite found for organization '{organizationId}'.");
             }

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
+using CustomerModuleConstants = VirtoCommerce.CustomerModule.Core.ModuleConstants;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -34,7 +35,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 _organizationMembershipSearchService, request.UserId, request.OrganizationId);
 
             await _organizationMembershipService.SetStatusAsync(
-                membership.Id, CustomerModule.Core.ModuleConstants.MembershipStatuses.Approved);
+                membership.Id, CustomerModuleConstants.MembershipStatuses.Approved);
 
             return await OrganizationInviteHelper.GetContactAggregateAsync(_contactAggregateRepository, _userManagerFactory, request.UserId);
         }

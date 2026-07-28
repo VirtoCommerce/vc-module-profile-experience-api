@@ -109,7 +109,7 @@ public class ContactType : MemberBaseType<ContactAggregate>
             .CreateConnection<OrganizationType, ContactAggregate>("organizations")
             .Argument<StringGraphType>("searchPhrase", "Free text search")
             .Argument<StringGraphType>("sort", "Sort expression")
-            .Argument<ListGraphType<StringGraphType>>("statuses", "Filter by the current user's effective status/lock state in each organization (e.g. Invited, Approved, Locked)")
+            .Argument<ListGraphType<StringGraphType>>("statuses", "Filter by this contact's effective status/lock state in each organization (e.g. Invited, Approved, Locked)")
             .PageSize(20);
 
         organizationsConnectionBuilder.ResolveAsync(async context =>
@@ -236,10 +236,10 @@ public class ContactType : MemberBaseType<ContactAggregate>
         IList<string> organizationIds,
         IList<string> statuses)
     {
-        var userId = context.GetCurrentUserId();
+        var userIds = GetSecurityAccountIds(context);
         var globalStatus = context.Source.Contact.Status;
 
-        if (string.IsNullOrEmpty(userId))
+        if (userIds.Count == 0)
         {
             return [];
         }
@@ -250,22 +250,22 @@ public class ContactType : MemberBaseType<ContactAggregate>
         var memberships = await organizationMembershipSearchService.SearchAllNoCloneAsync(
             new OrganizationMembershipSearchCriteria
             {
-                UserId = userId,
+                UserIds = userIds,
                 OrganizationIds = organizationIds,
             });
 
-        var membershipByOrgId = memberships
+        var membershipsByOrgId = memberships
             .Where(m => m.OrganizationId != null)
             .GroupBy(m => m.OrganizationId)
-            .ToDictionary(g => g.Key, g => g.First());
+            .ToDictionary(g => g.Key, g => g.ToList());
 
         var qualifyingOrgIds = new HashSet<string>();
 
         foreach (var orgId in organizationIds)
         {
-            membershipByOrgId.TryGetValue(orgId, out var membership);
+            membershipsByOrgId.TryGetValue(orgId, out var orgMemberships);
 
-            if (membership?.IsCurrentlyLocked == true)
+            if (orgMemberships?.Any(m => m.IsCurrentlyLocked) == true)
             {
                 if (wantsLocked)
                 {
@@ -280,7 +280,8 @@ public class ContactType : MemberBaseType<ContactAggregate>
                 continue;
             }
 
-            var effectiveStatus = OrganizationMembership.ResolveEffectiveStatus(membership?.Status, globalStatus);
+            var overrideStatus = orgMemberships?.Select(m => m.Status).FirstOrDefault(s => !string.IsNullOrEmpty(s));
+            var effectiveStatus = OrganizationMembership.ResolveEffectiveStatus(overrideStatus, globalStatus);
             if (!string.IsNullOrEmpty(effectiveStatus) && lifecycleStatuses.Contains(effectiveStatus))
             {
                 qualifyingOrgIds.Add(orgId);

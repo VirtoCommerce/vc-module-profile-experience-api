@@ -1,12 +1,13 @@
-using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
+using VirtoCommerce.CustomerModule.Core.Extensions;
+using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
+using CustomerModuleConstants = VirtoCommerce.CustomerModule.Core.ModuleConstants;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -30,11 +31,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         {
             if (string.IsNullOrEmpty(request.OrganizationId))
             {
-                throw new InvalidOperationException("OrganizationId is required for resending an organization invite.");
+                return new IdentityResultResponse
+                {
+                    Succeeded = false,
+                    Errors = [new IdentityErrorInfo { Code = "OrganizationIdRequired", Description = "OrganizationId is required for resending an organization invite." }],
+                };
             }
 
             var contactAggregate = await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.MemberId);
-            var userId = contactAggregate?.Contact?.SecurityAccounts?.FirstOrDefault()?.Id;
+            var (userId, knownMembership) = await _organizationMembershipSearchService.ResolveMembershipForOrganizationAsync(
+                contactAggregate?.Contact, request.OrganizationId);
+
             if (string.IsNullOrEmpty(userId))
             {
                 return new IdentityResultResponse
@@ -44,11 +51,19 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 };
             }
 
-            var membership = await OrganizationInviteHelper.GetPendingInviteAsync(
-                _organizationMembershipSearchService, userId, request.OrganizationId);
+            var membership = knownMembership ?? await _organizationMembershipSearchService.GetMembershipAsync(userId, request.OrganizationId);
+            if (membership == null || membership.Status != CustomerModuleConstants.MembershipStatuses.Invited)
+            {
+                return new IdentityResultResponse
+                {
+                    Succeeded = false,
+                    Errors = [new IdentityErrorInfo { Code = "InviteNotFound", Description = $"No pending invite found for organization '{request.OrganizationId}'." }],
+                };
+            }
 
             var resendResult = await _inviteCustomerService.ResendInviteAsync(
-                membership.Id, request.UrlSuffix, request.Message, cancellationToken);
+                new ResendInviteRequest { MembershipId = membership.Id, UrlSuffix = request.UrlSuffix, Message = request.Message },
+                cancellationToken);
 
             return OrganizationInviteHelper.ToIdentityResultResponse(resendResult);
         }

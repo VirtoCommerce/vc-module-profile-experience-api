@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -34,14 +33,16 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             var contactAggregate = await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.MemberId)
                 ?? throw new InvalidOperationException($"Contact '{request.MemberId}' not found.");
 
-            var userId = contactAggregate.Contact?.SecurityAccounts?.FirstOrDefault()?.Id;
+            var (userId, knownMembership) = await _organizationMembershipSearchService.ResolveMembershipForOrganizationAsync(
+                contactAggregate.Contact, request.OrganizationId);
+
             if (string.IsNullOrEmpty(userId))
             {
                 return contactAggregate;
             }
 
             var membership = await OrganizationInviteHelper.GetPendingInviteAsync(
-                _organizationMembershipSearchService, userId, request.OrganizationId);
+                _organizationMembershipSearchService, userId, request.OrganizationId, knownMembership);
 
             await _inviteCustomerService.RevokeInviteAsync(membership.Id, cancellationToken);
 

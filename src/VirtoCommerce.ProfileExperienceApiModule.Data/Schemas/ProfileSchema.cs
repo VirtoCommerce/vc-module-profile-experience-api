@@ -660,7 +660,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
             _ = schema.Mutation.AddField(FieldBuilder<ContactAggregate, ContactAggregate>
                         .Create("revokeOrganizationInvite", GraphTypeExtensionHelper.GetActualType<ContactType>())
-                        .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputLockUnlockOrganizationContactType>>(), _commandName)
+                        .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputRevokeOrganizationInviteType>>(), _commandName)
                         .ResolveAsync(async context =>
                         {
                             var type = GenericTypeHelper.GetActualType<RevokeOrganizationInviteCommand>();

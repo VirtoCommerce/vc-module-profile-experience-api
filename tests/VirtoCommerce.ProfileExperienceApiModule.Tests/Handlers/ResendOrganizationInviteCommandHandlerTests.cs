@@ -47,7 +47,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
 
             var inviteCustomerServiceMock = new Mock<IInviteCustomerService>();
             inviteCustomerServiceMock
-                .Setup(s => s.ResendInviteAsync(MembershipId, "/confirm-invitation", "Reminder", It.IsAny<CancellationToken>()))
+                .Setup(s => s.ResendInviteAsync(
+                    It.Is<ResendInviteRequest>(r => r.MembershipId == MembershipId && r.UrlSuffix == "/confirm-invitation" && r.Message == "Reminder"),
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new InviteCustomerResult { Succeeded = true, Errors = [] });
 
             var handler = new ResendOrganizationInviteCommandHandler(
@@ -70,8 +72,76 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             Assert.True(result.Succeeded);
             Assert.Empty(result.Errors);
             inviteCustomerServiceMock.Verify(
-                s => s.ResendInviteAsync(MembershipId, "/confirm-invitation", "Reminder", It.IsAny<CancellationToken>()),
+                s => s.ResendInviteAsync(
+                    It.Is<ResendInviteRequest>(r => r.MembershipId == MembershipId && r.UrlSuffix == "/confirm-invitation" && r.Message == "Reminder"),
+                    It.IsAny<CancellationToken>()),
                 Times.Once);
+        }
+
+        [Fact]
+        public async Task Handle_MissingOrganizationId_ReturnsStructuredError_DoesNotThrow()
+        {
+            // Arrange — must not throw for an expected validation failure; this handler has a structured
+            // error channel (IdentityResultResponse), unlike Accept/Reject/Revoke which return ContactAggregate.
+            var handler = new ResendOrganizationInviteCommandHandler(
+                new Mock<IContactAggregateRepository>().Object,
+                new Mock<IOrganizationMembershipSearchService>().Object,
+                new Mock<IInviteCustomerService>().Object);
+
+            var command = new ResendOrganizationInviteCommand { MemberId = MemberId, OrganizationId = null };
+
+            // Act
+            var result = await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.False(result.Succeeded);
+            var error = Assert.Single(result.Errors);
+            Assert.Equal("OrganizationIdRequired", error.Code);
+        }
+
+        [Fact]
+        public async Task Handle_NoPendingInvite_ReturnsStructuredError_DoesNotThrow()
+        {
+            // Arrange — same expected-error reasoning as above: no throw, structured InviteNotFound instead.
+            var contact = new Contact
+            {
+                Id = MemberId,
+                Organizations = [OrgId],
+                SecurityAccounts = [new ApplicationUser { Id = UserId }],
+            };
+            var contactAggregate = new ContactAggregate { Member = contact };
+
+            var aggregateRepositoryMock = new Mock<IContactAggregateRepository>();
+            aggregateRepositoryMock
+                .Setup(r => r.GetMemberAggregateRootByIdAsync<ContactAggregate>(MemberId))
+                .ReturnsAsync(contactAggregate);
+
+            var membershipSearchServiceMock = new Mock<IOrganizationMembershipSearchService>();
+            membershipSearchServiceMock
+                .Setup(s => s.SearchAsync(
+                    It.Is<OrganizationMembershipSearchCriteria>(c => c.UserId == UserId && c.OrganizationId == OrgId),
+                    It.IsAny<bool>()))
+                .ReturnsAsync(new OrganizationMembershipSearchResult { Results = [] });
+
+            var inviteCustomerServiceMock = new Mock<IInviteCustomerService>();
+
+            var handler = new ResendOrganizationInviteCommandHandler(
+                aggregateRepositoryMock.Object,
+                membershipSearchServiceMock.Object,
+                inviteCustomerServiceMock.Object);
+
+            var command = new ResendOrganizationInviteCommand { MemberId = MemberId, OrganizationId = OrgId };
+
+            // Act
+            var result = await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.False(result.Succeeded);
+            var error = Assert.Single(result.Errors);
+            Assert.Equal("InviteNotFound", error.Code);
+            inviteCustomerServiceMock.Verify(
+                s => s.ResendInviteAsync(It.IsAny<ResendInviteRequest>(), It.IsAny<CancellationToken>()),
+                Times.Never);
         }
 
         [Fact]
@@ -104,7 +174,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             var error = Assert.Single(result.Errors);
             Assert.Equal("UserNotFound", error.Code);
             inviteCustomerServiceMock.Verify(
-                s => s.ResendInviteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+                s => s.ResendInviteAsync(It.IsAny<ResendInviteRequest>(), It.IsAny<CancellationToken>()),
                 Times.Never);
         }
     }
