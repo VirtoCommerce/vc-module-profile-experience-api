@@ -67,6 +67,23 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
         AddField(connectionBuilder.FieldType);
     }
 
+    [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    public OrganizationType(
+        IStoreService storeService,
+        IDynamicPropertyResolverService dynamicPropertyResolverService,
+        IMemberAddressService memberAddressService,
+        IMediator mediator,
+        IMemberAggregateFactory factory,
+        IMemberService memberService,
+        IMemberSearchService memberSearchService,
+        IOrganizationMembershipSearchService organizationMembershipService,
+        Func<RoleManager<Role>> roleManagerFactory,
+        Func<UserManager<ApplicationUser>> userManagerFactory,
+        IDataLoaderContextAccessor dataLoader)
+        : this(storeService, dynamicPropertyResolverService, memberAddressService, factory, memberService, memberSearchService, organizationMembershipService, roleManagerFactory, userManagerFactory, dataLoader)
+    {
+    }
+
     private static async Task<object> ResolveContactsConnectionAsync(
         IResolveConnectionContext<OrganizationAggregate> context,
         IMemberAggregateFactory factory,
@@ -188,23 +205,6 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
                 membershipByOrgId.TryGetValue(orgId, out var membership);
                 return OrganizationMembership.ResolveEffectiveStatus(membership?.Status, globalStatus);
             });
-    }
-
-    [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
-    public OrganizationType(
-        IStoreService storeService,
-        IDynamicPropertyResolverService dynamicPropertyResolverService,
-        IMemberAddressService memberAddressService,
-        IMediator mediator,
-        IMemberAggregateFactory factory,
-        IMemberService memberService,
-        IMemberSearchService memberSearchService,
-        IOrganizationMembershipSearchService organizationMembershipService,
-        Func<RoleManager<Role>> roleManagerFactory,
-        Func<UserManager<ApplicationUser>> userManagerFactory,
-        IDataLoaderContextAccessor dataLoader)
-        : this(storeService, dynamicPropertyResolverService, memberAddressService, factory, memberService, memberSearchService, organizationMembershipService, roleManagerFactory, userManagerFactory, dataLoader)
-    {
     }
 
     private static async Task<IReadOnlyCollection<string>> GetContactIdsByGlobalRolesAsync(
