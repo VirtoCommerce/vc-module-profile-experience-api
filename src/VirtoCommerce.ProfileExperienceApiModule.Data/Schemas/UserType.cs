@@ -19,7 +19,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 {
     public class UserType : ExtendableGraphType<ApplicationUser>
     {
-        public UserType(IContactAggregateRepository contactAggregateRepository, IUserManagerCore userManagerCore, IMediator mediator, IOptions<UserOptionsExtended> userOptionsExtended)
+        public UserType(IContactAggregateRepository contactAggregateRepository, IUserManagerCore userManagerCore, IOptions<UserOptionsExtended> userOptionsExtended)
         {
             Field(x => x.AccessFailedCount);
             Field(x => x.CreatedBy, true);
@@ -99,7 +99,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 {
                     if (context.UserContext.TryGetValue("OperatorUserName", out var operatorUser))
                     {
-                        var result = await mediator.Send(new GetUserQuery
+                        var result = await context.GetMediator().Send(new GetUserQuery
                         {
                             UserName = operatorUser as string
                         });
@@ -109,6 +109,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                     return null;
                 })
             });
+        }
+
+        [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+        public UserType(IContactAggregateRepository contactAggregateRepository, IUserManagerCore userManagerCore, IMediator mediator, IOptions<UserOptionsExtended> userOptionsExtended)
+            : this(contactAggregateRepository, userManagerCore, userOptionsExtended)
+        {
         }
 
         private static bool GetPasswordExpired(IResolveFieldContext<ApplicationUser> context)

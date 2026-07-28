@@ -34,7 +34,6 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
         IStoreService storeService,
         IDynamicPropertyResolverService dynamicPropertyResolverService,
         IMemberAddressService memberAddressService,
-        IMediator mediator,
         IMemberAggregateFactory factory,
         IMemberService memberService,
         IMemberSearchService memberSearchService,
@@ -64,13 +63,12 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
             .PageSize(20);
 
         connectionBuilder.ResolveAsync(context => ResolveContactsConnectionAsync(
-            context, mediator, factory, memberService, memberSearchService, organizationMembershipService, roleManagerFactory, userManagerFactory));
+            context, factory, memberService, memberSearchService, organizationMembershipService, roleManagerFactory, userManagerFactory));
         AddField(connectionBuilder.FieldType);
     }
 
     private static async Task<object> ResolveContactsConnectionAsync(
         IResolveConnectionContext<OrganizationAggregate> context,
-        IMediator mediator,
         IMemberAggregateFactory factory,
         IMemberService memberService,
         IMemberSearchService memberSearchService,
@@ -126,7 +124,7 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
             }
         }
 
-        var response = await mediator.Send(query);
+        var response = await context.GetMediator().Send(query);
 
         return new PagedConnection<ContactAggregate>(
             response.Results.Select(x => factory.Create<ContactAggregate>(x)), query.Skip, query.Take,
@@ -190,6 +188,23 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
                 membershipByOrgId.TryGetValue(orgId, out var membership);
                 return OrganizationMembership.ResolveEffectiveStatus(membership?.Status, globalStatus);
             });
+    }
+
+    [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    public OrganizationType(
+        IStoreService storeService,
+        IDynamicPropertyResolverService dynamicPropertyResolverService,
+        IMemberAddressService memberAddressService,
+        IMediator mediator,
+        IMemberAggregateFactory factory,
+        IMemberService memberService,
+        IMemberSearchService memberSearchService,
+        IOrganizationMembershipSearchService organizationMembershipService,
+        Func<RoleManager<Role>> roleManagerFactory,
+        Func<UserManager<ApplicationUser>> userManagerFactory,
+        IDataLoaderContextAccessor dataLoader)
+        : this(storeService, dynamicPropertyResolverService, memberAddressService, factory, memberService, memberSearchService, organizationMembershipService, roleManagerFactory, userManagerFactory, dataLoader)
+    {
     }
 
     private static async Task<IReadOnlyCollection<string>> GetContactIdsByGlobalRolesAsync(
@@ -319,7 +334,7 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
     }
 
     private static bool ContactMatchesStatusFilter(
-        Member contact, IDictionary<string, OrganizationMembership> membershipByUserId, bool wantsLocked, ISet<string> lifecycleStatuses)
+        Member contact, IDictionary<string, OrganizationMembership> membershipByUserId, bool wantsLocked, HashSet<string> lifecycleStatuses)
     {
         var membership = FindMembership(contact, membershipByUserId);
 
@@ -355,7 +370,7 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
         return null;
     }
 
-    private static IList<string> IntersectObjectIds(IList<string> existing, IReadOnlyCollection<string> additional)
+    private static List<string> IntersectObjectIds(IList<string> existing, IReadOnlyCollection<string> additional)
     {
         return existing == null ? additional.ToList() : existing.Intersect(additional).ToList();
     }

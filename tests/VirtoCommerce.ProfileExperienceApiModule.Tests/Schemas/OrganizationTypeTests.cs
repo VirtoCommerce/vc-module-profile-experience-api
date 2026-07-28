@@ -4,7 +4,6 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.DataLoader;
-using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Moq;
 using VirtoCommerce.CustomerModule.Core;
@@ -47,7 +46,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Schemas
                 new Mock<IStoreService>().Object,
                 new Mock<IDynamicPropertyResolverService>().Object,
                 new Mock<IMemberAddressService>().Object,
-                new Mock<IMediator>().Object,
                 new Mock<IMemberAggregateFactory>().Object,
                 _memberServiceMock.Object,
                 new Mock<IMemberSearchService>().Object,

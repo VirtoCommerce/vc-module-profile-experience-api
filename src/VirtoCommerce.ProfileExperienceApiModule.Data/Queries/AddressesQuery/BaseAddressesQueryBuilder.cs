@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.Types;
@@ -17,10 +18,16 @@ public abstract class BaseAddressesQueryBuilder<TQuery> : SearchQueryBuilder<TQu
 {
     private readonly IProfileAuthorizationService _profileAuthorizationService;
 
-    protected BaseAddressesQueryBuilder(IMediator mediator, IAuthorizationService authorizationService, IProfileAuthorizationService profileAuthorizationService)
-        : base(mediator, authorizationService)
+    protected BaseAddressesQueryBuilder(IAuthorizationService authorizationService, IProfileAuthorizationService profileAuthorizationService)
+        : base(authorizationService)
     {
         _profileAuthorizationService = profileAuthorizationService;
+    }
+
+    [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    protected BaseAddressesQueryBuilder(IMediator mediator, IAuthorizationService authorizationService, IProfileAuthorizationService profileAuthorizationService)
+        : this(authorizationService, profileAuthorizationService)
+    {
     }
 
     protected override FieldType GetFieldType()
