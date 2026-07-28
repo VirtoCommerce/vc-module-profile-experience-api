@@ -1,7 +1,7 @@
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Moq;
+using VirtoCommerce.CustomerModule.Core;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.Platform.Core.Security;
@@ -19,7 +19,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         private const string MembershipId = "membership1";
 
         [Fact]
-        public async Task Handle_MembershipExists_RemovesOrgFromContact_AndDeletesMembership()
+        public async Task Handle_MembershipExists_RemovesOrgFromContact_AndSetsMembershipDeleted()
         {
             // Arrange
             var contact = new Contact { Id = ContactId, Organizations = [OrgId], SecurityAccounts = [new ApplicationUser { Id = UserId }] };
@@ -52,17 +52,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             // Act
             var result = await handler.Handle(command, CancellationToken.None);
 
-            // Assert
+            // Assert — the membership row is kept (soft-deleted via status), not hard-deleted
             Assert.Same(contactAggregate, result);
             Assert.DoesNotContain(OrgId, contact.Organizations);
             aggregateRepositoryMock.Verify(r => r.SaveAsync(contactAggregate), Times.Once);
             membershipServiceMock.Verify(
-                s => s.DeleteAsync(It.Is<IList<string>>(ids => ids.Count == 1 && ids[0] == MembershipId), false),
+                s => s.SetStatusAsync(MembershipId, ModuleConstants.MembershipStatuses.Deleted),
                 Times.Once);
+            membershipServiceMock.Verify(s => s.DeleteAsync(It.IsAny<System.Collections.Generic.IList<string>>(), It.IsAny<bool>()), Times.Never);
         }
 
         [Fact]
-        public async Task Handle_NoMembershipFound_DoesNotCallDelete()
+        public async Task Handle_NoMembershipFound_DoesNotCallSetStatus()
         {
             // Arrange
             var contact = new Contact { Id = ContactId, Organizations = [OrgId], SecurityAccounts = [new ApplicationUser { Id = UserId }] };
@@ -91,7 +92,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             await handler.Handle(command, CancellationToken.None);
 
             // Assert
-            membershipServiceMock.Verify(s => s.DeleteAsync(It.IsAny<IList<string>>(), It.IsAny<bool>()), Times.Never);
+            membershipServiceMock.Verify(s => s.SetStatusAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
 
         [Fact]
@@ -143,12 +144,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 Times.Once);
 
             membershipServiceMock.Verify(
-                s => s.DeleteAsync(It.Is<IList<string>>(ids => ids.Count == 1 && ids[0] == MembershipId), false),
+                s => s.SetStatusAsync(MembershipId, ModuleConstants.MembershipStatuses.Deleted),
                 Times.Once);
         }
 
         [Fact]
-        public async Task Handle_NoSecurityAccount_SkipsMembershipLookup_AndDelete()
+        public async Task Handle_NoSecurityAccount_SkipsMembershipLookup_AndSetStatus()
         {
             // Arrange — a contact without a linked user account (e.g. never registered): nothing to search for.
             var contact = new Contact { Id = ContactId, Organizations = [OrgId], SecurityAccounts = [] };
@@ -177,7 +178,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             membershipSearchServiceMock.Verify(
                 s => s.SearchAsync(It.IsAny<OrganizationMembershipSearchCriteria>(), It.IsAny<bool>()),
                 Times.Never);
-            membershipServiceMock.Verify(s => s.DeleteAsync(It.IsAny<IList<string>>(), It.IsAny<bool>()), Times.Never);
+            membershipServiceMock.Verify(s => s.SetStatusAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
     }
 }

@@ -25,6 +25,7 @@ using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.Xapi.Core.Services;
+using CustomerModuleConstants = VirtoCommerce.CustomerModule.Core.ModuleConstants;
 using CustomerSettings = VirtoCommerce.CustomerModule.Core.ModuleConstants.Settings.General;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
@@ -240,6 +241,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             {
                 UserId = account.Id,
                 OrganizationId = organizationId,
+                Status = CustomerModuleConstants.MembershipStatuses.Approved,
                 Roles =
                 [
                     new OrganizationMembershipRole

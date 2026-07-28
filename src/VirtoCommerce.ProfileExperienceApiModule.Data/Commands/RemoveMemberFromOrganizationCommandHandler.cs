@@ -4,6 +4,7 @@ using MediatR;
 using VirtoCommerce.CustomerModule.Core.Extensions;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
+using CustomerModuleConstants = VirtoCommerce.CustomerModule.Core.ModuleConstants;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -48,7 +49,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             if (membership != null)
             {
-                await _organizationMembershipService.DeleteAsync([membership.Id]);
+                await _organizationMembershipService.SetStatusAsync(membership.Id, CustomerModuleConstants.MembershipStatuses.Deleted);
             }
         }
     }
