@@ -13,6 +13,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly IContactAggregateRepository _contactAggregateRepository;
         private readonly IOrganizationMembershipService _organizationMembershipService;
 
+        protected IContactAggregateRepository ContactAggregateRepository => _contactAggregateRepository;
+
         public LockOrganizationContactCommandHandler(
             IContactAggregateRepository contactAggregateRepository,
             IOrganizationMembershipService organizationMembershipService)
@@ -37,12 +39,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return contactAggregate;
             }
 
-            var membership = await _organizationMembershipService.GetByUserAndOrgAsync(userId, request.OrganizationId)
-                ?? throw new InvalidOperationException($"Contact '{request.MemberId}' has no membership in organization '{request.OrganizationId}'.");
-
-            await _organizationMembershipService.LockAsync(membership.Id);
+            await ApplyLockAsync(contactAggregate, userId, request, cancellationToken);
 
             return contactAggregate;
+        }
+
+        protected virtual async Task ApplyLockAsync(ContactAggregate contactAggregate, string userId, LockOrganizationContactCommand request, CancellationToken cancellationToken)
+        {
+            var membership = await _organizationMembershipService.GetByUserAndOrgAsync(userId, request.OrganizationId)
+                            ?? throw new InvalidOperationException($"Contact '{request.MemberId}' has no membership in organization '{request.OrganizationId}'.");
+
+            await _organizationMembershipService.LockAsync(membership.Id);
         }
     }
 }
