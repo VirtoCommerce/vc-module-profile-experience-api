@@ -26,6 +26,7 @@ using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Services;
+using CustomerModuleConstants = VirtoCommerce.CustomerModule.Core.ModuleConstants;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 
@@ -102,13 +103,24 @@ public class ContactType : MemberBaseType<ContactAggregate>
 
         #region Organizations
 
-        Field("organizationsIds", x => x.Contact.Organizations);
+        Field<ListGraphType<StringGraphType>>("organizationsIds")
+            .ResolveAsync(async context =>
+            {
+                var organizationIds = context.Source.Contact.Organizations;
+                if (organizationIds.IsNullOrEmpty())
+                {
+                    return organizationIds;
+                }
+
+                return await ResolveMyOrganizationIdsByStatusAsync(
+                    context, organizationMembershipSearchService, organizationIds, statuses: null);
+            });
 
         var organizationsConnectionBuilder = GraphTypeExtensionHelper
             .CreateConnection<OrganizationType, ContactAggregate>("organizations")
             .Argument<StringGraphType>("searchPhrase", "Free text search")
             .Argument<StringGraphType>("sort", "Sort expression")
-            .Argument<ListGraphType<StringGraphType>>("statuses", "Filter by this contact's effective status/lock state in each organization (e.g. Invited, Approved, Locked)")
+            .Argument<ListGraphType<StringGraphType>>("statuses", "Filter by this contact's effective status/lock state in each organization (e.g. Invited, Approved, Locked). When omitted, organizations the contact is blocked from (Invited/Rejected/Deleted) are hidden by default.")
             .PageSize(20);
 
         organizationsConnectionBuilder.ResolveAsync(async context =>
@@ -117,9 +129,9 @@ public class ContactType : MemberBaseType<ContactAggregate>
             var query = context.GetSearchMembersQuery<SearchOrganizationsQuery>();
             var organizationIds = context.Source.Contact.Organizations;
 
-            var statuses = context.GetArgument<IList<string>>("statuses");
-            if (statuses is { Count: > 0 } && !organizationIds.IsNullOrEmpty())
+            if (!organizationIds.IsNullOrEmpty())
             {
+                var statuses = context.GetArgument<IList<string>>("statuses");
                 organizationIds = (await ResolveMyOrganizationIdsByStatusAsync(
                     context, organizationMembershipSearchService, organizationIds, statuses)).ToList();
             }
@@ -259,8 +271,9 @@ public class ContactType : MemberBaseType<ContactAggregate>
             return [];
         }
 
-        var wantsLocked = statuses.Contains(LockedFilterValue);
-        var lifecycleStatuses = statuses.Where(s => s != LockedFilterValue).ToHashSet();
+        var hasExplicitFilter = statuses is { Count: > 0 };
+        var wantsLocked = hasExplicitFilter && statuses.Contains(LockedFilterValue);
+        var lifecycleStatuses = hasExplicitFilter ? statuses.Where(s => s != LockedFilterValue).ToHashSet() : null;
 
         var memberships = await organizationMembershipSearchService.SearchAllNoCloneAsync(
             new OrganizationMembershipSearchCriteria
@@ -290,13 +303,24 @@ public class ContactType : MemberBaseType<ContactAggregate>
                 continue;
             }
 
+            var overrideStatus = orgMemberships?.Select(m => m.Status).FirstOrDefault(s => !string.IsNullOrEmpty(s));
+            var effectiveStatus = OrganizationMembership.ResolveEffectiveStatus(overrideStatus, globalStatus);
+
+            if (!hasExplicitFilter)
+            {
+                if (!CustomerModuleConstants.MembershipStatuses.IsBlocking(effectiveStatus))
+                {
+                    qualifyingOrgIds.Add(orgId);
+                }
+
+                continue;
+            }
+
             if (lifecycleStatuses.Count == 0)
             {
                 continue;
             }
 
-            var overrideStatus = orgMemberships?.Select(m => m.Status).FirstOrDefault(s => !string.IsNullOrEmpty(s));
-            var effectiveStatus = OrganizationMembership.ResolveEffectiveStatus(overrideStatus, globalStatus);
             if (!string.IsNullOrEmpty(effectiveStatus) && lifecycleStatuses.Contains(effectiveStatus))
             {
                 qualifyingOrgIds.Add(orgId);

@@ -19,7 +19,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         private const string MembershipId = "membership1";
 
         [Fact]
-        public async Task Handle_MembershipExists_RemovesOrgFromContact_AndSetsMembershipDeleted()
+        public async Task Handle_MembershipExists_KeepsOrgOnContact_AndSetsMembershipDeleted()
         {
             // Arrange
             var contact = new Contact { Id = ContactId, Organizations = [OrgId], SecurityAccounts = [new ApplicationUser { Id = UserId }] };
@@ -52,10 +52,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             // Act
             var result = await handler.Handle(command, CancellationToken.None);
 
-            // Assert — the membership row is kept (soft-deleted via status), not hard-deleted
+            // Assert — the membership row is kept (soft-deleted via status), not hard-deleted, and the organization
+            // stays in Contact.Organizations so the removed member remains visible/auditable in the admin members grid.
             Assert.Same(contactAggregate, result);
-            Assert.DoesNotContain(OrgId, contact.Organizations);
-            aggregateRepositoryMock.Verify(r => r.SaveAsync(contactAggregate), Times.Once);
+            Assert.Contains(OrgId, contact.Organizations);
+            aggregateRepositoryMock.Verify(r => r.SaveAsync(It.IsAny<ContactAggregate>()), Times.Never);
             membershipServiceMock.Verify(
                 s => s.SetStatusAsync(MembershipId, ModuleConstants.MembershipStatuses.Deleted),
                 Times.Once);
@@ -174,7 +175,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             await handler.Handle(command, CancellationToken.None);
 
             // Assert
-            Assert.DoesNotContain(OrgId, contact.Organizations);
+            Assert.Contains(OrgId, contact.Organizations);
             membershipSearchServiceMock.Verify(
                 s => s.SearchAsync(It.IsAny<OrganizationMembershipSearchCriteria>(), It.IsAny<bool>()),
                 Times.Never);

@@ -27,8 +27,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         public async Task<ContactAggregate> Handle(RemoveMemberFromOrganizationCommand request, CancellationToken cancellationToken)
         {
             var contactAggregate = await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.ContactId);
-            contactAggregate.Contact.Organizations?.Remove(request.OrganizationId);
-            await _contactAggregateRepository.SaveAsync(contactAggregate);
 
             await RemoveMembershipAsync(contactAggregate, request.OrganizationId);
 

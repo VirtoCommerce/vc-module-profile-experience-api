@@ -61,12 +61,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             // Act
             var result = await handler.Handle(command, CancellationToken.None);
 
-            // Assert
+            // Assert — the organization stays in Contact.Organizations: the admin members grid is driven by this
+            // relation, so removing it here would hide the (still-auditable) revoked membership from that list.
             Assert.Same(contactAggregate, result);
-            Assert.DoesNotContain(OrgId, contact.Organizations);
+            Assert.Contains(OrgId, contact.Organizations);
             inviteCustomerServiceMock.Verify(s => s.RevokeInviteAsync(MembershipId, It.IsAny<CancellationToken>()), Times.Once);
-            aggregateRepositoryMock.Verify(r => r.GetMemberAggregateRootByIdAsync<ContactAggregate>(MemberId), Times.Exactly(2));
-            aggregateRepositoryMock.Verify(r => r.SaveAsync(contactAggregate), Times.Once);
+            aggregateRepositoryMock.Verify(r => r.GetMemberAggregateRootByIdAsync<ContactAggregate>(MemberId), Times.Once);
+            aggregateRepositoryMock.Verify(r => r.SaveAsync(It.IsAny<ContactAggregate>()), Times.Never);
         }
     }
 }

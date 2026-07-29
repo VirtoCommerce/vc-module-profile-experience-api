@@ -255,6 +255,34 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Schemas
             Assert.DoesNotContain(OrgId, approvedResult);
         }
 
+        [Fact]
+        public async Task OrganizationsStatusFilter_NoExplicitStatuses_HidesBlockingStatusesByDefault()
+        {
+            // Arrange — org-1: rejected membership (should be hidden by default); org-2: approved (should show)
+            const string approvedOrgId = "org-2";
+
+            _membershipSearchServiceMock
+                .Setup(x => x.SearchAsync(It.IsAny<OrganizationMembershipSearchCriteria>(), It.IsAny<bool>()))
+                .ReturnsAsync(new OrganizationMembershipSearchResult
+                {
+                    Results =
+                    [
+                        new OrganizationMembership { UserId = "user-1", OrganizationId = OrgId, Status = ModuleConstants.MembershipStatuses.Rejected },
+                        new OrganizationMembership { UserId = "user-1", OrganizationId = approvedOrgId, Status = ModuleConstants.MembershipStatuses.Approved },
+                    ],
+                    TotalCount = 2,
+                });
+
+            var context = BuildContext(contactId: "contact-1", userId: "user-1");
+
+            // Act — no `statuses` argument at all (the raw list/connection default, e.g. a direct query with no filter)
+            var result = await InvokeResolveMyOrganizationIdsByStatusAsync(context, [OrgId, approvedOrgId], null);
+
+            // Assert
+            Assert.DoesNotContain(OrgId, result);
+            Assert.Contains(approvedOrgId, result);
+        }
+
         private async Task<IReadOnlyCollection<string>> InvokeResolveMyOrganizationIdsByStatusAsync(
             ResolveFieldContext<ContactAggregate> context, IList<string> organizationIds, IList<string> statuses)
         {

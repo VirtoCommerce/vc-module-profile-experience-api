@@ -20,7 +20,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         private const string MembershipId = "membership1";
 
         [Fact]
-        public async Task Handle_PendingInvite_SetsRejected_AndRemovesOrgFromContact()
+        public async Task Handle_PendingInvite_SetsRejected_KeepsOrgOnContact()
         {
             // Arrange
             var contact = new Contact
@@ -63,13 +63,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             // Act
             var result = await handler.Handle(command, CancellationToken.None);
 
-            // Assert
+            // Assert — the organization stays in Contact.Organizations: the admin members grid is driven by this
+            // relation, so removing it here would hide the (still-auditable) rejected membership from that list.
             Assert.Same(contactAggregate, result);
-            Assert.DoesNotContain(OrgId, contact.Organizations);
+            Assert.Contains(OrgId, contact.Organizations);
             membershipServiceMock.Verify(
                 s => s.SetStatusAsync(MembershipId, ModuleConstants.MembershipStatuses.Rejected),
                 Times.Once);
-            aggregateRepositoryMock.Verify(r => r.SaveAsync(contactAggregate), Times.Once);
+            aggregateRepositoryMock.Verify(r => r.SaveAsync(It.IsAny<ContactAggregate>()), Times.Never);
         }
     }
 }
