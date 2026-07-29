@@ -62,7 +62,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 {
                     await userManager.SetLockoutEndDateAsync(user, null);
 
-                    await SendRegistrationNotification(user, cancellationToken);
+                    var contact = await _memberService.GetByIdAsync(user.MemberId) as Contact;
+
+                    await ApproveContactAsync(contact);
+                    await SendRegistrationNotification(user, contact, cancellationToken);
                 }
             }
 
@@ -72,8 +75,22 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return result;
         }
 
-        protected virtual async Task SendRegistrationNotification(ApplicationUser user, CancellationToken cancellationToken)
+        protected virtual async Task ApproveContactAsync(Contact contact)
         {
+            if (contact != null && contact.Status == ModuleConstants.ContactStatuses.Locked)
+            {
+                contact.Status = ModuleConstants.ContactStatuses.Approved;
+                await _memberService.SaveChangesAsync([contact]);
+            }
+        }
+
+        protected virtual async Task SendRegistrationNotification(ApplicationUser user, Contact contact, CancellationToken cancellationToken)
+        {
+            if (contact == null)
+            {
+                return;
+            }
+
             var store = await _storeService.GetByIdAsync(user.StoreId);
             if (store == null)
             {
@@ -82,12 +99,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             var emailVerificationFlow = store.GetEmailVerificationFlow();
             if (emailVerificationFlow != ModuleConstants.RegistrationFlows.EmailVerificationRequired)
-            {
-                return;
-            }
-
-            var contact = await _memberService.GetByIdAsync(user.MemberId) as Contact;
-            if (contact == null)
             {
                 return;
             }
