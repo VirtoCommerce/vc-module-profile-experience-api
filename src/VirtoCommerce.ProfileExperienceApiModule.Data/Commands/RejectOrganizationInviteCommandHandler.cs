@@ -37,7 +37,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             await _organizationMembershipService.SetStatusAsync(
                 membership.Id, CustomerModuleConstants.MembershipStatuses.Rejected);
 
-            return await OrganizationInviteHelper.GetContactAggregateAsync(_contactAggregateRepository, _userManagerFactory, request.UserId);
+            var contactAggregate = await OrganizationInviteHelper.GetContactAggregateAsync(_contactAggregateRepository, _userManagerFactory, request.UserId);
+            contactAggregate.Contact.Organizations?.Remove(request.OrganizationId);
+
+            await _contactAggregateRepository.SaveAsync(contactAggregate);
+
+            return contactAggregate;
         }
     }
 }

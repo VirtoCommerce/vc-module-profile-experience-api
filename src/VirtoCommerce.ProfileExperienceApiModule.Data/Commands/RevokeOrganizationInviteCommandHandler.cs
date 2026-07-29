@@ -46,6 +46,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             await _inviteCustomerService.RevokeInviteAsync(membership.Id, cancellationToken);
 
+            contactAggregate.Contact.Organizations?.Remove(request.OrganizationId);
+
+            await _contactAggregateRepository.SaveAsync(contactAggregate);
+
             return await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.MemberId);
         }
     }

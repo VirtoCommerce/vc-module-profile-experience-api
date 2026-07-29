@@ -1,6 +1,6 @@
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Identity;
 using Moq;
 using VirtoCommerce.CustomerModule.Core;
 using VirtoCommerce.CustomerModule.Core.Model;
@@ -12,7 +12,7 @@ using Xunit;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
 {
-    public class RevokeOrganizationInviteCommandHandlerTests
+    public class RejectOrganizationInviteCommandHandlerTests
     {
         private const string MemberId = "member1";
         private const string UserId = "user1";
@@ -20,7 +20,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         private const string MembershipId = "membership1";
 
         [Fact]
-        public async Task Handle_ResolvesMembershipId_AndDelegatesToSharedService()
+        public async Task Handle_PendingInvite_SetsRejected_AndRemovesOrgFromContact()
         {
             // Arrange
             var contact = new Contact
@@ -46,17 +46,19 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                     Results = [new OrganizationMembership { Id = MembershipId, Status = ModuleConstants.MembershipStatuses.Invited }],
                 });
 
-            var inviteCustomerServiceMock = new Mock<IInviteCustomerService>();
-            inviteCustomerServiceMock
-                .Setup(s => s.RevokeInviteAsync(MembershipId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new InviteCustomerResult { Succeeded = true, Errors = new List<InviteCustomerError>() });
+            var membershipServiceMock = new Mock<IOrganizationMembershipService>();
 
-            var handler = new RevokeOrganizationInviteCommandHandler(
+            var userManagerMock = new Mock<UserManager<ApplicationUser>>(
+                new Mock<IUserStore<ApplicationUser>>().Object, null, null, null, null, null, null, null, null);
+            userManagerMock.Setup(x => x.FindByIdAsync(UserId)).ReturnsAsync(new ApplicationUser { Id = UserId, MemberId = MemberId });
+
+            var handler = new RejectOrganizationInviteCommandHandler(
                 aggregateRepositoryMock.Object,
+                membershipServiceMock.Object,
                 membershipSearchServiceMock.Object,
-                inviteCustomerServiceMock.Object);
+                () => userManagerMock.Object);
 
-            var command = new RevokeOrganizationInviteCommand { MemberId = MemberId, OrganizationId = OrgId };
+            var command = new RejectOrganizationInviteCommand { UserId = UserId, OrganizationId = OrgId };
 
             // Act
             var result = await handler.Handle(command, CancellationToken.None);
@@ -64,8 +66,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             // Assert
             Assert.Same(contactAggregate, result);
             Assert.DoesNotContain(OrgId, contact.Organizations);
-            inviteCustomerServiceMock.Verify(s => s.RevokeInviteAsync(MembershipId, It.IsAny<CancellationToken>()), Times.Once);
-            aggregateRepositoryMock.Verify(r => r.GetMemberAggregateRootByIdAsync<ContactAggregate>(MemberId), Times.Exactly(2));
+            membershipServiceMock.Verify(
+                s => s.SetStatusAsync(MembershipId, ModuleConstants.MembershipStatuses.Rejected),
+                Times.Once);
             aggregateRepositoryMock.Verify(r => r.SaveAsync(contactAggregate), Times.Once);
         }
     }
