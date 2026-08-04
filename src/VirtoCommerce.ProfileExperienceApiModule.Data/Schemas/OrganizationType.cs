@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using GraphQL;
+using GraphQL.Builders;
+using GraphQL.DataLoader;
 using GraphQL.Types;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
@@ -37,7 +39,8 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
         IMemberSearchService memberSearchService,
         IOrganizationMembershipSearchService organizationMembershipService,
         Func<RoleManager<Role>> roleManagerFactory,
-        Func<UserManager<ApplicationUser>> userManagerFactory)
+        Func<UserManager<ApplicationUser>> userManagerFactory,
+        IDataLoaderContextAccessor dataLoader)
         : base(storeService, dynamicPropertyResolverService, memberAddressService)
     {
         Name = "Organization";
@@ -48,53 +51,20 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
         Field(x => x.Organization.OwnerId, true).Description("Owner id");
         Field(x => x.Organization.ParentId, true).Description("Parent id");
 
-        #region Contacts
+        Field<StringGraphType>("myStatusInOrganization")
+            .Description("Current user's effective status in this organization: the organization-specific override if set, otherwise the contact's global status.")
+            .Resolve(context => ResolveMyStatusInOrganization(context, organizationMembershipService, memberService, userManagerFactory, dataLoader));
 
         var connectionBuilder = GraphTypeExtensionHelper.CreateConnection<ContactType, OrganizationAggregate>("contacts")
             .Argument<StringGraphType>("searchPhrase", "Free text search")
             .Argument<StringGraphType>("sort", "Sort expression")
             .Argument<ListGraphType<StringGraphType>>("roleIds", "Filter contacts by role IDs (org-level, membership, or global)")
+            .Argument<ListGraphType<StringGraphType>>("statuses", "Filter contacts by effective status/lock state for this organization (e.g. Approved, Invited, Locked)")
             .PageSize(20);
 
-        connectionBuilder.ResolveAsync(async context =>
-        {
-            var query = context.GetSearchMembersQuery<SearchContactsQuery>();
-            var orgId = context.Source.Organization.Id;
-            query.MemberId = orgId;
-            query.DeepSearch = false;
-
-            var roleIds = context.GetArgument<IList<string>>("roleIds");
-            if (roleIds is { Count: > 0 })
-            {
-                var (filterRequired, filterIds) = await ResolveRoleFilterAsync(
-                    orgId,
-                    roleIds,
-                    memberService,
-                    memberSearchService,
-                    organizationMembershipService,
-                    roleManagerFactory,
-                    userManagerFactory);
-
-                if (filterRequired)
-                {
-                    if (filterIds.Count == 0)
-                    {
-                        return new PagedConnection<ContactAggregate>([], query.Skip, query.Take, 0);
-                    }
-
-                    query.ObjectIds = filterIds.ToList();
-                }
-            }
-
-            var response = await context.GetMediator().Send(query);
-
-            return new PagedConnection<ContactAggregate>(
-                response.Results.Select(x => factory.Create<ContactAggregate>(x)), query.Skip, query.Take,
-                response.TotalCount);
-        });
+        connectionBuilder.ResolveAsync(context => ResolveContactsConnectionAsync(
+            context, factory, memberService, memberSearchService, organizationMembershipService, roleManagerFactory, userManagerFactory));
         AddField(connectionBuilder.FieldType);
-
-        #endregion
     }
 
     [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
@@ -108,9 +78,133 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
         IMemberSearchService memberSearchService,
         IOrganizationMembershipSearchService organizationMembershipService,
         Func<RoleManager<Role>> roleManagerFactory,
-        Func<UserManager<ApplicationUser>> userManagerFactory)
-        : this(storeService, dynamicPropertyResolverService, memberAddressService, factory, memberService, memberSearchService, organizationMembershipService, roleManagerFactory, userManagerFactory)
+        Func<UserManager<ApplicationUser>> userManagerFactory,
+        IDataLoaderContextAccessor dataLoader)
+        : this(storeService, dynamicPropertyResolverService, memberAddressService, factory, memberService, memberSearchService, organizationMembershipService, roleManagerFactory, userManagerFactory, dataLoader)
     {
+    }
+
+    private static async Task<object> ResolveContactsConnectionAsync(
+        IResolveConnectionContext<OrganizationAggregate> context,
+        IMemberAggregateFactory factory,
+        IMemberService memberService,
+        IMemberSearchService memberSearchService,
+        IOrganizationMembershipSearchService organizationMembershipService,
+        Func<RoleManager<Role>> roleManagerFactory,
+        Func<UserManager<ApplicationUser>> userManagerFactory)
+    {
+        var query = context.GetSearchMembersQuery<SearchContactsQuery>();
+        var orgId = context.Source.Organization.Id;
+        query.MemberId = orgId;
+        query.DeepSearch = false;
+
+        var roleIds = context.GetArgument<IList<string>>("roleIds");
+        if (roleIds is { Count: > 0 })
+        {
+            var (filterRequired, filterIds) = await ResolveRoleFilterAsync(
+                orgId,
+                roleIds,
+                memberService,
+                memberSearchService,
+                organizationMembershipService,
+                roleManagerFactory,
+                userManagerFactory);
+
+            if (filterRequired)
+            {
+                if (filterIds.Count == 0)
+                {
+                    return new PagedConnection<ContactAggregate>([], query.Skip, query.Take, 0);
+                }
+
+                query.ObjectIds = IntersectObjectIds(query.ObjectIds, filterIds);
+            }
+        }
+
+        var statuses = context.GetArgument<IList<string>>("statuses");
+        if (statuses is { Count: > 0 })
+        {
+            var (filterRequired, filterIds) = await ResolveStatusFilterAsync(
+                orgId,
+                statuses,
+                memberSearchService,
+                organizationMembershipService);
+
+            if (filterRequired)
+            {
+                if (filterIds.Count == 0)
+                {
+                    return new PagedConnection<ContactAggregate>([], query.Skip, query.Take, 0);
+                }
+
+                query.ObjectIds = IntersectObjectIds(query.ObjectIds, filterIds);
+            }
+        }
+
+        var response = await context.GetMediator().Send(query);
+
+        return new PagedConnection<ContactAggregate>(
+            response.Results.Select(x => factory.Create<ContactAggregate>(x)), query.Skip, query.Take,
+            response.TotalCount);
+    }
+
+    private static IDataLoaderResult<string> ResolveMyStatusInOrganization(
+        IResolveFieldContext<OrganizationAggregate> context,
+        IOrganizationMembershipSearchService organizationMembershipSearchService,
+        IMemberService memberService,
+        Func<UserManager<ApplicationUser>> userManagerFactory,
+        IDataLoaderContextAccessor dataLoader)
+    {
+        var loader = dataLoader.Context.GetOrAddBatchLoader<string, string>(
+            "organization_myStatusInOrg",
+            async organizationIds => await ResolveMyStatusesByOrganizationAsync(
+                context, organizationMembershipSearchService, memberService, userManagerFactory, organizationIds));
+
+        return loader.LoadAsync(context.Source.Organization.Id);
+    }
+
+    private static async Task<IDictionary<string, string>> ResolveMyStatusesByOrganizationAsync(
+        IResolveFieldContext<OrganizationAggregate> context,
+        IOrganizationMembershipSearchService organizationMembershipSearchService,
+        IMemberService memberService,
+        Func<UserManager<ApplicationUser>> userManagerFactory,
+        IEnumerable<string> organizationIds)
+    {
+        var userId = context.GetCurrentUserId();
+        if (string.IsNullOrEmpty(userId))
+        {
+            return new Dictionary<string, string>();
+        }
+
+        using var userManager = userManagerFactory();
+        var user = await userManager.FindByIdAsync(userId);
+        if (string.IsNullOrEmpty(user?.MemberId))
+        {
+            return new Dictionary<string, string>();
+        }
+
+        var member = await memberService.GetByIdAsync(user.MemberId);
+        var globalStatus = member?.Status;
+
+        var idsList = organizationIds.ToList();
+        var memberships = await organizationMembershipSearchService.SearchAllNoCloneAsync(new OrganizationMembershipSearchCriteria
+        {
+            UserId = userId,
+            OrganizationIds = idsList,
+        });
+
+        var membershipByOrgId = memberships
+            .Where(m => m.OrganizationId != null)
+            .GroupBy(m => m.OrganizationId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        return idsList.ToDictionary(
+            orgId => orgId,
+            orgId =>
+            {
+                membershipByOrgId.TryGetValue(orgId, out var membership);
+                return OrganizationMembership.ResolveEffectiveStatus(membership?.Status, globalStatus);
+            });
     }
 
     private static async Task<IReadOnlyCollection<string>> GetContactIdsByGlobalRolesAsync(
@@ -207,5 +301,77 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
                 .Where(id => !string.IsNullOrEmpty(id)));
 
         return (filterRequired: true, ids: qualifyingContactIds);
+    }
+
+    private const string LockedFilterValue = "Locked";
+
+    private static async Task<(bool filterRequired, IReadOnlyCollection<string> ids)> ResolveStatusFilterAsync(
+        string orgId,
+        IList<string> statuses,
+        IMemberSearchService memberSearchService,
+        IOrganizationMembershipSearchService organizationMembershipService)
+    {
+        var membershipsTask = organizationMembershipService.SearchAllNoCloneAsync(
+            new OrganizationMembershipSearchCriteria { OrganizationId = orgId });
+        var contactsTask = memberSearchService.SearchAllAsync(
+            new MembersSearchCriteria { MemberId = orgId });
+
+        await Task.WhenAll(membershipsTask, contactsTask);
+
+        var membershipByUserId = membershipsTask.Result
+            .GroupBy(m => m.UserId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var wantsLocked = statuses.Contains(LockedFilterValue);
+        var lifecycleStatuses = statuses.Where(s => s != LockedFilterValue).ToHashSet();
+
+        var qualifyingContactIds = contactsTask.Result
+            .Where(contact => ContactMatchesStatusFilter(contact, membershipByUserId, wantsLocked, lifecycleStatuses))
+            .Select(contact => contact.Id)
+            .ToHashSet();
+
+        return (filterRequired: true, ids: qualifyingContactIds);
+    }
+
+    private static bool ContactMatchesStatusFilter(
+        Member contact, IDictionary<string, OrganizationMembership> membershipByUserId, bool wantsLocked, HashSet<string> lifecycleStatuses)
+    {
+        var membership = FindMembership(contact, membershipByUserId);
+
+        if (membership?.IsCurrentlyLocked == true)
+        {
+            return wantsLocked;
+        }
+
+        if (lifecycleStatuses.Count == 0)
+        {
+            return false;
+        }
+
+        var effectiveStatus = OrganizationMembership.ResolveEffectiveStatus(membership?.Status, contact.Status);
+
+        return !string.IsNullOrEmpty(effectiveStatus) && lifecycleStatuses.Contains(effectiveStatus);
+    }
+
+    private static OrganizationMembership FindMembership(Member contact, IDictionary<string, OrganizationMembership> membershipByUserId)
+    {
+        var securityAccountIds = (contact as IHasSecurityAccounts)?.SecurityAccounts?
+            .Select(sa => sa.Id)
+            .Where(id => !string.IsNullOrEmpty(id)) ?? [];
+
+        foreach (var securityAccountId in securityAccountIds)
+        {
+            if (membershipByUserId.TryGetValue(securityAccountId, out var membership))
+            {
+                return membership;
+            }
+        }
+
+        return null;
+    }
+
+    private static List<string> IntersectObjectIds(IList<string> existing, IReadOnlyCollection<string> additional)
+    {
+        return existing == null ? additional.ToList() : existing.Intersect(additional).ToList();
     }
 }

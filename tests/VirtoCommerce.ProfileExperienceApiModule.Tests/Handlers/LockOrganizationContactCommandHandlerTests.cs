@@ -113,6 +113,60 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         }
 
         [Fact]
+        public async Task Handle_MultipleSecurityAccounts_FindsMembershipOnNonFirstAccount()
+        {
+            // Arrange — the contact has two security accounts (e.g. after linking an SSO login); the
+            // membership belongs to the second one, not FirstOrDefault(). Must still be locked correctly.
+            const string firstUserId = "user-1";
+            const string secondUserId = "user-2";
+            const string membershipId = "membership-2";
+
+            var contact = new Contact
+            {
+                SecurityAccounts =
+                [
+                    new ApplicationUser { Id = firstUserId },
+                    new ApplicationUser { Id = secondUserId },
+                ],
+            };
+            var aggregate = new ContactAggregate { Member = contact };
+
+            _contactRepoMock
+                .Setup(x => x.GetMemberAggregateRootByIdAsync<ContactAggregate>(It.IsAny<string>()))
+                .ReturnsAsync(aggregate);
+
+            _membershipSearchServiceMock
+                .Setup(x => x.SearchAsync(
+                    It.Is<OrganizationMembershipSearchCriteria>(c =>
+                        c.UserIds != null && c.UserIds.Contains(firstUserId) && c.UserIds.Contains(secondUserId) && c.OrganizationId == "org-1"),
+                    It.IsAny<bool>()))
+                .ReturnsAsync(new OrganizationMembershipSearchResult
+                {
+                    Results = [new OrganizationMembership { Id = membershipId, UserId = secondUserId }],
+                    TotalCount = 1,
+                });
+
+            _membershipSearchServiceMock
+                .Setup(x => x.SearchAsync(
+                    It.Is<OrganizationMembershipSearchCriteria>(c => c.UserId == secondUserId && c.OrganizationId == "org-1"),
+                    It.IsAny<bool>()))
+                .ReturnsAsync(new OrganizationMembershipSearchResult
+                {
+                    Results = [new OrganizationMembership { Id = membershipId, UserId = secondUserId }],
+                    TotalCount = 1,
+                });
+
+            var handler = BuildHandler();
+            var command = new LockOrganizationContactCommand { MemberId = "contact-1", OrganizationId = "org-1" };
+
+            // Act
+            await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            _membershipServiceMock.Verify(x => x.LockAsync(membershipId, It.IsAny<DateTime?>()), Times.Once);
+        }
+
+        [Fact]
         public async Task Handle_MembershipNotFound_ThrowsInvalidOperationException()
         {
             // Arrange

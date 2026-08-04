@@ -7,6 +7,7 @@ using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Moq;
+using VirtoCommerce.CustomerModule.Core;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.NotificationsModule.Core.Services;
@@ -46,12 +47,14 @@ public class RegisterRequestCommandHandlerTests : MoqHelper
         // Act
         await handler.InvokeCreateOrganizationMembershipAsync(account, "org-1", role);
 
-        // Assert
+        // Assert — the user just created and owns this organization, so the membership must be immediately
+        // Approved regardless of Customer.ContactDefaultStatus, not inherited from the (possibly pending) contact.
         _membershipServiceMock.Verify(
             x => x.SaveChangesAsync(It.Is<IList<OrganizationMembership>>(list =>
                 list.Count == 1 &&
                 list[0].UserId == "user-1" &&
                 list[0].OrganizationId == "org-1" &&
+                list[0].Status == ModuleConstants.MembershipStatuses.Approved &&
                 list[0].Roles.Count == 1 &&
                 list[0].Roles[0].RoleId == "role-1" &&
                 list[0].Roles[0].RoleName == "org-maintainer")),

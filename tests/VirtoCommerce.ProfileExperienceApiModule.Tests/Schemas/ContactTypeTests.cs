@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using GraphQL;
@@ -163,6 +164,135 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Schemas
             _membershipSearchServiceMock.Verify(
                 x => x.SearchAsync(It.IsAny<OrganizationMembershipSearchCriteria>(), It.IsAny<bool>()),
                 Times.Never);
+        }
+
+        [Fact]
+        public async Task OrganizationsStatusFilter_UsesSourceContactsOwnSecurityAccount_NotCaller()
+        {
+            // Arrange — the caller (organization_id claim aside, there's no "current user" concept in this
+            // resolver anymore) must never influence the filter; only the source contact's own membership does.
+            // A membership belonging to a different user id ("other-user") must be ignored.
+            _membershipSearchServiceMock
+                .Setup(x => x.SearchAsync(
+                    It.Is<OrganizationMembershipSearchCriteria>(c =>
+                        c.UserIds.Contains("contact-owner-user") && c.OrganizationIds.Contains(OrgId)),
+                    It.IsAny<bool>()))
+                .ReturnsAsync(new OrganizationMembershipSearchResult
+                {
+                    Results = [new OrganizationMembership { UserId = "contact-owner-user", OrganizationId = OrgId, Status = ModuleConstants.MembershipStatuses.Approved }],
+                    TotalCount = 1,
+                });
+
+            _membershipSearchServiceMock
+                .Setup(x => x.SearchAsync(
+                    It.Is<OrganizationMembershipSearchCriteria>(c => c.UserIds.Contains("other-user")),
+                    It.IsAny<bool>()))
+                .ReturnsAsync(new OrganizationMembershipSearchResult
+                {
+                    Results = [new OrganizationMembership { UserId = "other-user", OrganizationId = OrgId, Status = ModuleConstants.MembershipStatuses.Rejected }],
+                    TotalCount = 1,
+                });
+
+            var context = BuildContext(contactId: "contact-1", userId: "contact-owner-user");
+
+            // Act
+            var result = await InvokeResolveMyOrganizationIdsByStatusAsync(
+                context, [OrgId], [ModuleConstants.MembershipStatuses.Approved]);
+
+            // Assert
+            Assert.Contains(OrgId, result);
+        }
+
+        [Fact]
+        public async Task OrganizationsStatusFilter_NoMembershipOverride_FallsBackToGlobalContactStatus()
+        {
+            // Arrange — no membership row at all for this org; the contact's own global status applies
+            _membershipSearchServiceMock
+                .Setup(x => x.SearchAsync(It.IsAny<OrganizationMembershipSearchCriteria>(), It.IsAny<bool>()))
+                .ReturnsAsync(new OrganizationMembershipSearchResult { Results = [], TotalCount = 0 });
+
+            var context = BuildContext(contactId: "contact-1", userId: "user-1");
+            context.Source.Contact.Status = ModuleConstants.MembershipStatuses.Rejected;
+
+            // Act
+            var approvedResult = await InvokeResolveMyOrganizationIdsByStatusAsync(
+                context, [OrgId], [ModuleConstants.MembershipStatuses.Approved]);
+            var rejectedResult = await InvokeResolveMyOrganizationIdsByStatusAsync(
+                context, [OrgId], [ModuleConstants.MembershipStatuses.Rejected]);
+
+            // Assert
+            Assert.DoesNotContain(OrgId, approvedResult);
+            Assert.Contains(OrgId, rejectedResult);
+        }
+
+        [Fact]
+        public async Task OrganizationsStatusFilter_LockedMembership_MatchesOnlyLockedFilter()
+        {
+            // Arrange
+            _membershipSearchServiceMock
+                .Setup(x => x.SearchAsync(It.IsAny<OrganizationMembershipSearchCriteria>(), It.IsAny<bool>()))
+                .ReturnsAsync(new OrganizationMembershipSearchResult
+                {
+                    Results = [new OrganizationMembership
+                    {
+                        UserId = "user-1",
+                        OrganizationId = OrgId,
+                        Status = ModuleConstants.MembershipStatuses.Approved,
+                        IsLocked = true,
+                    }],
+                    TotalCount = 1,
+                });
+
+            var context = BuildContext(contactId: "contact-1", userId: "user-1");
+
+            // Act
+            var lockedResult = await InvokeResolveMyOrganizationIdsByStatusAsync(context, [OrgId], ["Locked"]);
+            var approvedResult = await InvokeResolveMyOrganizationIdsByStatusAsync(
+                context, [OrgId], [ModuleConstants.MembershipStatuses.Approved]);
+
+            // Assert — a locked membership matches the Locked filter, not the underlying lifecycle status
+            Assert.Contains(OrgId, lockedResult);
+            Assert.DoesNotContain(OrgId, approvedResult);
+        }
+
+        [Fact]
+        public async Task OrganizationsStatusFilter_NoExplicitStatuses_HidesBlockingStatusesByDefault()
+        {
+            // Arrange — org-1: rejected membership (should be hidden by default); org-2: approved (should show)
+            const string approvedOrgId = "org-2";
+
+            _membershipSearchServiceMock
+                .Setup(x => x.SearchAsync(It.IsAny<OrganizationMembershipSearchCriteria>(), It.IsAny<bool>()))
+                .ReturnsAsync(new OrganizationMembershipSearchResult
+                {
+                    Results =
+                    [
+                        new OrganizationMembership { UserId = "user-1", OrganizationId = OrgId, Status = ModuleConstants.MembershipStatuses.Rejected },
+                        new OrganizationMembership { UserId = "user-1", OrganizationId = approvedOrgId, Status = ModuleConstants.MembershipStatuses.Approved },
+                    ],
+                    TotalCount = 2,
+                });
+
+            var context = BuildContext(contactId: "contact-1", userId: "user-1");
+
+            // Act — no `statuses` argument at all (the raw list/connection default, e.g. a direct query with no filter)
+            var result = await InvokeResolveMyOrganizationIdsByStatusAsync(context, [OrgId, approvedOrgId], null);
+
+            // Assert
+            Assert.DoesNotContain(OrgId, result);
+            Assert.Contains(approvedOrgId, result);
+        }
+
+        private async Task<IReadOnlyCollection<string>> InvokeResolveMyOrganizationIdsByStatusAsync(
+            ResolveFieldContext<ContactAggregate> context, IList<string> organizationIds, IList<string> statuses)
+        {
+            var method = typeof(ContactType).GetMethod(
+                "ResolveMyOrganizationIdsByStatusAsync", BindingFlags.NonPublic | BindingFlags.Static);
+
+            var task = (Task<IReadOnlyCollection<string>>)method!.Invoke(
+                null, [context, _membershipSearchServiceMock.Object, organizationIds, statuses]);
+
+            return await task;
         }
 
         private async Task<List<object>> ResolveForContactsAsync(string fieldName, int count)

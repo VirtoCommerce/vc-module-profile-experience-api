@@ -1,9 +1,8 @@
 using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using VirtoCommerce.CustomerModule.Core.Model;
+using VirtoCommerce.CustomerModule.Core.Extensions;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 
@@ -37,7 +36,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             var contactAggregate = await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.MemberId)
                 ?? throw new InvalidOperationException($"Contact '{request.MemberId}' not found.");
 
-            var userId = contactAggregate.Contact?.SecurityAccounts?.FirstOrDefault()?.Id;
+            var (userId, _) = await _organizationMembershipSearchService.ResolveMembershipForOrganizationAsync(
+                contactAggregate.Contact, request.OrganizationId);
+
             if (string.IsNullOrEmpty(userId))
             {
                 return contactAggregate;
@@ -50,15 +51,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         protected virtual async Task ApplyUnlockAsync(ContactAggregate contactAggregate, string userId, UnlockOrganizationContactCommand request, CancellationToken cancellationToken)
         {
-            var searchResult = await _organizationMembershipSearchService.SearchAsync(
-                new OrganizationMembershipSearchCriteria
-                {
-                    UserId = userId,
-                    OrganizationId = request.OrganizationId,
-                    Take = 1
-                });
-
-            var membership = searchResult.Results.FirstOrDefault()
+            var membership = await _organizationMembershipSearchService.GetMembershipAsync(userId, request.OrganizationId)
                 ?? throw new InvalidOperationException($"Contact '{request.MemberId}' has no membership in organization '{request.OrganizationId}'.");
 
             await _organizationMembershipService.UnlockAsync(membership.Id);
