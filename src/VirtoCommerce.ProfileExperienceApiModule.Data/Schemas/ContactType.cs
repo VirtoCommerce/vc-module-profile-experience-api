@@ -357,7 +357,7 @@ public class ContactType : MemberBaseType<ContactAggregate>
                 var idsList = ids.ToList();
 
                 var membershipRolesTask = organizationMembershipSearchService.GetRolesForUsersInOrgAsync(idsList, organizationId);
-                var globalRolesTask = GetGlobalRolesByUserAsync(idsList, roleManagerFactory, userManagerFactory);
+                var globalRolesTask = GlobalRolesResolver.GetGlobalRolesByUserAsync(idsList, roleManagerFactory, userManagerFactory);
 
                 await Task.WhenAll(membershipRolesTask, globalRolesTask);
 
@@ -390,44 +390,6 @@ public class ContactType : MemberBaseType<ContactAggregate>
 
             return roles.Count > 0 ? roles : null;
         });
-    }
-
-    // Mirrors OrganizationType's global-role check: a user can hold an ASP.NET Identity role
-    // that is not tied to any OrganizationMembership or org-level role assignment
-    private static async Task<IDictionary<string, IReadOnlyCollection<Role>>> GetGlobalRolesByUserAsync(
-        IList<string> userIds,
-        Func<RoleManager<Role>> roleManagerFactory,
-        Func<UserManager<ApplicationUser>> userManagerFactory)
-    {
-        using var roleManager = roleManagerFactory();
-        using var userManager = userManagerFactory();
-
-        // The role set is small — load it once instead of issuing a filtered query per user
-        var rolesByName = roleManager.Roles.ToLookup(r => r.Name);
-
-        var result = new Dictionary<string, IReadOnlyCollection<Role>>();
-
-        foreach (var userId in userIds)
-        {
-            var user = await userManager.FindByIdAsync(userId);
-            if (user == null)
-            {
-                continue;
-            }
-
-            var roleNames = await userManager.GetRolesAsync(user);
-            if (roleNames.Count == 0)
-            {
-                continue;
-            }
-
-            result[userId] = roleNames
-                .SelectMany(roleName => rolesByName[roleName])
-                .Select(r => new Role { Id = r.Id, Name = r.Name })
-                .ToList();
-        }
-
-        return result;
     }
 
     private static List<string> GetSecurityAccountIds(IResolveFieldContext<ContactAggregate> context) =>

@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using VirtoCommerce.CustomerModule.Core.Extensions;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
@@ -22,6 +23,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly IOrganizationMembershipService _organizationMembershipService;
         private readonly IOrganizationMembershipSearchService _organizationMembershipSearchService;
         private readonly IContactAggregateRepository _contactAggregateRepository;
+        private readonly ICompanyMemberRoleService _companyMemberRoleService;
 
         public ChangeOrganizationContactRoleCommandHandler(
             Func<UserManager<ApplicationUser>> userManager,
@@ -29,6 +31,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             IOrganizationMembershipService organizationMembershipService,
             IOrganizationMembershipSearchService organizationMembershipSearchService,
             IContactAggregateRepository contactAggregateRepository,
+            ICompanyMemberRoleService companyMemberRoleService,
             IOptions<AuthorizationOptions> securityOptions)
             : base(userManager, securityOptions)
         {
@@ -36,6 +39,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _organizationMembershipService = organizationMembershipService;
             _organizationMembershipSearchService = organizationMembershipSearchService;
             _contactAggregateRepository = contactAggregateRepository;
+            _companyMemberRoleService = companyMemberRoleService;
         }
 
         public virtual async Task<IdentityResultResponse> Handle(ChangeOrganizationContactRoleCommand request, CancellationToken cancellationToken)
@@ -62,12 +66,15 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return result;
             }
 
-            if (!await ValidateUserEditable(userId, result))
+            var user = await ValidateUserEditable(userId, result);
+            if (user == null)
             {
                 return result;
             }
 
-            var roles = await ResolveRoles(request.RoleIds, result);
+            var storeId = string.IsNullOrEmpty(request.StoreId) ? user.StoreId : request.StoreId;
+            var roles = await ResolveRoles(request.RoleIds, storeId, result);
+
             if (result.Errors.Count > 0)
             {
                 return result;
@@ -100,34 +107,46 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return _organizationMembershipSearchService.ResolveMembershipForOrganizationAsync(contactAggregate.Contact, organizationId);
         }
 
-        protected virtual async Task<bool> ValidateUserEditable(string userId, IdentityResultResponse result)
+        protected virtual async Task<ApplicationUser> ValidateUserEditable(string userId, IdentityResultResponse result)
         {
             using var userManager = _userManagerFactory();
             var user = await userManager.FindByIdAsync(userId);
             if (user == null || !IsUserEditable(user.UserName))
             {
                 result.Errors.Add(new IdentityErrorInfo { Code = "Forbidden", Description = "It is forbidden to edit this user." });
-                return false;
+                return null;
             }
 
-            return true;
+            return user;
         }
 
-        protected virtual async Task<IList<Role>> ResolveRoles(string[] roleIds, IdentityResultResponse result)
+        protected virtual async Task<IList<Role>> ResolveRoles(string[] roleIds, string storeId, IdentityResultResponse result)
         {
+            if (roleIds.IsNullOrEmpty())
+            {
+                return [];
+            }
+
+            var allowedRoleIds = await _companyMemberRoleService.GetAllowedRoleIdsAsync(storeId);
+
             using var roleManager = _roleManagerFactory();
             var roles = new List<Role>();
-            foreach (var roleId in roleIds ?? [])
+            foreach (var roleId in roleIds)
             {
                 var role = await roleManager.FindByIdAsync(roleId) ?? await roleManager.FindByNameAsync(roleId);
-                if (role != null)
-                {
-                    roles.Add(role);
-                }
-                else
+                if (role == null)
                 {
                     result.Errors.Add(new IdentityErrorInfo { Code = "Role not found", Description = $"Role '{roleId}' not found", Parameter = roleId });
+                    continue;
                 }
+
+                if (!allowedRoleIds.IsRoleAllowed(role))
+                {
+                    result.Errors.Add(new IdentityErrorInfo { Code = "RoleNotAllowed", Description = $"Role '{roleId}' is not allowed for company members of this store", Parameter = roleId });
+                    continue;
+                }
+
+                roles.Add(role);
             }
 
             return roles;
