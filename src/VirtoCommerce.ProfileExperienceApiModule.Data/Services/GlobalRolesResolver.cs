@@ -15,7 +15,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 /// </summary>
 public static class GlobalRolesResolver
 {
-    public static async Task<IDictionary<string, IReadOnlyCollection<Role>>> GetGlobalRolesByUserAsync(
+    public static async Task<IDictionary<string, IList<Role>>> GetGlobalRolesByUserAsync(
         IList<string> userIds,
         Func<RoleManager<Role>> roleManagerFactory,
         Func<UserManager<ApplicationUser>> userManagerFactory)
@@ -25,7 +25,7 @@ public static class GlobalRolesResolver
 
         var rolesByName = roleManager.Roles.ToLookup(r => r.Name);
 
-        var result = new Dictionary<string, IReadOnlyCollection<Role>>();
+        var result = new Dictionary<string, IList<Role>>();
 
         foreach (var userId in userIds)
         {

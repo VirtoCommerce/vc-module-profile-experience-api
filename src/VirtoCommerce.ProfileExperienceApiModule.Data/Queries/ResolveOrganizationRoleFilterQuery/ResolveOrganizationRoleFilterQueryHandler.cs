@@ -87,12 +87,12 @@ public class ResolveOrganizationRoleFilterQueryHandler : IQueryHandler<ResolveOr
                 .Select(u => u.MemberId ?? u.Id)
                 .Where(id => !string.IsNullOrEmpty(id)));
 
-        return new ContactIdFilterResult { FilterRequired = true, Ids = qualifyingContactIds };
+        return new ContactIdFilterResult { FilterRequired = true, Ids = qualifyingContactIds.ToList() };
     }
 
-    private static async Task<IReadOnlyCollection<string>> GetContactIdsByGlobalRolesAsync(
+    private static async Task<IList<string>> GetContactIdsByGlobalRolesAsync(
         IList<string> roleIds,
-        IReadOnlyCollection<ApplicationUser> orgUsers,
+        IList<ApplicationUser> orgUsers,
         RoleManager<Role> roleManager,
         UserManager<ApplicationUser> userManager)
     {

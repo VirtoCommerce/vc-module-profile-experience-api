@@ -66,13 +66,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return result;
             }
 
-            var user = await ValidateUserEditable(userId, result);
-            if (user == null)
+            if (!await ValidateUserEditable(userId, result))
             {
                 return result;
             }
 
-            var storeId = string.IsNullOrEmpty(request.StoreId) ? user.StoreId : request.StoreId;
+            var storeId = request.StoreId;
+            if (string.IsNullOrEmpty(storeId))
+            {
+                storeId = await GetUserStoreIdAsync(userId);
+            }
+
             var roles = await ResolveRoles(request.RoleIds, storeId, result);
 
             if (result.Errors.Count > 0)
@@ -107,17 +111,24 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return _organizationMembershipSearchService.ResolveMembershipForOrganizationAsync(contactAggregate.Contact, organizationId);
         }
 
-        protected virtual async Task<ApplicationUser> ValidateUserEditable(string userId, IdentityResultResponse result)
+        protected virtual async Task<bool> ValidateUserEditable(string userId, IdentityResultResponse result)
         {
             using var userManager = _userManagerFactory();
             var user = await userManager.FindByIdAsync(userId);
             if (user == null || !IsUserEditable(user.UserName))
             {
                 result.Errors.Add(new IdentityErrorInfo { Code = "Forbidden", Description = "It is forbidden to edit this user." });
-                return null;
+                return false;
             }
 
-            return user;
+            return true;
+        }
+
+        private async Task<string> GetUserStoreIdAsync(string userId)
+        {
+            using var userManager = _userManagerFactory();
+            var user = await userManager.FindByIdAsync(userId);
+            return user?.StoreId;
         }
 
         protected virtual async Task<IList<Role>> ResolveRoles(string[] roleIds, string storeId, IdentityResultResponse result)

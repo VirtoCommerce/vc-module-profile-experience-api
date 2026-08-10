@@ -11,5 +11,5 @@ public class ContactIdFilterResult
 {
     public bool FilterRequired { get; set; }
 
-    public IReadOnlyCollection<string> Ids { get; set; } = [];
+    public IList<string> Ids { get; set; } = [];
 }

@@ -11,4 +11,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 public class GetOrganizationContactRolesQuery : IQuery<IList<Role>>
 {
     public string OrganizationId { get; set; }
+    public string StoreId { get; set; }
+    public string CultureName { get; set; }
 }

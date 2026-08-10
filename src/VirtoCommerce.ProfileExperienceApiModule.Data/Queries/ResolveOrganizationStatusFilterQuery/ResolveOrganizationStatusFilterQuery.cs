@@ -12,4 +12,6 @@ public class ResolveOrganizationStatusFilterQuery : IQuery<ContactIdFilterResult
     public string OrganizationId { get; set; }
 
     public IList<string> Statuses { get; set; }
+    public string StoreId { get; set; }
+    public string CultureName { get; set; }
 }

@@ -12,4 +12,6 @@ public class ResolveOrganizationRoleFilterQuery : IQuery<ContactIdFilterResult>
     public string OrganizationId { get; set; }
 
     public IList<string> RoleIds { get; set; }
+    public string StoreId { get; set; }
+    public string CultureName { get; set; }
 }

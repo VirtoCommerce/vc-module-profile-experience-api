@@ -56,14 +56,23 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
             .Description("Distinct roles currently assigned to at least one member of this organization - " +
                           "membership roles and members' global (account-level) roles alike. Useful for " +
                           "building a members-list role filter that only offers roles with results.")
+            .Argument<StringGraphType>("storeId", "Store ID")
+            .Argument<StringGraphType>("cultureName", "Culture name for localized responses")
             .ResolveAsync(async context => await context.GetMediator().Send(
-                new GetOrganizationContactRolesQuery { OrganizationId = context.Source.Organization.Id }));
+                new GetOrganizationContactRolesQuery
+                {
+                    OrganizationId = context.Source.Organization.Id,
+                    StoreId = context.GetArgument<string>("storeId"),
+                    CultureName = context.GetArgument<string>("cultureName"),
+                }));
 
         var connectionBuilder = GraphTypeExtensionHelper.CreateConnection<ContactType, OrganizationAggregate>("contacts")
             .Argument<StringGraphType>("searchPhrase", "Free text search")
             .Argument<StringGraphType>("sort", "Sort expression")
             .Argument<ListGraphType<StringGraphType>>("roleIds", "Filter contacts by role IDs (org-level, membership, or global)")
             .Argument<ListGraphType<StringGraphType>>("statuses", "Filter contacts by effective status/lock state for this organization (e.g. Approved, Invited, Locked)")
+            .Argument<StringGraphType>("storeId", "Store ID")
+            .Argument<StringGraphType>("cultureName", "Culture name for localized responses")
             .PageSize(20);
 
         connectionBuilder.ResolveAsync(context => ResolveContactsConnectionAsync(context, factory));
@@ -95,11 +104,19 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
         query.DeepSearch = false;
 
         var mediator = context.GetMediator();
+        var storeId = context.GetArgument<string>("storeId");
+        var cultureName = context.GetArgument<string>("cultureName");
 
         var roleIds = context.GetArgument<IList<string>>("roleIds");
         if (roleIds is { Count: > 0 })
         {
-            var roleFilter = await mediator.Send(new ResolveOrganizationRoleFilterQuery { OrganizationId = orgId, RoleIds = roleIds });
+            var roleFilter = await mediator.Send(new ResolveOrganizationRoleFilterQuery
+            {
+                OrganizationId = orgId,
+                RoleIds = roleIds,
+                StoreId = storeId,
+                CultureName = cultureName,
+            });
 
             if (roleFilter.FilterRequired)
             {
@@ -115,7 +132,13 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
         var statuses = context.GetArgument<IList<string>>("statuses");
         if (statuses is { Count: > 0 })
         {
-            var statusFilter = await mediator.Send(new ResolveOrganizationStatusFilterQuery { OrganizationId = orgId, Statuses = statuses });
+            var statusFilter = await mediator.Send(new ResolveOrganizationStatusFilterQuery
+            {
+                OrganizationId = orgId,
+                Statuses = statuses,
+                StoreId = storeId,
+                CultureName = cultureName,
+            });
 
             if (statusFilter.FilterRequired)
             {
@@ -194,7 +217,7 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
             });
     }
 
-    private static List<string> IntersectObjectIds(IList<string> existing, IReadOnlyCollection<string> additional)
+    private static List<string> IntersectObjectIds(IList<string> existing, IList<string> additional)
     {
         return existing == null ? additional.ToList() : existing.Intersect(additional).ToList();
     }

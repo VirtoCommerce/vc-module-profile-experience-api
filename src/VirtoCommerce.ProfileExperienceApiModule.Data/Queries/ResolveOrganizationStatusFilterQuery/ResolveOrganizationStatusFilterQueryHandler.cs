@@ -48,7 +48,7 @@ public class ResolveOrganizationStatusFilterQueryHandler : IQueryHandler<Resolve
         var qualifyingContactIds = contactsTask.Result
             .Where(contact => ContactMatchesStatusFilter(contact, membershipByUserId, wantsLocked, lifecycleStatuses))
             .Select(contact => contact.Id)
-            .ToHashSet();
+            .ToList();
 
         return new ContactIdFilterResult { FilterRequired = true, Ids = qualifyingContactIds };
     }
