@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
@@ -27,7 +26,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers;
 
 public class RegisterRequestCommandHandlerTests : MoqHelper
 {
-    private readonly Mock<IMapper> _mapperMock = new();
+    private readonly Mock<IProfileExperienceApiModuleMapper> _mapperMock = new();
     private readonly Mock<IDynamicPropertyUpdaterService> _dynamicPropertyUpdaterMock = new();
     private readonly Mock<IMemberService> _memberServiceMock = new();
     private readonly Mock<IStoreService> _storeServiceMock = new();
@@ -101,11 +100,11 @@ public class RegisterRequestCommandHandlerTests : MoqHelper
     private void SetupCommonMocks()
     {
         _mapperMock
-            .Setup(m => m.Map<Organization>(It.IsAny<object>()))
+            .Setup(m => m.ToOrganization(It.IsAny<RegisteredOrganization>()))
             .Returns(new Organization { Id = "org-1", Name = "Test Org" });
 
         _mapperMock
-            .Setup(m => m.Map<Contact>(It.IsAny<object>()))
+            .Setup(m => m.ToContact(It.IsAny<RegisteredContact>()))
             .Returns(new Contact { FirstName = "John", LastName = "Doe" });
 
         _memberServiceMock
@@ -164,7 +163,7 @@ public class RegisterRequestCommandHandlerTests : MoqHelper
     }
 
     private sealed class ExposedHandler(
-        IMapper mapper, IDynamicPropertyUpdaterService dynamicPropertyUpdater,
+        IProfileExperienceApiModuleMapper mapper, IDynamicPropertyUpdaterService dynamicPropertyUpdater,
         IMemberService memberService, IStoreService storeService,
         INotificationSearchService notificationSearchService, INotificationSender notificationSender,
         IAccountService accountService,
@@ -182,7 +181,7 @@ public class RegisterRequestCommandHandlerTests : MoqHelper
     }
 
     private sealed class CapturingHandler(
-        IMapper mapper, IDynamicPropertyUpdaterService dynamicPropertyUpdater,
+        IProfileExperienceApiModuleMapper mapper, IDynamicPropertyUpdaterService dynamicPropertyUpdater,
         IMemberService memberService, IStoreService storeService,
         INotificationSearchService notificationSearchService, INotificationSender notificationSender,
         IAccountService accountService,

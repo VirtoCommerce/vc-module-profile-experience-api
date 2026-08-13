@@ -5,13 +5,14 @@ using AutoFixture;
 using Microsoft.Extensions.Options;
 using Moq;
 using VirtoCommerce.CustomerModule.Core.Model;
-using VirtoCommerce.Xapi.Core.Models;
-using VirtoCommerce.Xapi.Core.Services;
-using VirtoCommerce.Xapi.Tests.Helpers;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Configuration;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
+using VirtoCommerce.Xapi.Core.Models;
+using VirtoCommerce.Xapi.Core.Services;
+using VirtoCommerce.Xapi.Tests.Helpers;
 using Xunit;
 
 
@@ -37,6 +38,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             var organizationValidator = new OrganizationValidator(Options.Create(disabledOptions));
 
             var handler = new UpdateOrganizationCommandHandler(
+                new ProfileExperienceApiModuleMapper(),
                 aggregateRepositoryMock.Object,
                 dynamicPropertyUpdaterServiceMock.Object,
                 organizationValidator);

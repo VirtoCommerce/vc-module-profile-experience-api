@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
 using FluentValidation.Results;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
@@ -34,7 +33,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
     {
         private const string _userType = "Customer";
 
-        private readonly IMapper _mapper;
+        private readonly IProfileExperienceApiModuleMapper _mapper;
         private readonly IDynamicPropertyUpdaterService _dynamicPropertyUpdater;
         private readonly IMemberService _memberService;
         private readonly IStoreService _storeService;
@@ -54,7 +53,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         protected Role MaintainerRole { get; private set; }
 
 #pragma warning disable S107 // Method has x parameters which are greater than y
-        public RegisterRequestCommandHandler(IMapper mapper,
+        public RegisterRequestCommandHandler(IProfileExperienceApiModuleMapper mapper,
             IDynamicPropertyUpdaterService dynamicPropertyUpdater,
             IMemberService memberService,
             IStoreService storeService,
@@ -293,7 +292,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         protected virtual async Task<Organization> ToOrganization(RegisteredOrganization organization, Contact contact, ApplicationUser account)
         {
-            var result = _mapper.Map<Organization>(organization);
+            var result = _mapper.ToOrganization(organization);
 
             result.Status = DefaultOrganizationStatus;
             result.OwnerId = contact.Id;
@@ -306,7 +305,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         protected virtual async Task<Contact> ToContact(RegisteredContact contact, ApplicationUser account, string language, bool requireEmailVerification)
         {
-            var result = _mapper.Map<Contact>(contact);
+            var result = _mapper.ToContact(contact);
 
             result.Id = Guid.NewGuid().ToString();
             result.FullName = $"{contact.FirstName} {contact.LastName}";

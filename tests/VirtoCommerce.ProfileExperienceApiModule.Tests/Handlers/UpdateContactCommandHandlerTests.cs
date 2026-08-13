@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoFixture;
-using AutoMapper;
 using Microsoft.Extensions.Options;
 using Moq;
 using VirtoCommerce.CustomerModule.Core.Model;
@@ -10,7 +9,7 @@ using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Configuration;
-using VirtoCommerce.ProfileExperienceApiModule.Data.Mapping;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.Xapi.Core.Services;
@@ -21,17 +20,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
 {
     public class UpdateContactCommandHandlerTests : MoqHelper
     {
-        private readonly IMapper _mapper;
-
-        public UpdateContactCommandHandlerTests()
-        {
-            var configuration = new MapperConfiguration(cfg =>
-            {
-                cfg.AddProfile<ProfileMappingProfile>();
-            });
-
-            _mapper = configuration.CreateMapper();
-        }
+        private readonly IProfileExperienceApiModuleMapper _mapper = new ProfileExperienceApiModuleMapper();
 
         [Fact]
         public async Task Handle_RequestWithDynamicProperties_UpdateDynamicPropertyCalled()
