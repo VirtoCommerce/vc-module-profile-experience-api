@@ -41,6 +41,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
             serviceCollection.AddSingleton<ScopedSchemaFactory<AssemblyMarker>>();
 
             serviceCollection.AddSingleton<IMemberAggregateFactory, MemberAggregateFactory>();
+            serviceCollection.AddSingleton<IProfileExperienceApiModuleMapper, ProfileExperienceApiModuleMapper>();
             serviceCollection.AddOptions<InputValidationOptions>().Bind(Configuration.GetSection("FrontendSecurity:InputValidation"));
 
             serviceCollection.AddTransient<NewContactValidator>();

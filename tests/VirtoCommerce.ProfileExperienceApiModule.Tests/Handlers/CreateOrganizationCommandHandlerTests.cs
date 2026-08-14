@@ -2,18 +2,18 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoFixture;
-using AutoMapper;
 using Microsoft.Extensions.Options;
 using Moq;
 using VirtoCommerce.CustomerModule.Core.Model;
-using VirtoCommerce.Xapi.Core.Models;
-using VirtoCommerce.Xapi.Core.Services;
-using VirtoCommerce.Xapi.Tests.Helpers;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Configuration;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
+using VirtoCommerce.Xapi.Core.Models;
+using VirtoCommerce.Xapi.Core.Services;
+using VirtoCommerce.Xapi.Tests.Helpers;
 using Xunit;
 
 
@@ -28,7 +28,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             var aggregateRepositoryMock = new Mock<IOrganizationAggregateRepository>();
             var aggregateFactoryMock = new Mock<IMemberAggregateFactory>();
             var dynamicPropertyUpdaterServiceMock = new Mock<IDynamicPropertyUpdaterService>();
-            var mapperMock = new Mock<IMapper>();
+            var mapperMock = new Mock<IProfileExperienceApiModuleMapper>();
 
             var organization = _fixture.Create<Organization>();
             var organizatnoAggregate = new OrganizationAggregate { Member = organization };

@@ -1,13 +1,13 @@
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
 using FluentValidation;
 using MediatR;
 using VirtoCommerce.CustomerModule.Core.Model;
-using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
+using VirtoCommerce.Xapi.Core.Services;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 {
@@ -16,13 +16,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly IContactAggregateRepository _contactAggregateRepository;
         private readonly IMemberAggregateFactory _memberAggregateFactory;
         private readonly IDynamicPropertyUpdaterService _dynamicPropertyUpdater;
-        private readonly IMapper _mapper;
+        private readonly IProfileExperienceApiModuleMapper _mapper;
         private readonly NewContactValidator _validator;
 
         public CreateContactCommandHandler(IContactAggregateRepository contactAggregateRepository,
             IMemberAggregateFactory factory,
             IDynamicPropertyUpdaterService dynamicPropertyUpdater,
-            IMapper mapper,
+            IProfileExperienceApiModuleMapper mapper,
             NewContactValidator validator)
         {
             _contactAggregateRepository = contactAggregateRepository;
@@ -36,7 +36,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         {
             request.MemberType = nameof(Contact);
 
-            var contact = _mapper.Map<Contact>(request);
+            var contact = _mapper.ToContact(request);
 
             var contactAggregate = _memberAggregateFactory.Create<ContactAggregate>(contact);
 
