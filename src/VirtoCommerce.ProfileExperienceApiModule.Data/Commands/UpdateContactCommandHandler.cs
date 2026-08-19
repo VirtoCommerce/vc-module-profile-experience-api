@@ -1,12 +1,12 @@
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
 using FluentValidation;
 using MediatR;
 using VirtoCommerce.CustomerModule.Core.Extensions;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using VirtoCommerce.Xapi.Core.Services;
 
@@ -17,7 +17,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         IDynamicPropertyUpdaterService dynamicPropertyUpdater,
         ICustomerPreferenceService customerPreferenceService,
         NewContactValidator contactValidator,
-        IMapper mapper)
+        IProfileExperienceApiModuleMapper mapper)
         : IRequestHandler<UpdateContactCommand, ContactAggregate>
     {
         public virtual async Task<ContactAggregate> Handle(UpdateContactCommand request, CancellationToken cancellationToken)
@@ -35,7 +35,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         protected virtual async Task UpdateContactAsync(Contact contact, UpdateContactCommand request)
         {
-            mapper.Map(request, contact);
+            mapper.MapTo(request, contact);
 
             if (request.DynamicProperties != null)
             {
