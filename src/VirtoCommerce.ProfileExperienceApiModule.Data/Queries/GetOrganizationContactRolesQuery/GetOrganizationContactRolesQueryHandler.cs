@@ -53,12 +53,12 @@ public class GetOrganizationContactRolesQueryHandler : IQueryHandler<GetOrganiza
         var membershipRoles = allOrgMemberships
             .SelectMany(m => m.Roles ?? [])
             .Where(r => !string.IsNullOrEmpty(r.RoleId))
-            .Select(r => new Role { Id = r.RoleId, Name = r.RoleName });
+            .Select(r => new Role { Id = r.RoleId, Name = r.RoleName, NormalizedName = r.RoleName?.ToUpperInvariant() });
 
         var organization = organizationTask.Result as Organization;
         var orgLevelRoles = (organization?.Roles ?? [])
             .Where(r => !string.IsNullOrEmpty(r.RoleId))
-            .Select(r => new Role { Id = r.RoleId, Name = r.RoleName });
+            .Select(r => new Role { Id = r.RoleId, Name = r.RoleName, NormalizedName = r.RoleName?.ToUpperInvariant() });
 
         var orgUsers = await OrganizationUsersResolver.GetOrganizationUsersAsync(
             allOrgMemberships, contactsTask.Result, _userManagerFactory);

@@ -43,7 +43,7 @@ public static class GlobalRolesResolver
 
             result[userId] = roleNames
                 .SelectMany(roleName => rolesByName[roleName])
-                .Select(r => new Role { Id = r.Id, Name = r.Name })
+                .Select(r => new Role { Id = r.Id, Name = r.Name, NormalizedName = r.NormalizedName })
                 .ToList();
         }
 

@@ -369,7 +369,7 @@ public class ContactType : MemberBaseType<ContactAggregate>
                     id =>
                     {
                         var orgRoles = membershipRoles.TryGetValue(id, out var roles)
-                            ? roles.Select(r => new Role { Id = r.RoleId, Name = r.RoleName })
+                            ? roles.Select(r => new Role { Id = r.RoleId, Name = r.RoleName, NormalizedName = r.RoleName?.ToUpperInvariant() })
                             : [];
                         var userGlobalRoles = globalRoles.TryGetValue(id, out var gRoles) ? gRoles : [];
 
