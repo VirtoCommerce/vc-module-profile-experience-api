@@ -66,6 +66,20 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
                     CultureName = context.GetArgument<string>("cultureName"),
                 }));
 
+        Field<ListGraphType<RoleType>>("assignableRoles")
+            .Description("Real platform roles a company member can be assigned in this store - the intersection " +
+                          "of the store's role whitelist and the roles that actually exist, unlike contactRoles " +
+                          "this includes roles nobody has yet and excludes whitelist entries that don't resolve " +
+                          "to a real role.")
+            .Argument<StringGraphType>("storeId", "Store ID")
+            .Argument<StringGraphType>("cultureName", "Culture name for localized responses")
+            .ResolveAsync(async context => await context.GetMediator().Send(
+                new GetAssignableCompanyRolesQuery
+                {
+                    StoreId = context.GetArgument<string>("storeId"),
+                    CultureName = context.GetArgument<string>("cultureName"),
+                }));
+
         var connectionBuilder = GraphTypeExtensionHelper.CreateConnection<ContactType, OrganizationAggregate>("contacts")
             .Argument<StringGraphType>("searchPhrase", "Free text search")
             .Argument<StringGraphType>("sort", "Sort expression")
