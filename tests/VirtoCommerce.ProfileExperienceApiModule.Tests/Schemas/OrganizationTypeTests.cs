@@ -39,18 +39,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Schemas
                 new Mock<IUserStore<ApplicationUser>>().Object, null, null, null, null, null, null, null, null);
             _userManagerMock.Setup(x => x.FindByIdAsync(UserId)).ReturnsAsync(new ApplicationUser { Id = UserId, MemberId = MemberId });
 
-            var roleManagerMock = new Mock<RoleManager<Role>>(
-                new Mock<IRoleStore<Role>>().Object, null, null, null, null);
-
             _organizationType = new OrganizationType(
                 new Mock<IStoreService>().Object,
                 new Mock<IDynamicPropertyResolverService>().Object,
                 new Mock<IMemberAddressService>().Object,
                 new Mock<IMemberAggregateFactory>().Object,
                 _memberServiceMock.Object,
-                new Mock<IMemberSearchService>().Object,
                 _membershipSearchServiceMock.Object,
-                () => roleManagerMock.Object,
                 () => _userManagerMock.Object,
                 new DataLoaderContextAccessor { Context = new DataLoaderContext() });
         }
