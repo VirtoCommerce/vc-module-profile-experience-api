@@ -226,7 +226,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Schemas
         }
 
         [Fact]
-        public async Task OrganizationsStatusFilter_LockedMembership_MatchesOnlyLockedFilter()
+        public async Task OrganizationsStatusFilter_LockedMembership_NoLongerHidesTheOrganization()
         {
             // Arrange
             _membershipSearchServiceMock
@@ -249,10 +249,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Schemas
             var lockedResult = await InvokeResolveMyOrganizationIdsByStatusAsync(context, [OrgId], ["Locked"]);
             var approvedResult = await InvokeResolveMyOrganizationIdsByStatusAsync(
                 context, [OrgId], [ModuleConstants.MembershipStatuses.Approved]);
+            var defaultResult = await InvokeResolveMyOrganizationIdsByStatusAsync(context, [OrgId], null);
 
-            // Assert — a locked membership matches the Locked filter, not the underlying lifecycle status
+            // Assert — VCST-5317: locking no longer excludes the organization from the switcher's
+            // candidate list; the client is expected to read isLockedForCurrentUser (OrganizationType)
+            // and decide how to present it (e.g. disable selection) instead of the server hiding it.
             Assert.Contains(OrgId, lockedResult);
-            Assert.DoesNotContain(OrgId, approvedResult);
+            Assert.Contains(OrgId, approvedResult);
+            Assert.Contains(OrgId, defaultResult);
         }
 
         [Fact]

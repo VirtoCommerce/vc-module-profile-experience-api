@@ -293,16 +293,7 @@ public class ContactType : MemberBaseType<ContactAggregate>
         {
             membershipsByOrgId.TryGetValue(orgId, out var orgMemberships);
 
-            if (orgMemberships?.Any(m => m.IsCurrentlyLocked) == true)
-            {
-                if (wantsLocked)
-                {
-                    qualifyingOrgIds.Add(orgId);
-                }
-
-                continue;
-            }
-
+            var isLocked = orgMemberships?.Any(m => m.IsCurrentlyLocked) == true;
             var overrideStatus = orgMemberships?.Select(m => m.Status).FirstOrDefault(s => !string.IsNullOrEmpty(s));
             var effectiveStatus = OrganizationMembership.ResolveEffectiveStatus(overrideStatus, globalStatus);
 
@@ -313,6 +304,12 @@ public class ContactType : MemberBaseType<ContactAggregate>
                     qualifyingOrgIds.Add(orgId);
                 }
 
+                continue;
+            }
+
+            if (wantsLocked && isLocked)
+            {
+                qualifyingOrgIds.Add(orgId);
                 continue;
             }
 
