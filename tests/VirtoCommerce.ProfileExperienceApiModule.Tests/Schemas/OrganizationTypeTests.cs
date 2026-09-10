@@ -70,7 +70,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Schemas
                 });
 
             // Act — resolve the field for a page of 3 organizations, then await (triggers the batch)
-            var results = await ResolveForOrganizationsAsync(["org-1", "org-2", "org-3"]);
+            var results = await ResolveForOrganizationsAsync("myStatusInOrganization", ["org-1", "org-2", "org-3"]);
 
             // Assert — a single membership search for the whole page, not one per organization
             _memberServiceMock.Verify(x => x.GetByIdAsync(MemberId, null, null), Times.Once);
@@ -93,7 +93,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Schemas
             var context = BuildContext("org-1", userId: null);
 
             // Act
-            var result = await ResolveFieldAsync(context);
+            var result = await ResolveFieldAsync("myStatusInOrganization", context);
 
             // Assert
             Assert.Null(result);
@@ -102,9 +102,78 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Schemas
                 Times.Never);
         }
 
-        private async Task<List<object>> ResolveForOrganizationsAsync(IList<string> organizationIds)
+        [Fact]
+        public async Task IsLockedForCurrentUser_PageOfOrganizations_FetchesMembershipsInSingleBatch()
         {
-            var field = _organizationType.Fields.First(f => f.Name == "myStatusInOrganization");
+            // Arrange — user is currently locked in org-2 only
+            _membershipSearchServiceMock
+                .Setup(x => x.SearchAsync(
+                    It.Is<OrganizationMembershipSearchCriteria>(c => c.UserId == UserId),
+                    It.IsAny<bool>()))
+                .ReturnsAsync(new OrganizationMembershipSearchResult
+                {
+                    Results = [new OrganizationMembership { UserId = UserId, OrganizationId = "org-2", IsLocked = true }],
+                    TotalCount = 1,
+                });
+
+            // Act — resolve the field for a page of 3 organizations, then await (triggers the batch)
+            var results = await ResolveForOrganizationsAsync("isLockedForCurrentUser", ["org-1", "org-2", "org-3"]);
+
+            // Assert — a single membership search for the whole page, not one per organization
+            _membershipSearchServiceMock.Verify(
+                x => x.SearchAsync(
+                    It.Is<OrganizationMembershipSearchCriteria>(c =>
+                        c.UserId == UserId && c.OrganizationIds.Count == 3),
+                    It.IsAny<bool>()),
+                Times.Once);
+
+            Assert.Equal([false, true, false], results);
+        }
+
+        [Fact]
+        public async Task IsLockedForCurrentUser_ExpiredLockout_ReturnsFalse()
+        {
+            // Arrange — VCST-5317 AC-3: IsLocked=true but LockoutEnd already in the past is not "currently" locked
+            _membershipSearchServiceMock
+                .Setup(x => x.SearchAsync(It.IsAny<OrganizationMembershipSearchCriteria>(), It.IsAny<bool>()))
+                .ReturnsAsync(new OrganizationMembershipSearchResult
+                {
+                    Results = [new OrganizationMembership
+                    {
+                        UserId = UserId,
+                        OrganizationId = "org-1",
+                        IsLocked = true,
+                        LockoutEnd = System.DateTime.UtcNow.AddDays(-1),
+                    }],
+                    TotalCount = 1,
+                });
+
+            // Act
+            var results = await ResolveForOrganizationsAsync("isLockedForCurrentUser", ["org-1"]);
+
+            // Assert
+            Assert.Equal([false], results);
+        }
+
+        [Fact]
+        public async Task IsLockedForCurrentUser_NoCurrentUser_ReturnsFalse_WithoutQuerying()
+        {
+            // Arrange — no organization_id/user claim on the caller (e.g. anonymous)
+            var context = BuildContext("org-1", userId: null);
+
+            // Act
+            var result = await ResolveFieldAsync("isLockedForCurrentUser", context);
+
+            // Assert
+            Assert.Equal(false, result);
+            _membershipSearchServiceMock.Verify(
+                x => x.SearchAsync(It.IsAny<OrganizationMembershipSearchCriteria>(), It.IsAny<bool>()),
+                Times.Never);
+        }
+
+        private async Task<List<object>> ResolveForOrganizationsAsync(string fieldName, IList<string> organizationIds)
+        {
+            var field = _organizationType.Fields.First(f => f.Name == fieldName);
 
             var pendingResults = new List<object>();
             foreach (var orgId in organizationIds)
@@ -121,9 +190,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Schemas
             return results;
         }
 
-        private async Task<object> ResolveFieldAsync(ResolveFieldContext<OrganizationAggregate> context)
+        private async Task<object> ResolveFieldAsync(string fieldName, ResolveFieldContext<OrganizationAggregate> context)
         {
-            var field = _organizationType.Fields.First(f => f.Name == "myStatusInOrganization");
+            var field = _organizationType.Fields.First(f => f.Name == fieldName);
             var pendingResult = await field.Resolver.ResolveAsync(context);
 
             return await UnwrapAsync(pendingResult);

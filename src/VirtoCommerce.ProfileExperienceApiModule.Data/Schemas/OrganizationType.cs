@@ -52,6 +52,12 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
             .Description("Current user's effective status in this organization: the organization-specific override if set, otherwise the contact's global status.")
             .Resolve(context => ResolveMyStatusInOrganization(context, organizationMembershipService, memberService, userManagerFactory, dataLoader));
 
+        Field<BooleanGraphType>("isLockedForCurrentUser")
+            .Description("Whether the current user's membership in this organization is currently locked (VCST-5317). " +
+                          "Locked organizations are still returned by the parent connection; this flag lets the caller " +
+                          "decide how to present them (e.g. disable selection) instead of the server silently excluding them.")
+            .Resolve(context => ResolveIsLockedForCurrentUser(context, organizationMembershipService, dataLoader));
+
         Field<ListGraphType<RoleType>>("contactRoles")
             .Description("Distinct roles currently assigned to at least one member of this organization - " +
                           "membership roles and members' global (account-level) roles alike. Useful for " +
@@ -229,6 +235,45 @@ public class OrganizationType : MemberBaseType<OrganizationAggregate>
                 membershipByOrgId.TryGetValue(orgId, out var membership);
                 return OrganizationMembership.ResolveEffectiveStatus(membership?.Status, globalStatus);
             });
+    }
+
+    private static IDataLoaderResult<bool> ResolveIsLockedForCurrentUser(
+        IResolveFieldContext<OrganizationAggregate> context,
+        IOrganizationMembershipSearchService organizationMembershipSearchService,
+        IDataLoaderContextAccessor dataLoader)
+    {
+        var loader = dataLoader.Context.GetOrAddBatchLoader<string, bool>(
+            "organization_isLockedForCurrentUser",
+            async organizationIds => await ResolveLockedFlagsByOrganizationAsync(context, organizationMembershipSearchService, organizationIds));
+
+        return loader.LoadAsync(context.Source.Organization.Id);
+    }
+
+    private static async Task<IDictionary<string, bool>> ResolveLockedFlagsByOrganizationAsync(
+        IResolveFieldContext<OrganizationAggregate> context,
+        IOrganizationMembershipSearchService organizationMembershipSearchService,
+        IEnumerable<string> organizationIds)
+    {
+        var idsList = organizationIds.ToList();
+        var userId = context.GetCurrentUserId();
+
+        if (string.IsNullOrEmpty(userId) || userId == Xapi.Core.ModuleConstants.AnonymousUser.UserName)
+        {
+            return idsList.ToDictionary(orgId => orgId, _ => false);
+        }
+
+        var memberships = await organizationMembershipSearchService.SearchAllNoCloneAsync(new OrganizationMembershipSearchCriteria
+        {
+            UserId = userId,
+            OrganizationIds = idsList,
+        });
+
+        var lockedOrgIds = memberships
+            .Where(m => m.OrganizationId != null && m.IsCurrentlyLocked)
+            .Select(m => m.OrganizationId)
+            .ToHashSet();
+
+        return idsList.ToDictionary(orgId => orgId, lockedOrgIds.Contains);
     }
 
     private static List<string> IntersectObjectIds(IList<string> existing, IList<string> additional)
