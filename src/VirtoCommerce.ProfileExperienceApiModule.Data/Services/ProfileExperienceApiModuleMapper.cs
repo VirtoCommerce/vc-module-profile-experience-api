@@ -129,9 +129,6 @@ public class ProfileExperienceApiModuleMapper : IProfileExperienceApiModuleMappe
         result.FullName = source.FullName;
         result.Salutation = source.Salutation;
         result.About = source.About;
-#pragma warning disable VC0011 // Contact.SelectedAddressId is obsolete but AutoMapper's convention map still copied it; preserved for parity.
-        result.SelectedAddressId = source.SelectedAddressId;
-#pragma warning restore VC0011
         result.Addresses = source.Addresses;
         result.Phones = source.Phones;
         result.Emails = source.Emails;
@@ -181,9 +178,6 @@ public class ProfileExperienceApiModuleMapper : IProfileExperienceApiModuleMappe
         target.FullName = source.FullName;
         target.Salutation = source.Salutation;
         target.About = source.About;
-#pragma warning disable VC0011 // Contact.SelectedAddressId is obsolete but AutoMapper's convention map still copied it; preserved for parity.
-        target.SelectedAddressId = source.SelectedAddressId;
-#pragma warning restore VC0011
 
         if (source.Addresses != null)
         {

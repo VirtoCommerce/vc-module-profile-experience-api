@@ -241,38 +241,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             });
 
 #pragma warning disable S125 // Sections of code should not be commented out
-            /*
-               query {
-                     requestPasswordReset(loginOrEmail: "user@email")
-               }                         
-            */
-#pragma warning restore S125 // Sections of code should not be commented out
-
-            _ = schema.Query.AddField(new FieldType
-            {
-                Name = "requestPasswordReset",
-                Arguments = new QueryArguments(
-                    new QueryArgument<StringGraphType> { Name = "storeId" },
-                    new QueryArgument<StringGraphType> { Name = "cultureName" },
-                    new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "loginOrEmail" },
-                    new QueryArgument<StringGraphType> { Name = "urlSuffix" }),
-                Type = GraphTypeExtensionHelper.GetActualType<BooleanGraphType>(),
-                Resolver = new FuncFieldResolver<object>(async context =>
-                {
-                    var result = await context.GetMediator().Send(new RequestPasswordResetQuery
-                    {
-                        StoreId = context.GetArgument<string>("storeId"),
-                        CultureName = context.GetArgument<string>("cultureName"),
-                        LoginOrEmail = context.GetArgument<string>("loginOrEmail"),
-                        UrlSuffix = context.GetArgument<string>("urlSuffix"),
-                    });
-
-                    return result;
-                }),
-                DeprecationReason = "Deprecated. Use sendPasswordResetEmail command.",
-            });
-
-#pragma warning disable S125 // Sections of code should not be commented out
             /*                         
                query {
                      validatePassword(password: "pswd")
