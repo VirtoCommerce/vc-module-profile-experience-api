@@ -7,6 +7,7 @@ using GraphQL.DataLoader;
 using GraphQL.Types;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.CustomerModule.Core.Extensions;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Model.Search;
@@ -18,6 +19,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.StoreModule.Core.Model;
@@ -25,6 +27,7 @@ using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.Xapi.Core.Infrastructure;
+using VirtoCommerce.Xapi.Core.Pipelines;
 using VirtoCommerce.Xapi.Core.Services;
 using CustomerModuleConstants = VirtoCommerce.CustomerModule.Core.ModuleConstants;
 
@@ -105,16 +108,7 @@ public class ContactType : MemberBaseType<ContactAggregate>
 
         Field<ListGraphType<StringGraphType>>("organizationsIds")
             .ResolveAsync(async context =>
-            {
-                var organizationIds = context.Source.Contact.Organizations;
-                if (organizationIds.IsNullOrEmpty())
-                {
-                    return organizationIds;
-                }
-
-                return await ResolveMyOrganizationIdsByStatusAsync(
-                    context, organizationMembershipSearchService, organizationIds, statuses: null);
-            });
+                await GetContactOrganizationIdsAsync(context, organizationMembershipSearchService, statuses: null));
 
         var organizationsConnectionBuilder = GraphTypeExtensionHelper
             .CreateConnection<OrganizationType, ContactAggregate>("organizations")
@@ -127,14 +121,8 @@ public class ContactType : MemberBaseType<ContactAggregate>
         {
             var response = AbstractTypeFactory<MemberSearchResult>.TryCreateInstance();
             var query = context.GetSearchMembersQuery<SearchOrganizationsQuery>();
-            var organizationIds = context.Source.Contact.Organizations;
-
-            if (!organizationIds.IsNullOrEmpty())
-            {
-                var statuses = context.GetArgument<IList<string>>("statuses");
-                organizationIds = (await ResolveMyOrganizationIdsByStatusAsync(
-                    context, organizationMembershipSearchService, organizationIds, statuses)).ToList();
-            }
+            var statuses = context.GetArgument<IList<string>>("statuses");
+            var organizationIds = await GetContactOrganizationIdsAsync(context, organizationMembershipSearchService, statuses);
 
             // If user have no organizations, member search service would return all organizations
             // it means we don't need the search request when user's organization list is empty
@@ -256,6 +244,33 @@ public class ContactType : MemberBaseType<ContactAggregate>
     }
 
     private const string LockedFilterValue = "Locked";
+
+    private static async Task<IList<string>> GetContactOrganizationIdsAsync(
+        IResolveFieldContext<ContactAggregate> context,
+        IOrganizationMembershipSearchService organizationMembershipSearchService,
+        IList<string> statuses)
+    {
+        var organizationIds = context.Source.Contact.Organizations ?? [];
+        if (!organizationIds.IsNullOrEmpty())
+        {
+            organizationIds = (await ResolveMyOrganizationIdsByStatusAsync(
+                context, organizationMembershipSearchService, organizationIds, statuses)).ToList();
+        }
+
+        // Let other modules narrow the list
+        var organizationsContext = AbstractTypeFactory<ContactOrganizationsContext>.TryCreateInstance();
+        organizationsContext.Contact = context.Source;
+        organizationsContext.Principal = context.GetCurrentPrincipal();
+        organizationsContext.CurrentOrganizationId = context.GetCurrentOrganizationId();
+        organizationsContext.Statuses = statuses;
+        organizationsContext.SourceOrganizationIds = organizationIds.AsReadOnly();
+        organizationsContext.DestinationOrganizationIds = [.. organizationIds];
+
+        var pipeline = context.RequestServices.GetRequiredService<IGenericPipelineLauncher>();
+        await pipeline.Execute(organizationsContext);
+
+        return organizationsContext.DestinationOrganizationIds;
+    }
 
     private static async Task<IReadOnlyCollection<string>> ResolveMyOrganizationIdsByStatusAsync(
         IResolveFieldContext<ContactAggregate> context,
