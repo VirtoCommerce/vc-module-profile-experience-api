@@ -16,6 +16,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Vendor;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Authorization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Configuration;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Middlewares;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Schemas;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Services;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
@@ -77,6 +78,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Web
             });
 
             serviceCollection.AddPipeline<VendorAggregate>();
+            serviceCollection.AddPipeline<ContactOrganizationsContext>();
         }
 
         public void PostInitialize(IApplicationBuilder appBuilder)
