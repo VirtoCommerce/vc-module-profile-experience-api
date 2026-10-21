@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -43,7 +42,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         public async Task Handle_ValidAddresses_SavesThem()
         {
             // Validating the command instead of each address must not reject valid input
-            var aggregate = new ContactAggregate { Member = new Contact { Addresses = new List<Address>() } };
+            var aggregate = new ContactAggregate { Member = new Contact { Addresses = [] } };
             _repositoryMock
                 .Setup(x => x.GetMemberAggregateRootByIdAsync<MemberAggregateRootBase>(MemberId))
                 .ReturnsAsync(aggregate);

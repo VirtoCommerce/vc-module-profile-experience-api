@@ -29,14 +29,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         public virtual async Task<IdentityResult> Handle(UpdatePersonalDataCommand request, CancellationToken cancellationToken)
         {
-            if (request.PersonalData != null)
-            {
-                // Validated as part of the command, so failures are named by their input path (PersonalData.FirstName)
-                var validator = new InlineValidator<UpdatePersonalDataCommand>();
-                validator.RuleFor(x => x.PersonalData).SetValidator(_personalDataValidator);
+            // Validated as part of the command, so failures are named by their input path (PersonalData.FirstName)
+            var validator = new InlineValidator<UpdatePersonalDataCommand>();
+            validator.RuleFor(x => x.PersonalData).SetValidator(_personalDataValidator);
 
-                await validator.ValidateAndThrowAsync(request, cancellationToken);
-            }
+            await validator.ValidateAndThrowAsync(request, cancellationToken);
 
             var result = IdentityResult.Success;
             using (var userManager = _userManagerFactory())

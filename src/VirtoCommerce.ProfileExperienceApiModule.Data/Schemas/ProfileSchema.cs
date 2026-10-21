@@ -924,7 +924,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             return user != null;
         }
 
-        // One GraphQL error per validation failure; an exception without failures has nothing to name and keeps the default error
+        // An exception without failures has nothing to name, so it keeps the default error
         private static async Task<TResult> SendCommandAsync<TResult>(IResolveFieldContext context, IRequest<TResult> command)
         {
             try
