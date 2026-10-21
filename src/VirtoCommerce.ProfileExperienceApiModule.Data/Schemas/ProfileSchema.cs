@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using FluentValidation;
 using GraphQL;
 using GraphQL.Builders;
 using GraphQL.Resolvers;
@@ -295,7 +296,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                                 var type = GenericTypeHelper.GetActualType<UpdateMemberAddressesCommand>();
                                 var command = (UpdateMemberAddressesCommand)context.GetArgument(type, _commandName);
                                 await CheckAuthAsync(context, command);
-                                return await context.GetMediator().Send(command);
+                                return await SendCommandAsync(context, command);
                             })
                             .FieldType);
 
@@ -319,7 +320,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                                 var type = GenericTypeHelper.GetActualType<UpdateOrganizationCommand>();
                                 var command = (UpdateOrganizationCommand)context.GetArgument(type, _commandName);
                                 await CheckAuthAsync(context, command, ProfilePermissions.MyOrganizationEdit);
-                                return await context.GetMediator().Send(command);
+                                return await SendCommandAsync(context, command);
                             })
                             .FieldType);
 
@@ -331,7 +332,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                                 var type = GenericTypeHelper.GetActualType<CreateOrganizationCommand>();
                                 var command = (CreateOrganizationCommand)context.GetArgument(type, _commandName);
                                 await CheckAuthAsync(context, command);
-                                return await context.GetMediator().Send(command);
+                                return await SendCommandAsync(context, command);
                             })
                             .FieldType);
 
@@ -367,7 +368,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                                 var command = (CreateContactCommand)context.GetArgument(type, _commandName);
                                 await CheckAuthAsync(context, command);
 
-                                return await context.GetMediator().Send(command);
+                                return await SendCommandAsync(context, command);
                             })
                             .FieldType);
 
@@ -381,7 +382,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                                 command.UserId = context.GetCurrentUserId();
                                 command.OrganizationId = context.GetCurrentOrganizationId();
                                 await CheckAuthAsync(context, command);
-                                return await context.GetMediator().Send(command);
+                                return await SendCommandAsync(context, command);
 
                             })
                             .FieldType);
@@ -406,7 +407,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                               var type = GenericTypeHelper.GetActualType<UpdatePersonalDataCommand>();
                               var command = (UpdatePersonalDataCommand)context.GetArgument(type, _commandName);
                               await CheckAuthAsync(context, command);
-                              return await context.GetMediator().Send(command);
+                              return await SendCommandAsync(context, command);
                           })
                           .FieldType);
 
@@ -921,6 +922,21 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             var user = await signInManager.UserManager.FindByIdAsync(userId);
 
             return user != null;
+        }
+
+        // One GraphQL error per validation failure; an exception without failures has nothing to name and keeps the default error
+        private static async Task<TResult> SendCommandAsync<TResult>(IResolveFieldContext context, IRequest<TResult> command)
+        {
+            try
+            {
+                return await context.GetMediator().Send(command);
+            }
+            catch (ValidationException exception) when (exception.Errors.Any())
+            {
+                context.Errors.AddRange(exception.ToExecutionErrors(context));
+
+                return default;
+            }
         }
     }
 }

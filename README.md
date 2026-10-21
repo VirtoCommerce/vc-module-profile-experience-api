@@ -48,6 +48,33 @@ The module includes server-side input validation to prevent stored XSS attacks. 
 
 > MaxLength constraints are always enforced regardless of configuration.
 
+#### Validation errors
+
+`createContact`, `updateContact`, `updateMemberAddresses`, `createOrganization`, `updateOrganization` and `updatePersonalData` report rejected input as GraphQL errors, one per failed rule. The mutation returns `null`, and each error keeps the `VALIDATION` code and names the input field and the rule:
+
+```json
+{
+  "errors": [
+    {
+      "message": "'Last Name' contains invalid characters.",
+      "locations": [{ "line": 2, "column": 3 }],
+      "path": ["updateContact"],
+      "extensions": {
+        "code": "VALIDATION",
+        "codes": ["VALIDATION"],
+        "field": "lastName",
+        "errorCode": "InvalidCharacters"
+      }
+    }
+  ],
+  "data": { "updateContact": null }
+}
+```
+
+* `field` is the path of the input field inside `command`, for example `lastName`, `phones[0]`, `addresses[1].firstName` or `personalData.firstName`.
+* `errorCode` is the rule: `InvalidCharacters` (name patterns), `HtmlTagsNotAllowed`, `UnsafeContent`, or a FluentValidation code such as `NotEmptyValidator` or `MaximumLengthValidator`.
+* `message` is in English. A client that shows the error to users should translate it by `errorCode`.
+
 ## References
 
 * [Deployment](https://docs.virtocommerce.org/platform/developer-guide/Tutorials-and-How-tos/Tutorials/deploy-module-from-source-code/)

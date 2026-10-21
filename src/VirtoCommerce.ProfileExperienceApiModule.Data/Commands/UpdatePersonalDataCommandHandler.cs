@@ -31,7 +31,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         {
             if (request.PersonalData != null)
             {
-                await _personalDataValidator.ValidateAndThrowAsync(request.PersonalData, cancellationToken);
+                // Validated as part of the command, so failures are named by their input path (PersonalData.FirstName)
+                var validator = new InlineValidator<UpdatePersonalDataCommand>();
+                validator.RuleFor(x => x.PersonalData).SetValidator(_personalDataValidator);
+
+                await validator.ValidateAndThrowAsync(request, cancellationToken);
             }
 
             var result = IdentityResult.Success;
