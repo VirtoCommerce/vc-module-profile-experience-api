@@ -19,8 +19,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization
 
             if (!members.IsNullOrEmpty())
             {
-                // Copies of the member service's cached instances, as in GetMemberAggregateRootByIdAsync
-                return members.OfType<CustomerModule.Core.Model.Organization>().Select(x => _memberAggregateFactory.Create<OrganizationAggregate>(x.CloneTyped()));
+                // Copies of the member service's cached instances, as in GetMemberAggregateRootByIdAsync. Materialized,
+                // so that every enumeration sees the same copies
+                return members.OfType<CustomerModule.Core.Model.Organization>().Select(x => _memberAggregateFactory.Create<OrganizationAggregate>(x.CloneTyped())).ToList();
             }
 
             return Enumerable.Empty<OrganizationAggregate>();
