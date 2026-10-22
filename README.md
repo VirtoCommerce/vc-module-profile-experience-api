@@ -72,7 +72,7 @@ The module includes server-side input validation to prevent stored XSS attacks. 
 ```
 
 * `field` is the path of the input field inside `command`, for example `lastName`, `phones[0]`, `addresses[1].firstName` or `personalData.firstName`.
-* `errorCode` is the rule: `InvalidCharacters` (name patterns), `HtmlTagsNotAllowed`, `UnsafeContent`, or a FluentValidation code such as `NotEmptyValidator` or `MaximumLengthValidator`.
+* `errorCode` is the rule: `InvalidCharacters` (name patterns), `HtmlTagsNotAllowed`, `UnsafeContent`, `InvalidEmail` (email format), or a FluentValidation code such as `NotEmptyValidator` or `MaximumLengthValidator`.
 * `message` is in English. A client that shows the error to users should translate it by `errorCode`.
 
 ## References
