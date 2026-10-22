@@ -1,5 +1,6 @@
 using FluentValidation.TestHelper;
 using Microsoft.Extensions.Options;
+using VirtoCommerce.ProfileExperienceApiModule.Data;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Configuration;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models.RegisterOrganization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
@@ -52,6 +53,18 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Validators
             var result = validator.TestValidate(account);
 
             result.ShouldHaveValidationErrorFor(x => x.UserName);
+        }
+
+        // Clients translate the rule by its code; without one, FluentValidation reports the generic "PredicateValidator"
+        [Fact]
+        public void Account_WithInvalidEmail_ReportsInvalidEmailCode()
+        {
+            var validator = CreateValidator();
+            var account = new Account { UserName = "john.doe", Email = "john@example", Password = "P@ssw0rd" };
+
+            var result = validator.TestValidate(account);
+
+            result.ShouldHaveValidationErrorFor(x => x.Email).WithErrorCode(ModuleConstants.ValidationErrorCodes.InvalidEmail);
         }
 
         private static AccountValidator CreateValidator(InputValidationOptions options = null)

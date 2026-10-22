@@ -27,5 +27,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data
             public const string EmailVerificationOptional = "EmailVerificationOptional";
             public const string EmailVerificationRequired = "EmailVerificationRequired";
         }
+
+        public static class ValidationErrorCodes
+        {
+            public const string InvalidCharacters = "InvalidCharacters";
+            public const string HtmlTagsNotAllowed = "HtmlTagsNotAllowed";
+            public const string UnsafeContent = "UnsafeContent";
+            public const string InvalidEmail = "InvalidEmail";
+        }
     }
 }
