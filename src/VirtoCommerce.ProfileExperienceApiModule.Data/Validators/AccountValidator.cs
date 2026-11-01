@@ -19,7 +19,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
                 .NotEmpty()
                 .MaximumLength(256)
                 .Must(x => x.IsValidEmail())
-                .WithMessage("Invalid email format in the account");
+                .WithMessage("Invalid email format in the account")
+                .WithErrorCode(ModuleConstants.ValidationErrorCodes.InvalidEmail);
 
             When(_ => options.EnableNoHtmlTagsValidation, () =>
             {

@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
 {
@@ -18,7 +19,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
         public async Task<T> GetMemberAggregateRootByIdAsync<T>(string id) where T : class, IMemberAggregateRoot
         {
             var member = await _memberService.GetByIdAsync(id);
-            return _memberAggregateFactory.Create<T>(member);
+
+            // The member service returns its cached instance; commands change the aggregate before validating and
+            // saving it, so a rejected save would otherwise leave the rejected values in the cache
+            return _memberAggregateFactory.Create<T>(member?.CloneTyped());
         }
 
         public Task SaveAsync(IMemberAggregateRoot aggregate)

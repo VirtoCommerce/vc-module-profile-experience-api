@@ -19,7 +19,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
         {
             return ruleBuilder
                 .Must(value => string.IsNullOrEmpty(value) || !HtmlTagPattern().IsMatch(value))
-                .WithMessage("'{PropertyName}' must not contain HTML tags.");
+                .WithMessage("'{PropertyName}' must not contain HTML tags.")
+                .WithErrorCode(ModuleConstants.ValidationErrorCodes.HtmlTagsNotAllowed);
         }
 
         /// <summary>
@@ -30,7 +31,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
         {
             return ruleBuilder
                 .Must(value => string.IsNullOrEmpty(value) || !ScriptInjectionPattern().IsMatch(value))
-                .WithMessage("'{PropertyName}' contains potentially unsafe content.");
+                .WithMessage("'{PropertyName}' contains potentially unsafe content.")
+                .WithErrorCode(ModuleConstants.ValidationErrorCodes.UnsafeContent);
         }
 
         /// <summary>
@@ -41,7 +43,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
         {
             return ruleBuilder
                 .Must(value => string.IsNullOrEmpty(value) || Regex.IsMatch(value, pattern))
-                .WithMessage("'{PropertyName}' contains invalid characters.");
+                .WithMessage("'{PropertyName}' contains invalid characters.")
+                .WithErrorCode(ModuleConstants.ValidationErrorCodes.InvalidCharacters);
         }
     }
 }

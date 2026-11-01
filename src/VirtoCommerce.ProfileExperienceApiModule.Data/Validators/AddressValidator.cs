@@ -17,7 +17,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
             RuleFor(x => x.Email)
                 .MaximumLength(256)
                 .Must(x => string.IsNullOrEmpty(x) || x.IsValidEmail())
-                .WithMessage("Invalid email format in the address");
+                .WithMessage("Invalid email format in the address")
+                .WithErrorCode(ModuleConstants.ValidationErrorCodes.InvalidEmail);
 
             RuleFor(x => x.FirstName).MaximumLength(128);
             RuleFor(x => x.LastName).MaximumLength(128);
