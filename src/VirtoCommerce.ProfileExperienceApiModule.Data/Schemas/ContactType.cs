@@ -37,6 +37,7 @@ public class ContactType : MemberBaseType<ContactAggregate>
 {
     private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
     private readonly ICustomerPreferenceService _customerPreferenceService;
+    private readonly IDataLoaderContextAccessor _dataLoader;
 
     public ContactType(
         IStoreService storeService,
@@ -52,6 +53,7 @@ public class ContactType : MemberBaseType<ContactAggregate>
     {
         _userManagerFactory = userManagerFactory;
         _customerPreferenceService = customerPreferenceService;
+        _dataLoader = dataLoader;
 
         Field<BooleanGraphType>("isLockedInOrganization")
             .Resolve(context => ResolveIsLockedInOrganization(context, organizationMembershipSearchService, dataLoader));
@@ -442,25 +444,24 @@ public class ContactType : MemberBaseType<ContactAggregate>
 
     private async Task<string> GetCurrentMemberId(IResolveFieldContext<ContactAggregate> context)
     {
-        const string contextKey = "CurrentUserMemberId";
-
-        if (context.UserContext.TryGetValue(contextKey, out var contextValue))
-        {
-            return contextValue as string;
-        }
-
         var userId = context.GetCurrentUserId();
         if (userId.IsNullOrEmpty())
         {
             return null;
         }
 
+        // Fields are resolved in parallel and UserContext is not thread-safe, so the per-request lookup
+        // is shared through the data loader context instead of being cached in UserContext.
+        var loader = _dataLoader.Context.GetOrAddLoader($"CurrentUserMemberId:{userId}", () => FindMemberIdAsync(userId));
+
+        return await loader.LoadAsync().GetResultAsync();
+    }
+
+    private async Task<string> FindMemberIdAsync(string userId)
+    {
         using var userManager = _userManagerFactory();
         var user = await userManager.FindByIdAsync(userId);
-        var currentMemberId = user?.MemberId;
 
-        context.UserContext[contextKey] = currentMemberId;
-
-        return currentMemberId;
+        return user?.MemberId;
     }
 }
