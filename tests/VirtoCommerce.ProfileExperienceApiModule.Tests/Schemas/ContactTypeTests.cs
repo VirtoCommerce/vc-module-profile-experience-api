@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.DataLoader;
@@ -19,6 +21,7 @@ using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Services;
 using Xunit;
+using XapiModuleConstants = VirtoCommerce.Xapi.Core.ModuleConstants;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Schemas
 {
@@ -26,7 +29,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Schemas
     {
         private const string OrgId = "org-1";
 
+        // No user-id claim types are configured in unit tests, so GetCurrentUserId() yields the anonymous user name
+        private static readonly string _currentUserId = XapiModuleConstants.AnonymousUser.UserName;
+
         private readonly Mock<IOrganizationMembershipSearchService> _membershipSearchServiceMock = new();
+        private readonly Mock<ICustomerPreferenceService> _customerPreferenceServiceMock = new();
         private readonly Mock<UserManager<ApplicationUser>> _userManagerMock;
         private readonly Mock<RoleManager<Role>> _roleManagerMock;
         private readonly ContactType _contactType;
@@ -47,7 +54,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Schemas
                 new Mock<IMemberAddressService>().Object,
                 () => _userManagerMock.Object,
                 () => _roleManagerMock.Object,
-                new Mock<ICustomerPreferenceService>().Object,
+                _customerPreferenceServiceMock.Object,
                 new Mock<IMemberAggregateFactory>().Object,
                 _membershipSearchServiceMock.Object,
                 new DataLoaderContextAccessor { Context = new DataLoaderContext() });
@@ -285,6 +292,63 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Schemas
             // Assert
             Assert.DoesNotContain(OrgId, result);
             Assert.Contains(approvedOrgId, result);
+        }
+
+        [Fact]
+        public async Task CurrentUserFields_ResolvedInParallel_LookUpCurrentUserOnce()
+        {
+            // Arrange — organizationId and selectedAddressId both need the current user's member id and are
+            // resolved concurrently by GraphQL. The lookup is held open so both resolvers are in flight at once.
+            var lookupGate = new TaskCompletionSource<ApplicationUser>();
+            var lookups = 0;
+            _userManagerMock
+                .Setup(x => x.FindByIdAsync(_currentUserId))
+                .Returns(() =>
+                {
+                    Interlocked.Increment(ref lookups);
+                    return lookupGate.Task;
+                });
+
+            _customerPreferenceServiceMock
+                .Setup(x => x.GetValue(_currentUserId, It.Is<IList<string>>(parts => parts.SequenceEqual(new[] { "SelectedAddressId", OrgId }))))
+                .ReturnsAsync("address-1");
+
+            var context = BuildContext(contactId: "contact-1", userId: _currentUserId);
+
+            // Act
+            var organizationId = ResolveAsObjectAsync("organizationId", context);
+            var selectedAddressId = ResolveAsObjectAsync("selectedAddressId", context);
+            lookupGate.SetResult(new ApplicationUser { Id = _currentUserId, MemberId = "contact-1" });
+
+            // Assert — one lookup shared by both fields, and both resolve for the current user
+            var timeout = TimeSpan.FromSeconds(5);
+            Assert.Equal(OrgId, await organizationId.WaitAsync(timeout, TestContext.Current.CancellationToken));
+            Assert.Equal("address-1", await selectedAddressId.WaitAsync(timeout, TestContext.Current.CancellationToken));
+            Assert.Equal(1, lookups);
+        }
+
+        [Fact]
+        public async Task CurrentUserFields_CurrentUserNotFound_ResolveNull()
+        {
+            // Arrange — no identity user for the caller, so there is no member id to compare the contact with
+            _userManagerMock.Setup(x => x.FindByIdAsync(_currentUserId)).ReturnsAsync((ApplicationUser)null);
+
+            var context = BuildContext(contactId: "contact-1", userId: _currentUserId);
+
+            // Act
+            var organizationId = await ResolveAsObjectAsync("organizationId", context);
+            var selectedAddressId = await ResolveAsObjectAsync("selectedAddressId", context);
+
+            // Assert
+            Assert.Null(organizationId);
+            Assert.Null(selectedAddressId);
+        }
+
+        private Task<object> ResolveAsObjectAsync(string fieldName, ResolveFieldContext<ContactAggregate> context)
+        {
+            var field = _contactType.Fields.First(f => f.Name == fieldName);
+
+            return field.Resolver.ResolveAsync(context).AsTask();
         }
 
         private async Task<IReadOnlyCollection<string>> InvokeResolveMyOrganizationIdsByStatusAsync(

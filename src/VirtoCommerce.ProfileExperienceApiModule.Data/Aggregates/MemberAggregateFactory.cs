@@ -13,7 +13,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
         {
             var result = default(T);
 
-            if (member != null)
+            if (member != null && IsMemberOfAggregateType<T>(member))
             {
                 // This is workaround for addresses & dynamic properties commands
                 if (typeof(T).Name == nameof(MemberAggregateRootBase))
@@ -34,6 +34,22 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates
             }
 
             return result;
+        }
+
+        // An aggregate wrapping a member of another type would expose a null Contact / Organization
+        private static bool IsMemberOfAggregateType<T>(Member member)
+        {
+            if (typeof(ContactAggregate).IsAssignableFrom(typeof(T)))
+            {
+                return member is CustomerModule.Core.Model.Contact;
+            }
+
+            if (typeof(OrganizationAggregate).IsAssignableFrom(typeof(T)))
+            {
+                return member is CustomerModule.Core.Model.Organization;
+            }
+
+            return true;
         }
     }
 }
