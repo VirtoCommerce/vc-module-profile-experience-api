@@ -25,8 +25,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Validators
             RuleFor(x => x.Name).MaximumLength(256);
             RuleFor(x => x.Organization).MaximumLength(256);
             RuleFor(x => x.City).MaximumLength(128);
-            RuleFor(x => x.Line1).MaximumLength(256);
-            RuleFor(x => x.Line2).MaximumLength(256);
+            RuleFor(x => x.Line1).MaximumLength(2048);
+            RuleFor(x => x.Line2).MaximumLength(2048);
             RuleFor(x => x.Phone).MaximumLength(64);
             RuleFor(x => x.Description).MaximumLength(1024);
 
