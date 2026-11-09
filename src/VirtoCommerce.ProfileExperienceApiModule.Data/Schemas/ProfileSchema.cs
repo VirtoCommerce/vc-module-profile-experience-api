@@ -837,7 +837,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
         {
             var principal = context.GetCurrentPrincipal();
             var userId = principal.GetCurrentUserId();
+#pragma warning disable VC0016 // Type or member is obsolete
             var isExternalSignIn = principal.IsExternalSignIn();
+#pragma warning restore VC0016 // Type or member is obsolete
             var isImpersonated = principal.IsImpersonated();
 
             var signInManager = _signInManagerFactory();

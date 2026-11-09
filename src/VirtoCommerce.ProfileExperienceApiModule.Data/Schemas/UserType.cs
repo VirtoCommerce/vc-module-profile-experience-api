@@ -150,7 +150,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
         private static bool IsExternalSignIn(IResolveFieldContext<ApplicationUser> context)
         {
+#pragma warning disable VC0016 // Type or member is obsolete
             return context.Source.Id == context.GetCurrentUserId() && context.GetCurrentPrincipal().IsExternalSignIn();
+#pragma warning restore VC0016 // Type or member is obsolete
         }
 
         private static bool IsImpersonated(IResolveFieldContext<ApplicationUser> context)
