@@ -10,10 +10,10 @@
     <PackageReference Include="VirtoCommerce.CustomerModule.Core" Version="3.1033.0" />
     <PackageReference Include="VirtoCommerce.MarketingModule.Core" Version="3.1009.0" />
     <PackageReference Include="VirtoCommerce.NotificationsModule.Core" Version="3.1018.0" />
-    <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.1091.0" />
+    <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.1097.0" />
     <PackageReference Include="VirtoCommerce.PricingModule.Core" Version="3.1008.0" />
     <PackageReference Include="VirtoCommerce.TaxModule.Core" Version="3.1007.0" />
-    <PackageReference Include="VirtoCommerce.Xapi.Core" Version="3.1026.0" />
-    <PackageReference Include="VirtoCommerce.XOrder.Core" Version="3.1014.0" />
+    <PackageReference Include="VirtoCommerce.Xapi.Core" Version="3.1031.0" />
+    <PackageReference Include="VirtoCommerce.XOrder.Core" Version="3.1018.0" />
   </ItemGroup>
 </Project>

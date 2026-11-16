@@ -150,7 +150,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
         private static bool IsExternalSignIn(IResolveFieldContext<ApplicationUser> context)
         {
-            return context.Source.Id == context.GetCurrentUserId() && context.GetCurrentPrincipal().IsExternalSignIn();
+            return context.Source.Id == context.GetCurrentUserId() && context.GetCurrentPrincipal() is { } principal && !principal.IsPasswordSignIn();
         }
 
         private static bool IsImpersonated(IResolveFieldContext<ApplicationUser> context)
