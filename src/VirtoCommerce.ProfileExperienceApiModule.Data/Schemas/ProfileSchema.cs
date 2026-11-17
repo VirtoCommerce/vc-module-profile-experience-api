@@ -838,7 +838,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
         {
             var principal = context.GetCurrentPrincipal();
             var userId = principal.GetCurrentUserId();
-            var isExternalSignIn = principal.IsExternalSignIn();
+            var isExternalSignIn = principal != null && !principal.IsPasswordSignIn();
             var isImpersonated = principal.IsImpersonated();
 
             var signInManager = _signInManagerFactory();
