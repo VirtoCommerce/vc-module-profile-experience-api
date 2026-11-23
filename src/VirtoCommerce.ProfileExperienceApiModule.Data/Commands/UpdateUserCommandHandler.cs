@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
@@ -17,13 +18,49 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         public virtual async Task<IdentityResult> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
         {
-            if (!IsUserEditable(request.ApplicationUser.UserName))
+            using var userManager = _userManagerFactory();
+
+            var storedUser = await userManager.FindByIdAsync(request.ApplicationUser.Id);
+            if (storedUser is null)
+            {
+                return IdentityResult.Failed(new IdentityError { Description = "User not found." });
+            }
+
+            if (!IsUserEditable(storedUser.UserName) || !IsUserEditable(request.ApplicationUser.UserName))
             {
                 return IdentityResult.Failed(new IdentityError { Description = "It is forbidden to edit this user." });
             }
 
-            using (var userManager = _userManagerFactory())
-                return await userManager.UpdateAsync(request.ApplicationUser);
+            var userToSave = request.CanUpdateSecurityData
+                ? request.ApplicationUser
+                : GetUserWithProfileChangesOnly(storedUser, request.ApplicationUser);
+
+            return await userManager.UpdateAsync(userToSave);
+        }
+
+        /// <summary>
+        /// Takes the stored user and applies only the profile fields a user may change without security permissions.
+        /// Everything else (roles, user type, password hash, security stamp, member, store, lockout, 2FA) keeps its stored value.
+        /// </summary>
+        protected virtual ApplicationUser GetUserWithProfileChangesOnly(ApplicationUser storedUser, ApplicationUser requestedUser)
+        {
+            // The stored user can come from the user cache, so never change it in place
+            var result = storedUser.CloneTyped();
+
+            if (!result.Email.EqualsIgnoreCase(requestedUser.Email))
+            {
+                result.Email = requestedUser.Email;
+                result.EmailConfirmed = false;
+            }
+
+            result.PhoneNumber = requestedUser.PhoneNumber;
+            result.PhotoUrl = requestedUser.PhotoUrl;
+
+            // null means "do not synchronize" in CustomUserManager.UpdateAsync
+            result.Roles = null;
+            result.Logins = null;
+
+            return result;
         }
     }
 }

@@ -32,6 +32,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
         {
             var result = context.User.IsInRole(PlatformConstants.Security.SystemRoles.Administrator);
 
+            // VCST-6970: never trust this flag from the request; only callers allowed to manage users may change security data
+            if (context.Resource is UpdateUserCommand updateUserCommandToCheck)
+            {
+                updateUserCommandToCheck.CanUpdateSecurityData = context.User.HasGlobalPermission(PlatformConstants.Security.Permissions.SecurityUpdate);
+            }
+
             // Administrators can do anything except creating any users
             if (result && context.Resource is not CreateUserCommand)
             {
@@ -128,9 +134,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     //Can be checked only with platform permission
                     result = true;
                     break;
-                case UpdateUserCommand updateUserCommand when currentContact != null:
-                    result = updateUserCommand.ApplicationUser.Id == currentContact.Id;
-                    result = result || await HasSameOrganizationAsync(currentContact, updateUserCommand.ApplicationUser.Id, userManager);
+                case UpdateUserCommand updateUserCommand:
+                    // VCST-6970: a user may update only their own account.
+                    // Updating another user of the same organization requires the platform:security:update permission.
+                    result = !string.IsNullOrEmpty(currentUserId) && updateUserCommand.ApplicationUser?.Id == currentUserId;
+                    if (!result && updateUserCommand.CanUpdateSecurityData && currentContact != null)
+                    {
+                        result = await HasSameOrganizationAsync(currentContact, updateUserCommand.ApplicationUser?.Id, userManager);
+                    }
                     break;
                 case UpdatePersonalDataCommand updatePersonalDataCommand:
                     updatePersonalDataCommand.UserId = currentUserId;
