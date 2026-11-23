@@ -53,12 +53,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 It.Is<IList<DynamicPropertyValue>>(x => x == command.DynamicProperties)), Times.Once);
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public async Task Handle_MembershipInRequest_AppliedOnlyWithPermission(bool canChangeMembership)
+        [Fact]
+        public async Task Handle_MembershipInRequest_IsAlwaysIgnored()
         {
-            // Arrange (VCST-6974): an anonymous caller must not join organizations or customer groups
+            // Arrange (VCST-6974): the storefront API never joins organizations or sets customer groups
             var aggregateFactoryMock = new Mock<IMemberAggregateFactory>();
             Contact createdContact = null;
             aggregateFactoryMock
@@ -80,7 +78,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 Name = "John Doe",
                 Organizations = ["victim-org"],
                 Groups = ["VIP"],
-                CanChangeMembership = canChangeMembership,
             };
 
             // Act
@@ -88,16 +85,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
 
             // Assert
             Assert.NotNull(createdContact);
-            if (canChangeMembership)
-            {
-                Assert.Equal(["victim-org"], createdContact.Organizations);
-                Assert.Equal(["VIP"], createdContact.Groups);
-            }
-            else
-            {
-                Assert.True(createdContact.Organizations is null || createdContact.Organizations.Count == 0);
-                Assert.True(createdContact.Groups is null || createdContact.Groups.Count == 0);
-            }
+            Assert.True(createdContact.Organizations is null || createdContact.Organizations.Count == 0);
+            Assert.True(createdContact.Groups is null || createdContact.Groups.Count == 0);
         }
     }
 }

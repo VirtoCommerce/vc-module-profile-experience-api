@@ -41,25 +41,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
         {
             var result = context.User.IsInRole(PlatformConstants.Security.SystemRoles.Administrator);
 
-            // VCST-6970: never trust this flag from the request; only callers allowed to manage users may change security data
-            if (context.Resource is UpdateUserCommand updateUserCommandToCheck)
-            {
-                updateUserCommandToCheck.CanUpdateSecurityData = context.User.HasGlobalPermission(PlatformConstants.Security.Permissions.SecurityUpdate);
-            }
-
-            // VCST-6974: the same for creating users and for contact membership (organizations, customer groups)
-            switch (context.Resource)
-            {
-                case CreateUserCommand createUserCommandToCheck:
-                    createUserCommandToCheck.CanSetSecurityData = context.User.HasGlobalPermission(PlatformConstants.Security.Permissions.SecurityCreate);
-                    break;
-                case CreateContactCommand createContactCommandToCheck:
-                    createContactCommandToCheck.CanChangeMembership = context.User.HasGlobalPermission(CustomerModuleConstants.Security.Permissions.Create);
-                    break;
-                case UpdateContactCommand updateContactCommandToCheck:
-                    updateContactCommandToCheck.CanChangeMembership = context.User.HasGlobalPermission(CustomerModuleConstants.Security.Permissions.Update);
-                    break;
-            }
+            // VCST-6974: the storefront API is a client API and never writes security data (roles, user type,
+            // member, external logins) or organization/group membership, regardless of the caller's platform
+            // permissions. Those are back-office operations and go through the platform security / customer API.
+            // createUser, createContact and updateContact therefore always persist profile fields only.
 
             // Administrators can do anything except creating any users
             if (result && context.Resource is not CreateUserCommand)
@@ -165,13 +150,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     result = true;
                     break;
                 case UpdateUserCommand updateUserCommand:
-                    // VCST-6970: a user may update only their own account.
-                    // Updating another user of the current organization requires the platform:security:update permission.
+                    // VCST-6974: the storefront API updates the caller's OWN account only. Managing other users
+                    // or security data is a back-office operation (platform security API).
                     result = !string.IsNullOrEmpty(currentUserId) && updateUserCommand.ApplicationUser?.Id == currentUserId;
-                    if (!result && updateUserCommand.CanUpdateSecurityData && currentContact != null)
-                    {
-                        result = await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, updateUserCommand.ApplicationUser?.Id, userManager);
-                    }
                     break;
                 case UpdatePersonalDataCommand updatePersonalDataCommand:
                     updatePersonalDataCommand.UserId = currentUserId;

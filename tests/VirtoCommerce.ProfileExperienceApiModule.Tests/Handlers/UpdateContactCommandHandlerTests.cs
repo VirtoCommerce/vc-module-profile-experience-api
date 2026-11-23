@@ -61,12 +61,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 It.Is<IList<DynamicPropertyValue>>(x => x == command.DynamicProperties)), Times.Once);
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public async Task Handle_MembershipInRequest_AppliedOnlyWithPermission(bool canChangeMembership)
+        [Fact]
+        public async Task Handle_MembershipInRequest_IsAlwaysIgnored()
         {
-            // Arrange (VCST-6974): a customer must not move itself to another organization or customer group
+            // Arrange (VCST-6974): the storefront API never changes a contact's organizations or customer groups
             var contact = new Contact { Id = "contact-1", FirstName = "John", LastName = "Doe", Name = "John Doe", Organizations = ["own-org"], Groups = ["Regular"] };
             var aggregateRepositoryMock = new Mock<IContactAggregateRepository>();
             aggregateRepositoryMock
@@ -89,7 +87,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 Name = "Johnny Doe",
                 Organizations = ["victim-org"],
                 Groups = ["VIP"],
-                CanChangeMembership = canChangeMembership,
             };
 
             // Act
@@ -97,8 +94,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
 
             // Assert
             Assert.Equal("Johnny", contact.FirstName);
-            Assert.Equal(canChangeMembership ? ["victim-org"] : ["own-org"], contact.Organizations);
-            Assert.Equal(canChangeMembership ? ["VIP"] : ["Regular"], contact.Groups);
+            Assert.Equal(["own-org"], contact.Organizations);
+            Assert.Equal(["Regular"], contact.Groups);
         }
     }
 }

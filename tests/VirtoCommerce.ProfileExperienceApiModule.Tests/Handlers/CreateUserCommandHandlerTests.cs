@@ -100,27 +100,6 @@ public class CreateUserCommandHandlerTests
         _mediatorMock.Verify(x => x.Send(It.IsAny<SendVerifyEmailCommand>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    [Fact]
-    public async Task Handle_WithSecurityPermission_CreatesRequestedUser()
-    {
-        // Arrange
-        var requestedUser = new ApplicationUser
-        {
-            UserName = "customer",
-            Email = "customer@example.com",
-            UserType = "Customer",
-            MemberId = "contact-1",
-            Roles = new List<Role> { new() { Name = "Organization maintainer" } },
-        };
-        var command = new CreateUserCommand { ApplicationUser = requestedUser, CanSetSecurityData = true };
-
-        // Act
-        var result = await CreateHandler().Handle(command, CancellationToken.None);
-
-        // Assert
-        result.Succeeded.Should().BeTrue();
-        _createdUser.Should().BeSameAs(requestedUser);
-    }
 
     [Fact]
     public async Task Handle_CreateFailed_DoesNotSendVerificationEmail()

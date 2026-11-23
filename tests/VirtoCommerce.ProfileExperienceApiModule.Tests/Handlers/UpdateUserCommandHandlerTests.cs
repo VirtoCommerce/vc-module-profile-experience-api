@@ -136,28 +136,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         }
 
         [Fact]
-        public async Task Handle_WithSecurityPermission_AppliesRequestedChanges()
-        {
-            // Arrange
-            SetupStoredUser();
-            var requestedUser = new ApplicationUser
-            {
-                Id = UserId,
-                UserName = "customer",
-                UserType = "Manager",
-                Roles = new List<Role> { new() { Name = "Store manager" } },
-            };
-            var command = new UpdateUserCommand { ApplicationUser = requestedUser, CanUpdateSecurityData = true };
-
-            // Act
-            var result = await CreateHandler().Handle(command, CancellationToken.None);
-
-            // Assert
-            result.Succeeded.Should().BeTrue();
-            _savedUser.Should().BeSameAs(requestedUser);
-        }
-
-        [Fact]
         public async Task Handle_UserNotFound_Fails()
         {
             // Arrange
@@ -172,10 +150,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             _userManagerMock.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public async Task Handle_StoredUserIsNotEditable_Fails(bool canUpdateSecurityData)
+        [Fact]
+        public async Task Handle_StoredUserIsNotEditable_Fails()
         {
             // Arrange: the request sends an editable user name, but the id belongs to a non-editable user
             _authorizationOptions.NonEditableUsers = ["admin"];
@@ -184,7 +160,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             var command = new UpdateUserCommand
             {
                 ApplicationUser = new ApplicationUser { Id = UserId, UserName = "customer" },
-                CanUpdateSecurityData = canUpdateSecurityData,
             };
 
             // Act

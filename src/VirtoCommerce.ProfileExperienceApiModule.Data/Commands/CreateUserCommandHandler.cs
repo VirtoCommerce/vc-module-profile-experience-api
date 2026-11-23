@@ -22,10 +22,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         public virtual async Task<IdentityResult> Handle(CreateUserCommand request, CancellationToken cancellationToken)
         {
-            if (!request.CanSetSecurityData)
-            {
-                request.ApplicationUser = GetUserWithProfileFieldsOnly(request.ApplicationUser);
-            }
+            // VCST-6974: the storefront API never sets security data (roles, logins, member, id, user type).
+            request.ApplicationUser = GetUserWithProfileFieldsOnly(request.ApplicationUser);
 
             var result = await _accountService.CreateAccountAsync(request.ApplicationUser);
 

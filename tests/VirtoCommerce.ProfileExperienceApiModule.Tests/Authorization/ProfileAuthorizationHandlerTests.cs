@@ -117,7 +117,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Authorization
         }
 
         [Fact]
-        public async Task UpdateUser_Self_Succeeds_WithoutSecurityData()
+        public async Task UpdateUser_Self_Succeeds()
         {
             // Arrange
             SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
@@ -128,7 +128,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Authorization
 
             // Assert
             Assert.True(authContext.HasSucceeded);
-            Assert.False(command.CanUpdateSecurityData);
         }
 
         [Fact]
@@ -143,20 +142,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Authorization
 
             // Assert
             Assert.True(authContext.HasSucceeded);
-        }
-
-        [Fact]
-        public async Task UpdateUser_FlagFromRequest_IsOverwritten()
-        {
-            // Arrange
-            SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
-            var command = new UpdateUserCommand { ApplicationUser = new ApplicationUser { Id = UserId }, CanUpdateSecurityData = true };
-
-            // Act
-            await HandleAsync(command);
-
-            // Assert
-            Assert.False(command.CanUpdateSecurityData);
         }
 
         [Fact]
@@ -175,9 +160,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Authorization
         }
 
         [Fact]
-        public async Task UpdateUser_OtherUserOfSameOrganization_WithSecurityUpdatePermission_Succeeds()
+        public async Task UpdateUser_OtherUserOfSameOrganization_EvenWithSecurityUpdatePermission_Fails()
         {
-            // Arrange
+            // Arrange (VCST-6974): the storefront API updates the caller's own account only; managing other
+            // users is a back-office operation even for a caller that holds platform:security:update.
             SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
             SetupOtherUserInOrganization();
             var command = new UpdateUserCommand { ApplicationUser = new ApplicationUser { Id = OtherUserId } };
@@ -186,8 +172,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Authorization
             var authContext = await HandleAsync(command, OrgClaim(OrgId), new Claim(PlatformConstants.Security.Claims.PermissionClaimType, PlatformConstants.Security.Permissions.SecurityUpdate));
 
             // Assert
-            Assert.True(authContext.HasSucceeded);
-            Assert.True(command.CanUpdateSecurityData);
+            Assert.False(authContext.HasSucceeded);
         }
 
         [Fact]
@@ -217,11 +202,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Authorization
 
             // Assert
             Assert.False(authContext.HasSucceeded);
-            Assert.False(command.CanUpdateSecurityData);
         }
 
         [Fact]
-        public async Task UpdateUser_Administrator_Succeeds_WithSecurityData()
+        public async Task UpdateUser_Administrator_Succeeds()
         {
             // Arrange
             var command = new UpdateUserCommand { ApplicationUser = new ApplicationUser { Id = OtherUserId } };
@@ -231,43 +215,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Authorization
 
             // Assert
             Assert.True(authContext.HasSucceeded);
-            Assert.True(command.CanUpdateSecurityData);
         }
 
         [Fact]
-        public async Task CreateUser_Anonymous_Succeeds_WithoutSecurityData()
+        public async Task CreateUser_Anonymous_Succeeds()
         {
-            // Arrange (VCST-6974)
-            var command = new CreateUserCommand { ApplicationUser = new ApplicationUser { UserType = "Customer" }, CanSetSecurityData = true };
-            var authContext = new AuthorizationHandlerContext([new ProfileAuthorizationRequirement()], new ClaimsPrincipal(new ClaimsIdentity()), command);
-
-            // Act
-            await CreateHandler().HandleAsync(authContext);
-
-            // Assert
-            Assert.True(authContext.HasSucceeded);
-            Assert.False(command.CanSetSecurityData);
-        }
-
-        [Fact]
-        public async Task CreateUser_WithSecurityCreatePermission_SetsSecurityDataFlag()
-        {
-            // Arrange
+            // Arrange (VCST-6974): anonymous self-registration is allowed; security data is stripped by the handler
             var command = new CreateUserCommand { ApplicationUser = new ApplicationUser { UserType = "Customer" } };
-
-            // Act
-            var authContext = await HandleAsync(command, new Claim(PlatformConstants.Security.Claims.PermissionClaimType, PlatformConstants.Security.Permissions.SecurityCreate));
-
-            // Assert
-            Assert.True(authContext.HasSucceeded);
-            Assert.True(command.CanSetSecurityData);
-        }
-
-        [Fact]
-        public async Task CreateContact_Anonymous_Succeeds_WithoutMembership()
-        {
-            // Arrange
-            var command = new CreateContactCommand { CanChangeMembership = true };
             var authContext = new AuthorizationHandlerContext([new ProfileAuthorizationRequirement()], new ClaimsPrincipal(new ClaimsIdentity()), command);
 
             // Act
@@ -275,50 +229,34 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Authorization
 
             // Assert
             Assert.True(authContext.HasSucceeded);
-            Assert.False(command.CanChangeMembership);
         }
 
         [Fact]
-        public async Task CreateContact_WithCustomerCreatePermission_SetsMembershipFlag()
+        public async Task CreateContact_Anonymous_Succeeds()
         {
             // Arrange
             var command = new CreateContactCommand();
+            var authContext = new AuthorizationHandlerContext([new ProfileAuthorizationRequirement()], new ClaimsPrincipal(new ClaimsIdentity()), command);
 
             // Act
-            await HandleAsync(command, new Claim(PlatformConstants.Security.Claims.PermissionClaimType, CustomerModule.Core.ModuleConstants.Security.Permissions.Create));
-
-            // Assert
-            Assert.True(command.CanChangeMembership);
-        }
-
-        [Fact]
-        public async Task UpdateContact_Self_Succeeds_WithoutMembership()
-        {
-            // Arrange
-            SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
-            var command = new UpdateContactCommand { Id = ContactId, CanChangeMembership = true };
-
-            // Act
-            var authContext = await HandleAsync(command);
+            await CreateHandler().HandleAsync(authContext);
 
             // Assert
             Assert.True(authContext.HasSucceeded);
-            Assert.False(command.CanChangeMembership);
         }
 
         [Fact]
-        public async Task UpdateContact_WithCustomerUpdatePermission_SetsMembershipFlag()
+        public async Task UpdateContact_Self_Succeeds()
         {
             // Arrange
             SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
             var command = new UpdateContactCommand { Id = ContactId };
 
             // Act
-            var authContext = await HandleAsync(command, new Claim(PlatformConstants.Security.Claims.PermissionClaimType, CustomerModule.Core.ModuleConstants.Security.Permissions.Update));
+            var authContext = await HandleAsync(command);
 
             // Assert
             Assert.True(authContext.HasSucceeded);
-            Assert.True(command.CanChangeMembership);
         }
 
         // VCST-6974 #5: editing another member's contact requires the org-edit permission.
