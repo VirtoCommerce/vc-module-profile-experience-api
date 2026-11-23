@@ -46,6 +46,20 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                 updateUserCommandToCheck.CanUpdateSecurityData = context.User.HasGlobalPermission(PlatformConstants.Security.Permissions.SecurityUpdate);
             }
 
+            // VCST-6974: the same for creating users and for contact membership (organizations, customer groups)
+            switch (context.Resource)
+            {
+                case CreateUserCommand createUserCommandToCheck:
+                    createUserCommandToCheck.CanSetSecurityData = context.User.HasGlobalPermission(PlatformConstants.Security.Permissions.SecurityCreate);
+                    break;
+                case CreateContactCommand createContactCommandToCheck:
+                    createContactCommandToCheck.CanChangeMembership = context.User.HasGlobalPermission(CustomerModuleConstants.Security.Permissions.Create);
+                    break;
+                case UpdateContactCommand updateContactCommandToCheck:
+                    updateContactCommandToCheck.CanChangeMembership = context.User.HasGlobalPermission(CustomerModuleConstants.Security.Permissions.Update);
+                    break;
+            }
+
             // Administrators can do anything except creating any users
             if (result && context.Resource is not CreateUserCommand)
             {

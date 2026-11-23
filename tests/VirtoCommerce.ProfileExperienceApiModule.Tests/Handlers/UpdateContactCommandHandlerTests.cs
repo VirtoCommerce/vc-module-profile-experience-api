@@ -60,5 +60,45 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             dynamicPropertyUpdaterServiceMock.Verify(x => x.UpdateDynamicPropertyValues(It.Is<Contact>(x => x == contact),
                 It.Is<IList<DynamicPropertyValue>>(x => x == command.DynamicProperties)), Times.Once);
         }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Handle_MembershipInRequest_AppliedOnlyWithPermission(bool canChangeMembership)
+        {
+            // Arrange (VCST-6974): a customer must not move itself to another organization or customer group
+            var contact = new Contact { Id = "contact-1", FirstName = "John", LastName = "Doe", Name = "John Doe", Organizations = ["own-org"], Groups = ["Regular"] };
+            var aggregateRepositoryMock = new Mock<IContactAggregateRepository>();
+            aggregateRepositoryMock
+                .Setup(x => x.GetMemberAggregateRootByIdAsync<ContactAggregate>("contact-1"))
+                .ReturnsAsync(new ContactAggregate { Member = contact });
+
+            var disabledOptions = new InputValidationOptions { NameValidationPattern = null, EnableNoHtmlTagsValidation = false };
+            var handler = new UpdateContactCommandHandler(
+                aggregateRepositoryMock.Object,
+                Mock.Of<IDynamicPropertyUpdaterService>(),
+                Mock.Of<ICustomerPreferenceService>(),
+                new NewContactValidator(Options.Create(disabledOptions)),
+                _mapper);
+
+            var command = new UpdateContactCommand
+            {
+                Id = "contact-1",
+                FirstName = "Johnny",
+                LastName = "Doe",
+                Name = "Johnny Doe",
+                Organizations = ["victim-org"],
+                Groups = ["VIP"],
+                CanChangeMembership = canChangeMembership,
+            };
+
+            // Act
+            await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.Equal("Johnny", contact.FirstName);
+            Assert.Equal(canChangeMembership ? ["victim-org"] : ["own-org"], contact.Organizations);
+            Assert.Equal(canChangeMembership ? ["VIP"] : ["Regular"], contact.Groups);
+        }
     }
 }

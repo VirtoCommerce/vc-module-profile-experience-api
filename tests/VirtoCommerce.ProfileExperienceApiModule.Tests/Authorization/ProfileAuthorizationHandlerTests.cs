@@ -234,6 +234,93 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Authorization
             Assert.True(command.CanUpdateSecurityData);
         }
 
+        [Fact]
+        public async Task CreateUser_Anonymous_Succeeds_WithoutSecurityData()
+        {
+            // Arrange (VCST-6974)
+            var command = new CreateUserCommand { ApplicationUser = new ApplicationUser { UserType = "Customer" }, CanSetSecurityData = true };
+            var authContext = new AuthorizationHandlerContext([new ProfileAuthorizationRequirement()], new ClaimsPrincipal(new ClaimsIdentity()), command);
+
+            // Act
+            await CreateHandler().HandleAsync(authContext);
+
+            // Assert
+            Assert.True(authContext.HasSucceeded);
+            Assert.False(command.CanSetSecurityData);
+        }
+
+        [Fact]
+        public async Task CreateUser_WithSecurityCreatePermission_SetsSecurityDataFlag()
+        {
+            // Arrange
+            var command = new CreateUserCommand { ApplicationUser = new ApplicationUser { UserType = "Customer" } };
+
+            // Act
+            var authContext = await HandleAsync(command, new Claim(PlatformConstants.Security.Claims.PermissionClaimType, PlatformConstants.Security.Permissions.SecurityCreate));
+
+            // Assert
+            Assert.True(authContext.HasSucceeded);
+            Assert.True(command.CanSetSecurityData);
+        }
+
+        [Fact]
+        public async Task CreateContact_Anonymous_Succeeds_WithoutMembership()
+        {
+            // Arrange
+            var command = new CreateContactCommand { CanChangeMembership = true };
+            var authContext = new AuthorizationHandlerContext([new ProfileAuthorizationRequirement()], new ClaimsPrincipal(new ClaimsIdentity()), command);
+
+            // Act
+            await CreateHandler().HandleAsync(authContext);
+
+            // Assert
+            Assert.True(authContext.HasSucceeded);
+            Assert.False(command.CanChangeMembership);
+        }
+
+        [Fact]
+        public async Task CreateContact_WithCustomerCreatePermission_SetsMembershipFlag()
+        {
+            // Arrange
+            var command = new CreateContactCommand();
+
+            // Act
+            await HandleAsync(command, new Claim(PlatformConstants.Security.Claims.PermissionClaimType, CustomerModule.Core.ModuleConstants.Security.Permissions.Create));
+
+            // Assert
+            Assert.True(command.CanChangeMembership);
+        }
+
+        [Fact]
+        public async Task UpdateContact_Self_Succeeds_WithoutMembership()
+        {
+            // Arrange
+            SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
+            var command = new UpdateContactCommand { Id = ContactId, CanChangeMembership = true };
+
+            // Act
+            var authContext = await HandleAsync(command);
+
+            // Assert
+            Assert.True(authContext.HasSucceeded);
+            Assert.False(command.CanChangeMembership);
+        }
+
+        [Fact]
+        public async Task UpdateContact_WithCustomerUpdatePermission_SetsMembershipFlag()
+        {
+            // Arrange
+            SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
+            var command = new UpdateContactCommand { Id = ContactId };
+
+            // Act
+            var authContext = await HandleAsync(command, new Claim(PlatformConstants.Security.Claims.PermissionClaimType, CustomerModule.Core.ModuleConstants.Security.Permissions.Update));
+
+            // Assert
+            Assert.True(authContext.HasSucceeded);
+            Assert.True(command.CanChangeMembership);
+        }
+
         private void SetupOtherUserInOrganization()
         {
             _memberServiceMock

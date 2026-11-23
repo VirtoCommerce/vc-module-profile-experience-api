@@ -36,6 +36,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         {
             request.MemberType = nameof(Contact);
 
+            if (!request.CanChangeMembership)
+            {
+                // Organization and customer group membership is managed by the invite / registration flows
+                request.Organizations = null;
+                request.Groups = null;
+            }
+
             var contact = _mapper.ToContact(request);
 
             var contactAggregate = _memberAggregateFactory.Create<ContactAggregate>(contact);

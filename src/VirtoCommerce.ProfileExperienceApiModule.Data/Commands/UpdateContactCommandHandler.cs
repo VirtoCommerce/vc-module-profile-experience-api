@@ -22,6 +22,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
     {
         public virtual async Task<ContactAggregate> Handle(UpdateContactCommand request, CancellationToken cancellationToken)
         {
+            if (!request.CanChangeMembership)
+            {
+                // null keeps the stored values in the mapper
+                request.Organizations = null;
+                request.Groups = null;
+            }
+
             var contactAggregate = await contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.Id);
 
             await UpdateContactAsync(contactAggregate.Contact, request);

@@ -34,6 +34,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         public IList<string> Organizations { get; set; }
         public IList<DynamicPropertyValue> DynamicProperties { get; set; }
 
+        /// <summary>
+        /// Not part of the GraphQL input. ProfileAuthorizationHandler sets it from the caller's permissions.
+        /// When false, Organizations and Groups from the request are ignored.
+        /// </summary>
+        public bool CanChangeMembership { get; set; }
+
         public Address DefaultBillingAddress { get; set; }
         public Address DefaultShippingAddress { get; set; }
 
