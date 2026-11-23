@@ -36,8 +36,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         {
             request.MemberType = nameof(Contact);
 
-            // VCST-6974: organization and customer group membership is never set through the storefront API;
-            // it is managed by the invite / registration flows and the back-office customer API.
             request.Organizations = null;
             request.Groups = null;
 

@@ -22,8 +22,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
     {
         public virtual async Task<ContactAggregate> Handle(UpdateContactCommand request, CancellationToken cancellationToken)
         {
-            // VCST-6974: the storefront API never changes organization or customer group membership
-            // (null keeps the stored values in the mapper).
             request.Organizations = null;
             request.Groups = null;
 

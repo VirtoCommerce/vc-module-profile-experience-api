@@ -31,7 +31,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return IdentityResult.Failed(new IdentityError { Description = "It is forbidden to edit this user." });
             }
 
-            // VCST-6974: the storefront API updates profile fields only; security data is never changed here.
             var userToSave = GetUserWithProfileChangesOnly(storedUser, request.ApplicationUser);
 
             return await userManager.UpdateAsync(userToSave);

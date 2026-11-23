@@ -49,7 +49,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 }
                 if (request.PersonalData?.Email != null && user.Email != request.PersonalData?.Email)
                 {
-                    // VCST-6974 #13: a changed email is no longer confirmed
                     user.Email = request.PersonalData.Email;
                     user.EmailConfirmed = false;
                     result = await userManager.UpdateAsync(user);

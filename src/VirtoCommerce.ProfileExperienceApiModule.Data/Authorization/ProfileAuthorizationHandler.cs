@@ -41,11 +41,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
         {
             var result = context.User.IsInRole(PlatformConstants.Security.SystemRoles.Administrator);
 
-            // VCST-6974: the storefront API is a client API and never writes security data (roles, user type,
-            // member, external logins) or organization/group membership, regardless of the caller's platform
-            // permissions. Those are back-office operations and go through the platform security / customer API.
-            // createUser, createContact and updateContact therefore always persist profile fields only.
-
             // Administrators can do anything except creating any users
             if (result && context.Resource is not CreateUserCommand)
             {
@@ -58,13 +53,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             var currentUserId = GetCurrentUserId(context);
             var currentMember = await GetCustomerAsync(currentUserId, userManager);
             var currentContact = currentMember as Contact;
-
-            // VCST-6974: the storefront API is a client API. It operates on the caller's own account and
-            // on the caller's CURRENT organization only (the organization_id claim), never on any other
-            // organization the caller may also belong to. An empty current organization denies org-scoped operations.
             var currentOrganizationId = context.User.GetCurrentOrganizationId();
-
-            // Whether the caller may manage other members of the current organization (edit, invite, remove, lock, roles).
             var canManageOrganization = context.User.HasGlobalPermission(ProfilePermissions.MyOrganizationEdit);
 
             // PT-6083: reduce complexity
@@ -130,12 +119,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     result = await IsSelfOrInCurrentOrganizationAsync(memberCommand.MemberId, currentOrganizationId, userManager, currentMember, currentContact);
                     break;
                 case UpdateContactCommand updateContactCommand when currentContact != null:
-                    // Own contact: always. Another member of the current organization: only with the org-edit permission (VCST-6974 #5).
                     result = updateContactCommand.Id == currentContact.Id;
                     result = result || (canManageOrganization && await IsInOrganizationAsync(currentContact, currentOrganizationId, updateContactCommand.Id, userManager));
                     break;
                 case UpdateOrganizationCommand updateOrganizationCommand when currentContact != null:
-                    // Only the caller's current organization, and only with the org-edit permission.
                     result = canManageOrganization
                         && !string.IsNullOrEmpty(currentOrganizationId)
                         && updateOrganizationCommand.Id.EqualsIgnoreCase(currentOrganizationId)
@@ -150,8 +137,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     result = true;
                     break;
                 case UpdateUserCommand updateUserCommand:
-                    // VCST-6974: the storefront API updates the caller's OWN account only. Managing other users
-                    // or security data is a back-office operation (platform security API).
                     result = !string.IsNullOrEmpty(currentUserId) && updateUserCommand.ApplicationUser?.Id == currentUserId;
                     break;
                 case UpdatePersonalDataCommand updatePersonalDataCommand:
@@ -159,10 +144,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     result = !string.IsNullOrEmpty(currentUserId);
                     break;
                 case InviteUserCommand inviteUserCommand:
-                    // VCST-6974 #6: an invitation must target an organization the caller belongs to, and an
-                    // empty organization id no longer bypasses the check. The organization is taken from the
-                    // caller's input (callers may manage more than one of their organizations) and validated
-                    // here; the invite permission itself (MyOrganizationUserInvite) is enforced by the resolver.
                     if (currentContact != null && !string.IsNullOrEmpty(inviteUserCommand.OrganizationId))
                     {
                         var currentUser = await userManager.FindByIdAsync(currentUserId);
@@ -181,10 +162,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     result = canManageOrganization && await IsInOrganizationAsync(currentContact, currentOrganizationId, changeOrganizationContactRoleCommand.MemberId, userManager);
                     break;
                 case RemoveMemberFromOrganizationCommand removeMemberFromOrganizationCommand:
-                    // VCST-6974 #10: the caller may only remove a member from an organization the caller
-                    // themselves belongs to (never a foreign organization passed in the input), and the target
-                    // must be a member of that same organization. An empty organization id is denied.
-                    // The MyOrganizationEdit permission is enforced by the resolver via CheckAuthAsync.
                     result = await IsInOrganizationAsync(currentContact, removeMemberFromOrganizationCommand.OrganizationId, removeMemberFromOrganizationCommand.ContactId, userManager);
                     break;
                 case AcceptOrganizationInviteCommand acceptOrganizationInviteCommand:
@@ -271,12 +248,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             return !CustomerModuleConstants.MembershipStatuses.IsBlocking(effectiveStatus);
         }
 
-        /// <summary>
-        /// VCST-6974: the caller and the target contact must both belong to <paramref name="organizationId"/>.
-        /// Callers pass the caller's current organization (the organization_id claim) for contact-scoped
-        /// operations, or the operation's target organization for organization-scoped operations; either way a
-        /// caller that merely shares some other organization with the target is not enough.
-        /// </summary>
+        /// <summary>Whether both the caller and the target contact are members of the organization.</summary>
         private async Task<bool> IsInOrganizationAsync(Contact currentContact, string organizationId, string contactId, UserManager<ApplicationUser> userManager)
         {
             if (currentContact is null || string.IsNullOrEmpty(organizationId))
@@ -284,7 +256,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                 return false;
             }
 
-            // The caller must actually be a member of the organization they are acting in.
             if (!currentContact.Organizations.Any(x => x.EqualsIgnoreCase(organizationId)))
             {
                 return false;

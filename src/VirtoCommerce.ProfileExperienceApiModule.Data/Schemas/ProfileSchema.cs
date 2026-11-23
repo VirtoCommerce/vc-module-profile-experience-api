@@ -569,9 +569,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 Type = GraphTypeExtensionHelper.GetActualType<RoleType>(),
                 Resolver = new FuncFieldResolver<object>(async context =>
                 {
-                    // VCST-6974 #16: a role's permissions are back-office data. Require the security read
-                    // permission (as the REST GetRole endpoint does) and check it before touching the role,
-                    // so role existence is not disclosed to anonymous or unprivileged callers.
+                    // Require the security read permission before loading the role, so role existence is not disclosed.
                     await CheckAuthAsync(context, new Role(), PlatformPermissions.SecurityQuery);
 
                     var result = await context.GetMediator().Send(new GetRoleQuery(context.GetArgument<string>("roleName")));
@@ -863,29 +861,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
                 var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
 
-                // VCST-6974: the current organization and the caller's org-scoped permissions live only in the
-                // JWT (added by OrganizationIdClaimProvider), not in the DB-reconstructed principal. Copy both so
-                // resource-based authorization can scope to the current organization and read org-scoped
-                // permissions (e.g. xapi:my_organization:edit) for a legitimate B2B organization administrator.
-                if (principal != null && userPrincipal.Identity is ClaimsIdentity userIdentity)
-                {
-                    var organizationClaimType = CustomerModule.Core.ModuleConstants.Security.Claims.OrganizationId;
-                    var currentOrganizationId = principal.FindFirstValue(organizationClaimType);
-                    if (!string.IsNullOrEmpty(currentOrganizationId) && userIdentity.FindFirst(organizationClaimType) is null)
-                    {
-                        userIdentity.AddClaim(new Claim(organizationClaimType, currentOrganizationId));
-                    }
-
-                    var permissionClaimType = Platform.Core.PlatformConstants.Security.Claims.PermissionClaimType;
-                    var existingPermissions = userIdentity.FindAll(permissionClaimType).Select(x => x.Value).ToHashSet(System.StringComparer.OrdinalIgnoreCase);
-                    foreach (var permissionClaim in principal.FindAll(permissionClaimType))
-                    {
-                        if (existingPermissions.Add(permissionClaim.Value))
-                        {
-                            userIdentity.AddClaim(new Claim(permissionClaimType, permissionClaim.Value));
-                        }
-                    }
-                }
+                // The current organization and org-scoped permissions live only in the JWT, not in the
+                // DB-reconstructed principal; copy them so resource-based authorization can read them.
+                CopyOrganizationAndPermissionClaims(from: principal, to: userPrincipal);
 
                 if (!string.IsNullOrEmpty(permission) && PermissionRequired(user, resource))
                 {
@@ -934,6 +912,31 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             }
 
             return true;
+        }
+
+        private static void CopyOrganizationAndPermissionClaims(ClaimsPrincipal from, ClaimsPrincipal to)
+        {
+            if (from == null || to.Identity is not ClaimsIdentity identity)
+            {
+                return;
+            }
+
+            CopyMissingClaims(from, identity, CustomerModule.Core.ModuleConstants.Security.Claims.OrganizationId);
+            CopyMissingClaims(from, identity, Platform.Core.PlatformConstants.Security.Claims.PermissionClaimType);
+        }
+
+        private static void CopyMissingClaims(ClaimsPrincipal from, ClaimsIdentity to, string claimType)
+        {
+            var existing = to.FindAll(claimType).Select(x => x.Value).ToHashSet(System.StringComparer.OrdinalIgnoreCase);
+            var missing = from.FindAll(claimType)
+                .Select(x => x.Value)
+                .Where(value => !existing.Contains(value))
+                .Distinct(System.StringComparer.OrdinalIgnoreCase);
+
+            foreach (var value in missing)
+            {
+                to.AddClaim(new Claim(claimType, value));
+            }
         }
 
         private async Task<string> GetUserEmailAsync(string userId)
