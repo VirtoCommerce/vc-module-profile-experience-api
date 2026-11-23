@@ -55,7 +55,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         : x.Source.Roles?.SelectMany(r => r.Permissions?.Select(p => p.Name)).Distinct();
                 })
                 .Description("Account permissions");
-            Field(x => x.SecurityStamp);
+            // VCST-6974 #15: SecurityStamp is an internal token-invalidation value and must not be exposed
+            // through the client API (the user query is readable by same-organization peers).
             Field(x => x.StoreId, true);
             Field(x => x.TwoFactorEnabled);
             Field(x => x.UserName);

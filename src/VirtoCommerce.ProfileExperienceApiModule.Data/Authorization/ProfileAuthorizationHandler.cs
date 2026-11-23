@@ -16,6 +16,7 @@ using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries.AddressesQuery;
 using CustomerModuleConstants = VirtoCommerce.CustomerModule.Core.ModuleConstants;
+using ProfilePermissions = VirtoCommerce.ProfileExperienceApiModule.Data.ModuleConstants.Security.Permissions;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
 {
@@ -73,16 +74,24 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             var currentMember = await GetCustomerAsync(currentUserId, userManager);
             var currentContact = currentMember as Contact;
 
+            // VCST-6974: the storefront API is a client API. It operates on the caller's own account and
+            // on the caller's CURRENT organization only (the organization_id claim), never on any other
+            // organization the caller may also belong to. An empty current organization denies org-scoped operations.
+            var currentOrganizationId = context.User.GetCurrentOrganizationId();
+
+            // Whether the caller may manage other members of the current organization (edit, invite, remove, lock, roles).
+            var canManageOrganization = context.User.HasGlobalPermission(ProfilePermissions.MyOrganizationEdit);
+
             // PT-6083: reduce complexity
             switch (context.Resource)
             {
                 case ContactAggregate contactAggregate when currentContact != null:
                     result = currentContact.Id == contactAggregate.Contact.Id;
-                    result = result || await HasSameOrganizationAsync(currentContact, contactAggregate.Contact.Id, userManager);
+                    result = result || await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, contactAggregate.Contact.Id, userManager);
                     break;
                 case ApplicationUser applicationUser:
                     result = currentUserId == applicationUser.Id;
-                    result = result || await HasSameOrganizationAsync(currentContact, applicationUser.Id, userManager);
+                    result = result || await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, applicationUser.Id, userManager);
                     break;
                 case OrganizationAggregate organizationAggregate when currentContact != null:
                     result = await HasActiveAccessToOrganizationAsync(currentContact, currentUserId, organizationAggregate.Organization.Id);
@@ -95,15 +104,15 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     result = true;
                     break;
                 case CreateContactCommand:
-                    //Anonymous user can create contact
+                    //Anonymous user can create contact (self-registration). Membership fields are stripped unless CanChangeMembership.
                     result = true;
                     break;
                 case CreateOrganizationCommand:
-                    //New user can create organization on b2b-theme
+                    //New user can create organization on b2b-theme (company registration)
                     result = true;
                     break;
                 case CreateUserCommand createUserCommand:
-                    //Anonymous user can create customer users only
+                    //Anonymous user can create customer users only (self-registration). Security fields are stripped unless CanSetSecurityData.
                     result = !createUserCommand.ApplicationUser.IsAdministrator && createUserCommand.ApplicationUser.UserType.EqualsIgnoreCase("Customer");
                     break;
                 case SendVerifyEmailCommand:
@@ -111,7 +120,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     result = true;
                     break;
                 case DeleteContactCommand deleteContactCommand when currentContact != null:
-                    result = await HasSameOrganizationAsync(currentContact, deleteContactCommand.ContactId, userManager);
+                    result = await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, deleteContactCommand.ContactId, userManager);
                     break;
                 case DeleteUserCommand deleteUserCommand when currentContact != null:
                     var allowDelete = true;
@@ -120,7 +129,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                         if (allowDelete)
                         {
                             var user = await userManager.FindByNameAsync(userName);
-                            allowDelete = await HasSameOrganizationAsync(currentContact, user?.MemberId, userManager);
+                            allowDelete = await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, user?.MemberId, userManager);
                         }
                     }
                     result = allowDelete;
@@ -130,17 +139,22 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     result = true;
                     break;
                 case CheckDuplicateAddressQuery duplicateAddressQuery:
-                    result = await HasSameOrganizationOrCurrentMemberAsync(duplicateAddressQuery.MemberId, userManager, currentMember, currentContact);
+                    result = await IsSelfOrInCurrentOrganizationAsync(duplicateAddressQuery.MemberId, currentOrganizationId, userManager, currentMember, currentContact);
                     break;
                 case MemberCommand memberCommand:
-                    result = await HasSameOrganizationOrCurrentMemberAsync(memberCommand.MemberId, userManager, currentMember, currentContact);
+                    result = await IsSelfOrInCurrentOrganizationAsync(memberCommand.MemberId, currentOrganizationId, userManager, currentMember, currentContact);
                     break;
                 case UpdateContactCommand updateContactCommand when currentContact != null:
+                    // Own contact: always. Another member of the current organization: only with the org-edit permission (VCST-6974 #5).
                     result = updateContactCommand.Id == currentContact.Id;
-                    result = result || await HasSameOrganizationAsync(currentContact, updateContactCommand.Id, userManager);
+                    result = result || (canManageOrganization && await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, updateContactCommand.Id, userManager));
                     break;
                 case UpdateOrganizationCommand updateOrganizationCommand when currentContact != null:
-                    result = currentContact.Organizations.Contains(updateOrganizationCommand.Id);
+                    // Only the caller's current organization, and only with the org-edit permission.
+                    result = canManageOrganization
+                        && !string.IsNullOrEmpty(currentOrganizationId)
+                        && updateOrganizationCommand.Id.EqualsIgnoreCase(currentOrganizationId)
+                        && currentContact.Organizations.Contains(currentOrganizationId);
                     break;
                 case UpdateMemberDynamicPropertiesCommand:
                     //Can be checked only with platform permission
@@ -152,43 +166,45 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     break;
                 case UpdateUserCommand updateUserCommand:
                     // VCST-6970: a user may update only their own account.
-                    // Updating another user of the same organization requires the platform:security:update permission.
+                    // Updating another user of the current organization requires the platform:security:update permission.
                     result = !string.IsNullOrEmpty(currentUserId) && updateUserCommand.ApplicationUser?.Id == currentUserId;
                     if (!result && updateUserCommand.CanUpdateSecurityData && currentContact != null)
                     {
-                        result = await HasSameOrganizationAsync(currentContact, updateUserCommand.ApplicationUser?.Id, userManager);
+                        result = await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, updateUserCommand.ApplicationUser?.Id, userManager);
                     }
                     break;
                 case UpdatePersonalDataCommand updatePersonalDataCommand:
                     updatePersonalDataCommand.UserId = currentUserId;
-                    result = true;
+                    result = !string.IsNullOrEmpty(currentUserId);
                     break;
                 case InviteUserCommand inviteUserCommand:
-                    if (!string.IsNullOrEmpty(inviteUserCommand.OrganizationId))
+                    // VCST-6974 #6: invitations are scoped to the caller's current organization only.
+                    // An empty organization id no longer bypasses the check. The invite permission itself
+                    // (MyOrganizationUserInvite) is enforced by the resolver via CheckAuthAsync.
+                    if (currentContact != null && !string.IsNullOrEmpty(currentOrganizationId))
                     {
                         var currentUser = await userManager.FindByIdAsync(currentUserId);
-                        if (currentContact != null && currentUser != null)
-                        {
-                            result = currentContact.Organizations.Contains(inviteUserCommand.OrganizationId)
-                                && currentUser.StoreId.EqualsIgnoreCase(inviteUserCommand.StoreId);
-                        }
-                    }
-                    else
-                    {
-                        result = true;
+                        result = currentUser != null
+                            && inviteUserCommand.OrganizationId.EqualsIgnoreCase(currentOrganizationId)
+                            && currentContact.Organizations.Contains(currentOrganizationId)
+                            && currentUser.StoreId.EqualsIgnoreCase(inviteUserCommand.StoreId);
                     }
                     break;
                 case LockOrganizationContactCommand lockOrganizationContact:
-                    result = await HasSameOrganizationAsync(currentContact, lockOrganizationContact.MemberId, userManager);
+                    result = canManageOrganization && await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, lockOrganizationContact.MemberId, userManager);
                     break;
                 case UnlockOrganizationContactCommand unlockOrganizationContact:
-                    result = await HasSameOrganizationAsync(currentContact, unlockOrganizationContact.MemberId, userManager);
+                    result = canManageOrganization && await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, unlockOrganizationContact.MemberId, userManager);
                     break;
                 case ChangeOrganizationContactRoleCommand changeOrganizationContactRoleCommand:
-                    result = await HasSameOrganizationAsync(currentContact, changeOrganizationContactRoleCommand.MemberId, userManager);
+                    result = canManageOrganization && await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, changeOrganizationContactRoleCommand.MemberId, userManager);
                     break;
                 case RemoveMemberFromOrganizationCommand removeMemberFromOrganizationCommand:
-                    result = await HasSameOrganizationAsync(currentContact, removeMemberFromOrganizationCommand.ContactId, userManager);
+                    // VCST-6974 #10: the organization is the caller's current organization (stamped by the resolver), not caller input.
+                    result = canManageOrganization
+                        && !string.IsNullOrEmpty(currentOrganizationId)
+                        && removeMemberFromOrganizationCommand.OrganizationId.EqualsIgnoreCase(currentOrganizationId)
+                        && await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, removeMemberFromOrganizationCommand.ContactId, userManager);
                     break;
                 case AcceptOrganizationInviteCommand acceptOrganizationInviteCommand:
                     result = acceptOrganizationInviteCommand.UserId == currentUserId;
@@ -197,10 +213,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     result = rejectOrganizationInviteCommand.UserId == currentUserId;
                     break;
                 case RevokeOrganizationInviteCommand revokeOrganizationInviteCommand:
-                    result = await HasSameOrganizationAsync(currentContact, revokeOrganizationInviteCommand.MemberId, userManager);
+                    result = canManageOrganization && await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, revokeOrganizationInviteCommand.MemberId, userManager);
                     break;
                 case ResendOrganizationInviteCommand resendOrganizationInviteCommand:
-                    result = await HasSameOrganizationAsync(currentContact, resendOrganizationInviteCommand.MemberId, userManager);
+                    result = canManageOrganization && await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, resendOrganizationInviteCommand.MemberId, userManager);
                     break;
                 case ChangePasswordCommand changePasswordCommand:
                     result = changePasswordCommand.UserId == currentUserId;
@@ -229,7 +245,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             return context.User.GetUserId();
         }
 
-        private async Task<bool> HasSameOrganizationOrCurrentMemberAsync(string memberId, UserManager<ApplicationUser> userManager, Member currentMember, Contact currentContact)
+        private async Task<bool> IsSelfOrInCurrentOrganizationAsync(string memberId, string currentOrganizationId, UserManager<ApplicationUser> userManager, Member currentMember, Contact currentContact)
         {
             var result = memberId == currentMember?.Id;
             if (!result && currentContact != null)
@@ -240,13 +256,16 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     return false;
                 }
 
-                if (member.MemberType.EqualsIgnoreCase("Organization") && currentContact.Organizations.Any(x => x.EqualsIgnoreCase(member.Id)))
+                if (member.MemberType.EqualsIgnoreCase("Organization"))
                 {
-                    result = true;
+                    // The member is an organization: it must be the caller's current organization.
+                    result = !string.IsNullOrEmpty(currentOrganizationId)
+                        && member.Id.EqualsIgnoreCase(currentOrganizationId)
+                        && currentContact.Organizations.Any(x => x.EqualsIgnoreCase(currentOrganizationId));
                 }
                 else
                 {
-                    result = await HasSameOrganizationAsync(currentContact, memberId, userManager);
+                    result = await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, memberId, userManager);
                 }
             }
 
@@ -271,15 +290,25 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             return !CustomerModuleConstants.MembershipStatuses.IsBlocking(effectiveStatus);
         }
 
-        private async Task<bool> HasSameOrganizationAsync(Contact currentContact, string contactId, UserManager<ApplicationUser> userManager)
+        /// <summary>
+        /// VCST-6974: the caller and the target contact must both belong to the caller's CURRENT organization
+        /// (the organization_id claim). A caller that merely shares some other organization with the target is not enough.
+        /// </summary>
+        private async Task<bool> IsInCurrentOrganizationAsync(Contact currentContact, string currentOrganizationId, string contactId, UserManager<ApplicationUser> userManager)
         {
-            if (currentContact is null)
+            if (currentContact is null || string.IsNullOrEmpty(currentOrganizationId))
+            {
+                return false;
+            }
+
+            // The caller must actually be a member of the organization they are acting in.
+            if (!currentContact.Organizations.Any(x => x.EqualsIgnoreCase(currentOrganizationId)))
             {
                 return false;
             }
 
             var contact = await GetCustomerAsync(contactId, userManager) as Contact;
-            return currentContact.Organizations.Intersect(contact?.Organizations ?? Array.Empty<string>()).Any();
+            return contact?.Organizations?.Any(x => x.EqualsIgnoreCase(currentOrganizationId)) == true;
         }
 
         protected virtual async Task<Member> GetCustomerAsync(string customerId, UserManager<ApplicationUser> userManager)

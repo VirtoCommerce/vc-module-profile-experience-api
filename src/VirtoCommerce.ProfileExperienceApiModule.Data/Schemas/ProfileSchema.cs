@@ -343,6 +343,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             {
                                 var type = GenericTypeHelper.GetActualType<RemoveMemberFromOrganizationCommand>();
                                 var command = (RemoveMemberFromOrganizationCommand)context.GetArgument(type, _commandName);
+                                // VCST-6974: the organization is the caller's current organization, never caller input.
+                                command.OrganizationId = context.GetCurrentOrganizationId();
                                 await CheckAuthAsync(context, command, ProfilePermissions.MyOrganizationEdit);
                                 return await context.GetMediator().Send(command);
                             })
@@ -569,6 +571,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 Type = GraphTypeExtensionHelper.GetActualType<RoleType>(),
                 Resolver = new FuncFieldResolver<object>(async context =>
                 {
+                    // VCST-6974 #16: a role's permissions are back-office data. Require the security read
+                    // permission (as the REST GetRole endpoint does) and check it before touching the role,
+                    // so role existence is not disclosed to anonymous or unprivileged callers.
+                    await CheckAuthAsync(context, new Role(), PlatformPermissions.SecurityQuery);
+
                     var result = await context.GetMediator().Send(new GetRoleQuery(context.GetArgument<string>("roleName")));
 
                     return result;
@@ -604,6 +611,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         {
                             var type = GenericTypeHelper.GetActualType<InviteUserCommand>();
                             var command = (InviteUserCommand)context.GetArgument(type, _commandName);
+                            // VCST-6974: invitations are scoped to the caller's current organization, never caller input.
+                            command.OrganizationId = context.GetCurrentOrganizationId();
                             await CheckAuthAsync(context, command, ProfilePermissions.MyOrganizationUserInvite);
                             return await context.GetMediator().Send(command);
                         })
@@ -857,6 +866,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 }
 
                 var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
+
+                // VCST-6974: the current organization lives only in the JWT (added by OrganizationIdClaimProvider),
+                // not in the DB-reconstructed principal. Copy it so resource-based authorization can scope
+                // operations to the caller's current organization.
+                var currentOrganizationId = principal?.FindFirstValue(CustomerModule.Core.ModuleConstants.Security.Claims.OrganizationId);
+                if (!string.IsNullOrEmpty(currentOrganizationId) &&
+                    userPrincipal.Identity is ClaimsIdentity organizationIdentity &&
+                    organizationIdentity.FindFirst(CustomerModule.Core.ModuleConstants.Security.Claims.OrganizationId) is null)
+                {
+                    organizationIdentity.AddClaim(new Claim(CustomerModule.Core.ModuleConstants.Security.Claims.OrganizationId, currentOrganizationId));
+                }
 
                 if (!string.IsNullOrEmpty(permission) && PermissionRequired(user, resource))
                 {
