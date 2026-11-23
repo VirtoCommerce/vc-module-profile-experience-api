@@ -72,11 +72,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             {
                 case ContactAggregate contactAggregate when currentContact != null:
                     result = currentContact.Id == contactAggregate.Contact.Id;
-                    result = result || await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, contactAggregate.Contact.Id, userManager);
+                    result = result || await IsInOrganizationAsync(currentContact, currentOrganizationId, contactAggregate.Contact.Id, userManager);
                     break;
                 case ApplicationUser applicationUser:
                     result = currentUserId == applicationUser.Id;
-                    result = result || await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, applicationUser.Id, userManager);
+                    result = result || await IsInOrganizationAsync(currentContact, currentOrganizationId, applicationUser.Id, userManager);
                     break;
                 case OrganizationAggregate organizationAggregate when currentContact != null:
                     result = await HasActiveAccessToOrganizationAsync(currentContact, currentUserId, organizationAggregate.Organization.Id);
@@ -105,7 +105,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     result = true;
                     break;
                 case DeleteContactCommand deleteContactCommand when currentContact != null:
-                    result = await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, deleteContactCommand.ContactId, userManager);
+                    result = await IsInOrganizationAsync(currentContact, currentOrganizationId, deleteContactCommand.ContactId, userManager);
                     break;
                 case DeleteUserCommand deleteUserCommand when currentContact != null:
                     var allowDelete = true;
@@ -114,7 +114,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                         if (allowDelete)
                         {
                             var user = await userManager.FindByNameAsync(userName);
-                            allowDelete = await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, user?.MemberId, userManager);
+                            allowDelete = await IsInOrganizationAsync(currentContact, currentOrganizationId, user?.MemberId, userManager);
                         }
                     }
                     result = allowDelete;
@@ -132,7 +132,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                 case UpdateContactCommand updateContactCommand when currentContact != null:
                     // Own contact: always. Another member of the current organization: only with the org-edit permission (VCST-6974 #5).
                     result = updateContactCommand.Id == currentContact.Id;
-                    result = result || (canManageOrganization && await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, updateContactCommand.Id, userManager));
+                    result = result || (canManageOrganization && await IsInOrganizationAsync(currentContact, currentOrganizationId, updateContactCommand.Id, userManager));
                     break;
                 case UpdateOrganizationCommand updateOrganizationCommand when currentContact != null:
                     // Only the caller's current organization, and only with the org-edit permission.
@@ -159,33 +159,33 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     result = !string.IsNullOrEmpty(currentUserId);
                     break;
                 case InviteUserCommand inviteUserCommand:
-                    // VCST-6974 #6: invitations are scoped to the caller's current organization only.
-                    // An empty organization id no longer bypasses the check. The invite permission itself
-                    // (MyOrganizationUserInvite) is enforced by the resolver via CheckAuthAsync.
-                    if (currentContact != null && !string.IsNullOrEmpty(currentOrganizationId))
+                    // VCST-6974 #6: an invitation must target an organization the caller belongs to, and an
+                    // empty organization id no longer bypasses the check. The organization is taken from the
+                    // caller's input (callers may manage more than one of their organizations) and validated
+                    // here; the invite permission itself (MyOrganizationUserInvite) is enforced by the resolver.
+                    if (currentContact != null && !string.IsNullOrEmpty(inviteUserCommand.OrganizationId))
                     {
                         var currentUser = await userManager.FindByIdAsync(currentUserId);
                         result = currentUser != null
-                            && inviteUserCommand.OrganizationId.EqualsIgnoreCase(currentOrganizationId)
-                            && currentContact.Organizations.Any(x => x.EqualsIgnoreCase(currentOrganizationId))
+                            && currentContact.Organizations.Any(x => x.EqualsIgnoreCase(inviteUserCommand.OrganizationId))
                             && currentUser.StoreId.EqualsIgnoreCase(inviteUserCommand.StoreId);
                     }
                     break;
                 case LockOrganizationContactCommand lockOrganizationContact:
-                    result = canManageOrganization && await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, lockOrganizationContact.MemberId, userManager);
+                    result = canManageOrganization && await IsInOrganizationAsync(currentContact, currentOrganizationId, lockOrganizationContact.MemberId, userManager);
                     break;
                 case UnlockOrganizationContactCommand unlockOrganizationContact:
-                    result = canManageOrganization && await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, unlockOrganizationContact.MemberId, userManager);
+                    result = canManageOrganization && await IsInOrganizationAsync(currentContact, currentOrganizationId, unlockOrganizationContact.MemberId, userManager);
                     break;
                 case ChangeOrganizationContactRoleCommand changeOrganizationContactRoleCommand:
-                    result = canManageOrganization && await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, changeOrganizationContactRoleCommand.MemberId, userManager);
+                    result = canManageOrganization && await IsInOrganizationAsync(currentContact, currentOrganizationId, changeOrganizationContactRoleCommand.MemberId, userManager);
                     break;
                 case RemoveMemberFromOrganizationCommand removeMemberFromOrganizationCommand:
-                    // VCST-6974 #10: the organization is the caller's current organization (stamped by the resolver), not caller input.
-                    result = canManageOrganization
-                        && !string.IsNullOrEmpty(currentOrganizationId)
-                        && removeMemberFromOrganizationCommand.OrganizationId.EqualsIgnoreCase(currentOrganizationId)
-                        && await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, removeMemberFromOrganizationCommand.ContactId, userManager);
+                    // VCST-6974 #10: the caller may only remove a member from an organization the caller
+                    // themselves belongs to (never a foreign organization passed in the input), and the target
+                    // must be a member of that same organization. An empty organization id is denied.
+                    // The MyOrganizationEdit permission is enforced by the resolver via CheckAuthAsync.
+                    result = await IsInOrganizationAsync(currentContact, removeMemberFromOrganizationCommand.OrganizationId, removeMemberFromOrganizationCommand.ContactId, userManager);
                     break;
                 case AcceptOrganizationInviteCommand acceptOrganizationInviteCommand:
                     result = acceptOrganizationInviteCommand.UserId == currentUserId;
@@ -194,10 +194,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     result = rejectOrganizationInviteCommand.UserId == currentUserId;
                     break;
                 case RevokeOrganizationInviteCommand revokeOrganizationInviteCommand:
-                    result = canManageOrganization && await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, revokeOrganizationInviteCommand.MemberId, userManager);
+                    result = canManageOrganization && await IsInOrganizationAsync(currentContact, currentOrganizationId, revokeOrganizationInviteCommand.MemberId, userManager);
                     break;
                 case ResendOrganizationInviteCommand resendOrganizationInviteCommand:
-                    result = canManageOrganization && await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, resendOrganizationInviteCommand.MemberId, userManager);
+                    result = canManageOrganization && await IsInOrganizationAsync(currentContact, currentOrganizationId, resendOrganizationInviteCommand.MemberId, userManager);
                     break;
                 case ChangePasswordCommand changePasswordCommand:
                     result = changePasswordCommand.UserId == currentUserId;
@@ -246,7 +246,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                 }
                 else
                 {
-                    result = await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, memberId, userManager);
+                    result = await IsInOrganizationAsync(currentContact, currentOrganizationId, memberId, userManager);
                 }
             }
 
@@ -272,24 +272,26 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
         }
 
         /// <summary>
-        /// VCST-6974: the caller and the target contact must both belong to the caller's CURRENT organization
-        /// (the organization_id claim). A caller that merely shares some other organization with the target is not enough.
+        /// VCST-6974: the caller and the target contact must both belong to <paramref name="organizationId"/>.
+        /// Callers pass the caller's current organization (the organization_id claim) for contact-scoped
+        /// operations, or the operation's target organization for organization-scoped operations; either way a
+        /// caller that merely shares some other organization with the target is not enough.
         /// </summary>
-        private async Task<bool> IsInCurrentOrganizationAsync(Contact currentContact, string currentOrganizationId, string contactId, UserManager<ApplicationUser> userManager)
+        private async Task<bool> IsInOrganizationAsync(Contact currentContact, string organizationId, string contactId, UserManager<ApplicationUser> userManager)
         {
-            if (currentContact is null || string.IsNullOrEmpty(currentOrganizationId))
+            if (currentContact is null || string.IsNullOrEmpty(organizationId))
             {
                 return false;
             }
 
             // The caller must actually be a member of the organization they are acting in.
-            if (!currentContact.Organizations.Any(x => x.EqualsIgnoreCase(currentOrganizationId)))
+            if (!currentContact.Organizations.Any(x => x.EqualsIgnoreCase(organizationId)))
             {
                 return false;
             }
 
             var contact = await GetCustomerAsync(contactId, userManager) as Contact;
-            return contact?.Organizations?.Any(x => x.EqualsIgnoreCase(currentOrganizationId)) == true;
+            return contact?.Organizations?.Any(x => x.EqualsIgnoreCase(organizationId)) == true;
         }
 
         protected virtual async Task<Member> GetCustomerAsync(string customerId, UserManager<ApplicationUser> userManager)

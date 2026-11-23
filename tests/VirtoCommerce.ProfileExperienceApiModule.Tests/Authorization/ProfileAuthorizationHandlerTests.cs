@@ -301,9 +301,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Authorization
 
         // VCST-6974 #10: removing a member uses the caller's current organization, not an org from the input.
         [Fact]
-        public async Task RemoveMember_OrganizationNotCurrent_Fails()
+        public async Task RemoveMember_CallerNotMemberOfTargetOrganization_Fails()
         {
-            SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId, "foreign-org"] });
+            // The caller shares OrgId with the target but is NOT a member of the target organization ("foreign-org"),
+            // so the caller must not be able to remove the target from that foreign organization (VCST-6974 #10).
+            SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
             SetupContact(OtherContactId, new Contact { Id = OtherContactId, Organizations = [OrgId, "foreign-org"] });
             var command = new RemoveMemberFromOrganizationCommand { ContactId = OtherContactId, OrganizationId = "foreign-org" };
 
@@ -313,7 +315,19 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Authorization
         }
 
         [Fact]
-        public async Task RemoveMember_CurrentOrganization_WithOrgEditPermission_Succeeds()
+        public async Task RemoveMember_EmptyOrganizationId_Fails()
+        {
+            SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
+            SetupContact(OtherContactId, new Contact { Id = OtherContactId, Organizations = [OrgId] });
+            var command = new RemoveMemberFromOrganizationCommand { ContactId = OtherContactId, OrganizationId = null };
+
+            var authContext = await HandleAsync(command, OrgClaim(OrgId), OrgEditClaim());
+
+            Assert.False(authContext.HasSucceeded);
+        }
+
+        [Fact]
+        public async Task RemoveMember_CallerAndTargetInOrganization_Succeeds()
         {
             SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
             SetupContact(OtherContactId, new Contact { Id = OtherContactId, Organizations = [OrgId] });
@@ -338,15 +352,29 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Authorization
         }
 
         [Fact]
-        public async Task InviteUser_CurrentOrganization_WithInvitePermission_Succeeds()
+        public async Task InviteUser_ToOwnOrganization_Succeeds()
         {
+            // The organization is taken from the input; a current-organization claim is NOT required
+            // (a maintainer or store administrator may invite to any of their organizations). VCST-6974 CI regression.
             SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
             _userManagerMock.Setup(x => x.FindByIdAsync(UserId)).ReturnsAsync(new ApplicationUser { Id = UserId, MemberId = ContactId, StoreId = "store-1" });
             var command = new InviteUserCommand { StoreId = "store-1", OrganizationId = OrgId };
 
-            var authContext = await HandleAsync(command, OrgClaim(OrgId), InviteClaim());
+            var authContext = await HandleAsync(command, InviteClaim());
 
             Assert.True(authContext.HasSucceeded);
+        }
+
+        [Fact]
+        public async Task InviteUser_ToOrganizationCallerIsNotMemberOf_Fails()
+        {
+            SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
+            _userManagerMock.Setup(x => x.FindByIdAsync(UserId)).ReturnsAsync(new ApplicationUser { Id = UserId, MemberId = ContactId, StoreId = "store-1" });
+            var command = new InviteUserCommand { StoreId = "store-1", OrganizationId = "foreign-org" };
+
+            var authContext = await HandleAsync(command, InviteClaim());
+
+            Assert.False(authContext.HasSucceeded);
         }
 
         private static Claim OrgClaim(string organizationId) =>

@@ -343,8 +343,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                             {
                                 var type = GenericTypeHelper.GetActualType<RemoveMemberFromOrganizationCommand>();
                                 var command = (RemoveMemberFromOrganizationCommand)context.GetArgument(type, _commandName);
-                                // VCST-6974: the organization is the caller's current organization, never caller input.
-                                command.OrganizationId = context.GetCurrentOrganizationId();
                                 await CheckAuthAsync(context, command, ProfilePermissions.MyOrganizationEdit);
                                 return await context.GetMediator().Send(command);
                             })
@@ -611,8 +609,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         {
                             var type = GenericTypeHelper.GetActualType<InviteUserCommand>();
                             var command = (InviteUserCommand)context.GetArgument(type, _commandName);
-                            // VCST-6974: invitations are scoped to the caller's current organization, never caller input.
-                            command.OrganizationId = context.GetCurrentOrganizationId();
                             await CheckAuthAsync(context, command, ProfilePermissions.MyOrganizationUserInvite);
                             return await context.GetMediator().Send(command);
                         })
