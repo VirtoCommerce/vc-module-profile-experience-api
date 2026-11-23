@@ -571,6 +571,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 Type = GraphTypeExtensionHelper.GetActualType<RoleType>(),
                 Resolver = new FuncFieldResolver<object>(async context =>
                 {
+                    // VCST-6974 #16: a role's permissions are back-office data. Require the security read
+                    // permission (as the REST GetRole endpoint does) and check it before touching the role,
+                    // so role existence is not disclosed to anonymous or unprivileged callers.
+                    await CheckAuthAsync(context, new Role(), PlatformPermissions.SecurityQuery);
+
                     var result = await context.GetMediator().Send(new GetRoleQuery(context.GetArgument<string>("roleName")));
 
                     return result;
