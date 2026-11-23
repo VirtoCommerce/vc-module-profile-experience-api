@@ -183,7 +183,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Authorization
             var command = new UpdateUserCommand { ApplicationUser = new ApplicationUser { Id = OtherUserId } };
 
             // Act
-            var authContext = await HandleAsync(command, new Claim(PlatformConstants.Security.Claims.PermissionClaimType, PlatformConstants.Security.Permissions.SecurityUpdate));
+            var authContext = await HandleAsync(command, OrgClaim(OrgId), new Claim(PlatformConstants.Security.Claims.PermissionClaimType, PlatformConstants.Security.Permissions.SecurityUpdate));
 
             // Assert
             Assert.True(authContext.HasSucceeded);
@@ -319,6 +319,112 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Authorization
             // Assert
             Assert.True(authContext.HasSucceeded);
             Assert.True(command.CanChangeMembership);
+        }
+
+        // VCST-6974 #5: editing another member's contact requires the org-edit permission.
+        [Fact]
+        public async Task UpdateContact_OtherMemberOfCurrentOrg_WithoutOrgEditPermission_Fails()
+        {
+            SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
+            SetupContact(OtherContactId, new Contact { Id = OtherContactId, Organizations = [OrgId] });
+            var command = new UpdateContactCommand { Id = OtherContactId };
+
+            var authContext = await HandleAsync(command, OrgClaim(OrgId));
+
+            Assert.False(authContext.HasSucceeded);
+        }
+
+        [Fact]
+        public async Task UpdateContact_OtherMemberOfCurrentOrg_WithOrgEditPermission_Succeeds()
+        {
+            SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
+            SetupContact(OtherContactId, new Contact { Id = OtherContactId, Organizations = [OrgId] });
+            var command = new UpdateContactCommand { Id = OtherContactId };
+
+            var authContext = await HandleAsync(command, OrgClaim(OrgId), OrgEditClaim());
+
+            Assert.True(authContext.HasSucceeded);
+        }
+
+        // VCST-6974 #9: sharing some OTHER organization is not enough; only the current organization counts.
+        [Fact]
+        public async Task UpdateContact_OtherMemberSharesDifferentOrg_WithOrgEditPermission_Fails()
+        {
+            const string otherOrg = "org-2";
+            SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId, otherOrg] });
+            SetupContact(OtherContactId, new Contact { Id = OtherContactId, Organizations = [otherOrg] });
+            var command = new UpdateContactCommand { Id = OtherContactId };
+
+            // current organization is OrgId, but the target is only in otherOrg
+            var authContext = await HandleAsync(command, OrgClaim(OrgId), OrgEditClaim());
+
+            Assert.False(authContext.HasSucceeded);
+        }
+
+        // VCST-6974 #10: removing a member uses the caller's current organization, not an org from the input.
+        [Fact]
+        public async Task RemoveMember_OrganizationNotCurrent_Fails()
+        {
+            SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId, "foreign-org"] });
+            SetupContact(OtherContactId, new Contact { Id = OtherContactId, Organizations = [OrgId, "foreign-org"] });
+            var command = new RemoveMemberFromOrganizationCommand { ContactId = OtherContactId, OrganizationId = "foreign-org" };
+
+            var authContext = await HandleAsync(command, OrgClaim(OrgId), OrgEditClaim());
+
+            Assert.False(authContext.HasSucceeded);
+        }
+
+        [Fact]
+        public async Task RemoveMember_CurrentOrganization_WithOrgEditPermission_Succeeds()
+        {
+            SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
+            SetupContact(OtherContactId, new Contact { Id = OtherContactId, Organizations = [OrgId] });
+            var command = new RemoveMemberFromOrganizationCommand { ContactId = OtherContactId, OrganizationId = OrgId };
+
+            var authContext = await HandleAsync(command, OrgClaim(OrgId), OrgEditClaim());
+
+            Assert.True(authContext.HasSucceeded);
+        }
+
+        // VCST-6974 #6: an invitation without an organization id no longer bypasses the resource check.
+        [Fact]
+        public async Task InviteUser_WithoutOrganizationId_Fails()
+        {
+            SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
+            _userManagerMock.Setup(x => x.FindByIdAsync(UserId)).ReturnsAsync(new ApplicationUser { Id = UserId, MemberId = ContactId, StoreId = "store-1" });
+            var command = new InviteUserCommand { StoreId = "store-1", OrganizationId = null };
+
+            var authContext = await HandleAsync(command, OrgClaim(OrgId), InviteClaim());
+
+            Assert.False(authContext.HasSucceeded);
+        }
+
+        [Fact]
+        public async Task InviteUser_CurrentOrganization_WithInvitePermission_Succeeds()
+        {
+            SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
+            _userManagerMock.Setup(x => x.FindByIdAsync(UserId)).ReturnsAsync(new ApplicationUser { Id = UserId, MemberId = ContactId, StoreId = "store-1" });
+            var command = new InviteUserCommand { StoreId = "store-1", OrganizationId = OrgId };
+
+            var authContext = await HandleAsync(command, OrgClaim(OrgId), InviteClaim());
+
+            Assert.True(authContext.HasSucceeded);
+        }
+
+        private static Claim OrgClaim(string organizationId) =>
+            new(CustomerModule.Core.ModuleConstants.Security.Claims.OrganizationId, organizationId);
+
+        private static Claim OrgEditClaim() =>
+            new(PlatformConstants.Security.Claims.PermissionClaimType, ProfileExperienceApiModule.Data.ModuleConstants.Security.Permissions.MyOrganizationEdit);
+
+        private static Claim InviteClaim() =>
+            new(PlatformConstants.Security.Claims.PermissionClaimType, ProfileExperienceApiModule.Data.ModuleConstants.Security.Permissions.MyOrganizationUserInvite);
+
+        private void SetupContact(string id, Contact contact)
+        {
+            _memberServiceMock
+                .Setup(x => x.GetByIdAsync(id, MemberResponseGroup.Default.ToString()))
+                .ReturnsAsync(contact);
         }
 
         private void SetupOtherUserInOrganization()
