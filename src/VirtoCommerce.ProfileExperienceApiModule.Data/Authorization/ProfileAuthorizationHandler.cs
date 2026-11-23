@@ -89,7 +89,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     result = true;
                     break;
                 case CreateContactCommand:
-                    //Anonymous user can create contact (self-registration). Membership fields are stripped unless CanChangeMembership.
+                    //Anonymous user can create contact (self-registration). Organizations and groups are always stripped by the handler.
                     result = true;
                     break;
                 case CreateOrganizationCommand:
@@ -97,7 +97,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     result = true;
                     break;
                 case CreateUserCommand createUserCommand:
-                    //Anonymous user can create customer users only (self-registration). Security fields are stripped unless CanSetSecurityData.
+                    //Anonymous user can create customer users only (self-registration). Security fields are always stripped by the handler.
                     result = !createUserCommand.ApplicationUser.IsAdministrator && createUserCommand.ApplicationUser.UserType.EqualsIgnoreCase("Customer");
                     break;
                 case SendVerifyEmailCommand:
@@ -139,7 +139,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     result = canManageOrganization
                         && !string.IsNullOrEmpty(currentOrganizationId)
                         && updateOrganizationCommand.Id.EqualsIgnoreCase(currentOrganizationId)
-                        && currentContact.Organizations.Contains(currentOrganizationId);
+                        && currentContact.Organizations.Any(x => x.EqualsIgnoreCase(currentOrganizationId));
                     break;
                 case UpdateMemberDynamicPropertiesCommand:
                     //Can be checked only with platform permission
@@ -167,7 +167,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                         var currentUser = await userManager.FindByIdAsync(currentUserId);
                         result = currentUser != null
                             && inviteUserCommand.OrganizationId.EqualsIgnoreCase(currentOrganizationId)
-                            && currentContact.Organizations.Contains(currentOrganizationId)
+                            && currentContact.Organizations.Any(x => x.EqualsIgnoreCase(currentOrganizationId))
                             && currentUser.StoreId.EqualsIgnoreCase(inviteUserCommand.StoreId);
                     }
                     break;

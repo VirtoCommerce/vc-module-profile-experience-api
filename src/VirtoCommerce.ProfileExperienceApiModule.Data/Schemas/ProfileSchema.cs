@@ -867,15 +867,28 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
                 var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
 
-                // VCST-6974: the current organization lives only in the JWT (added by OrganizationIdClaimProvider),
-                // not in the DB-reconstructed principal. Copy it so resource-based authorization can scope
-                // operations to the caller's current organization.
-                var currentOrganizationId = principal?.FindFirstValue(CustomerModule.Core.ModuleConstants.Security.Claims.OrganizationId);
-                if (!string.IsNullOrEmpty(currentOrganizationId) &&
-                    userPrincipal.Identity is ClaimsIdentity organizationIdentity &&
-                    organizationIdentity.FindFirst(CustomerModule.Core.ModuleConstants.Security.Claims.OrganizationId) is null)
+                // VCST-6974: the current organization and the caller's org-scoped permissions live only in the
+                // JWT (added by OrganizationIdClaimProvider), not in the DB-reconstructed principal. Copy both so
+                // resource-based authorization can scope to the current organization and read org-scoped
+                // permissions (e.g. xapi:my_organization:edit) for a legitimate B2B organization administrator.
+                if (principal != null && userPrincipal.Identity is ClaimsIdentity userIdentity)
                 {
-                    organizationIdentity.AddClaim(new Claim(CustomerModule.Core.ModuleConstants.Security.Claims.OrganizationId, currentOrganizationId));
+                    var organizationClaimType = CustomerModule.Core.ModuleConstants.Security.Claims.OrganizationId;
+                    var currentOrganizationId = principal.FindFirstValue(organizationClaimType);
+                    if (!string.IsNullOrEmpty(currentOrganizationId) && userIdentity.FindFirst(organizationClaimType) is null)
+                    {
+                        userIdentity.AddClaim(new Claim(organizationClaimType, currentOrganizationId));
+                    }
+
+                    var permissionClaimType = Platform.Core.PlatformConstants.Security.Claims.PermissionClaimType;
+                    var existingPermissions = userIdentity.FindAll(permissionClaimType).Select(x => x.Value).ToHashSet(System.StringComparer.OrdinalIgnoreCase);
+                    foreach (var permissionClaim in principal.FindAll(permissionClaimType))
+                    {
+                        if (existingPermissions.Add(permissionClaim.Value))
+                        {
+                            userIdentity.AddClaim(new Claim(permissionClaimType, permissionClaim.Value));
+                        }
+                    }
                 }
 
                 if (!string.IsNullOrEmpty(permission) && PermissionRequired(user, resource))
