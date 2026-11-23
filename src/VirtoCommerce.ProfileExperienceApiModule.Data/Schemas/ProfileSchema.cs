@@ -734,12 +734,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         Query variables:
                         {
                          "command":{
-                          "applicationUser": {
-                            "id": "b5d28a83-c296-4212-b89e-046fca3866be",
-                            "phoneNumber": "+15550001",
-                            "photoUrl": "https://example.com/photo.png"
+                          "securityStamp": ...,
+                          "userType": "Customer",
+                          "roles": [],
+                          "id": "b5d28a83-c296-4212-b89e-046fca3866be",
+                          "userName": "_loGIN999",
+                          "email": "_loGIN999@gmail.com"
                             }
-                          }
                         }
                          */
 #pragma warning restore S125 // Sections of code should not be commented out

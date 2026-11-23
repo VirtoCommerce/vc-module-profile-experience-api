@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,238 +15,217 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
     {
         private const string UserId = "user-1";
 
-        [Fact]
-        public async Task Handle_ProtectedFields_KeepsSavedValues()
+        private readonly Mock<UserManager<ApplicationUser>> _userManagerMock;
+        private readonly AuthorizationOptions _authorizationOptions = new();
+        private ApplicationUser _savedUser;
+
+        public UpdateUserCommandHandlerTests()
         {
-            // Arrange
-            var user = CreateExistingUser();
-            var userManager = CreateUserManager(user);
-            var changes = new ApplicationUser
-            {
-                Id = UserId,
-                UserName = "attacker",
-                Email = "attacker@acme.com",
-                SecurityStamp = "attacker-stamp",
-                PasswordHash = "attacker-hash",
-                LockoutEnabled = false,
-                LockoutEnd = DateTimeOffset.MaxValue,
-                AccessFailedCount = 0,
-                TwoFactorEnabled = false,
-                UserType = "Administrator",
-                StoreId = "other-store",
-                MemberId = "other-member",
-                PhoneNumber = user.PhoneNumber,
-                PhoneNumberConfirmed = false,
-                PhotoUrl = "https://acme.com/new-photo.png",
-                Roles = new List<Role> { new() { Id = "admin-role", Name = "Administrator" } },
-            };
-            var handler = CreateHandler(userManager);
-            var command = new UpdateUserCommand { ApplicationUser = changes };
+            _userManagerMock = new Mock<UserManager<ApplicationUser>>(
+                new Mock<IUserStore<ApplicationUser>>().Object, null, null, null, null, null, null, null, null);
 
-            // Act
-            var result = await handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            result.Succeeded.Should().BeTrue();
-            userManager.Verify(x => x.UpdateAsync(It.Is<ApplicationUser>(u =>
-                u == user &&
-                u.PhotoUrl == "https://acme.com/new-photo.png" &&
-                u.UserName == "anna" &&
-                u.Email == "anna@acme.com" &&
-                u.EmailConfirmed &&
-                u.SecurityStamp == "stamp" &&
-                u.PasswordHash == "hash" &&
-                u.LockoutEnabled &&
-                u.LockoutEnd == null &&
-                u.AccessFailedCount == 2 &&
-                u.TwoFactorEnabled &&
-                u.UserType == "Customer" &&
-                u.StoreId == "store" &&
-                u.MemberId == "member" &&
-                u.PhoneNumberConfirmed &&
-                u.Roles.Count == 0)), Times.Once);
-            userManager.Verify(x => x.SetEmailAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
-            userManager.Verify(x => x.SetPhoneNumberAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
-        }
-
-        [Fact]
-        public async Task Handle_NewPhoneNumber_SetsPhoneNumberWithUserManager()
-        {
-            // Arrange
-            var user = CreateExistingUser();
-            var userManager = CreateUserManager(user);
-            var handler = CreateHandler(userManager);
-            var command = new UpdateUserCommand { ApplicationUser = new ApplicationUser { Id = UserId, PhoneNumber = "+15550002", PhotoUrl = user.PhotoUrl } };
-
-            // Act
-            var result = await handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            result.Succeeded.Should().BeTrue();
-            userManager.Verify(x => x.SetPhoneNumberAsync(user, "+15550002"), Times.Once);
-            userManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
-        }
-
-        [Fact]
-        public async Task Handle_NothingToChange_DoesNotUpdateUser()
-        {
-            // Arrange
-            var user = CreateExistingUser();
-            var userManager = CreateUserManager(user);
-            var handler = CreateHandler(userManager);
-            var command = new UpdateUserCommand
-            {
-                ApplicationUser = new ApplicationUser { Id = UserId, PhoneNumber = user.PhoneNumber, PhotoUrl = user.PhotoUrl, Email = "attacker@acme.com" },
-            };
-
-            // Act
-            var result = await handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            result.Succeeded.Should().BeTrue();
-            userManager.Verify(x => x.SetPhoneNumberAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
-            userManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
-        }
-
-        [Fact]
-        public async Task Handle_NewPhoneNumberAndPhoto_SavesBothInOneWrite()
-        {
-            // Arrange
-            var user = CreateExistingUser();
-            var userManager = CreateUserManager(user);
-            var handler = CreateHandler(userManager);
-            var command = new UpdateUserCommand
-            {
-                ApplicationUser = new ApplicationUser { Id = UserId, PhoneNumber = "+15550002", PhotoUrl = "https://acme.com/new-photo.png" },
-            };
-
-            // Act
-            var result = await handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            result.Succeeded.Should().BeTrue();
-            userManager.Verify(x => x.SetPhoneNumberAsync(It.Is<ApplicationUser>(u => u == user && u.PhotoUrl == "https://acme.com/new-photo.png"), "+15550002"), Times.Once);
-            userManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
-        }
-
-        [Fact]
-        public async Task Handle_MissingPhoneNumber_ClearsPhoneNumber()
-        {
-            // Arrange
-            var user = CreateExistingUser();
-            var userManager = CreateUserManager(user);
-            var handler = CreateHandler(userManager);
-            var command = new UpdateUserCommand { ApplicationUser = new ApplicationUser { Id = UserId, PhotoUrl = user.PhotoUrl } };
-
-            // Act
-            var result = await handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            result.Succeeded.Should().BeTrue();
-            userManager.Verify(x => x.SetPhoneNumberAsync(user, null), Times.Once);
-        }
-
-        [Fact]
-        public async Task Handle_EmptyPhoneNumberForUserWithoutPhoneNumber_DoesNotUpdateUser()
-        {
-            // Arrange
-            var user = CreateExistingUser();
-            user.PhoneNumber = null;
-            var userManager = CreateUserManager(user);
-            var handler = CreateHandler(userManager);
-            var command = new UpdateUserCommand { ApplicationUser = new ApplicationUser { Id = UserId, PhoneNumber = string.Empty, PhotoUrl = user.PhotoUrl } };
-
-            // Act
-            var result = await handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            result.Succeeded.Should().BeTrue();
-            userManager.Verify(x => x.SetPhoneNumberAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
-            userManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
-        }
-
-        [Fact]
-        public async Task Handle_NonEditableUser_RefusesRegardlessOfInputUserName()
-        {
-            // Arrange
-            var user = CreateExistingUser();
-            var userManager = CreateUserManager(user);
-            var options = Options.Create(new AuthorizationOptions { NonEditableUsers = ["anna"] });
-            var handler = new UpdateUserCommandHandler(() => userManager.Object, options);
-            var command = new UpdateUserCommand
-            {
-                ApplicationUser = new ApplicationUser { Id = UserId, UserName = "someone-else", PhotoUrl = "https://acme.com/new-photo.png" },
-            };
-
-            // Act
-            var result = await handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            result.Succeeded.Should().BeFalse();
-            userManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
-        }
-
-        [Fact]
-        public async Task Handle_UnknownUser_Fails()
-        {
-            // Arrange
-            var userManager = CreateUserManager(CreateExistingUser());
-            var handler = CreateHandler(userManager);
-            var command = new UpdateUserCommand { ApplicationUser = new ApplicationUser { Id = "unknown-user", PhotoUrl = "https://acme.com/new-photo.png" } };
-
-            // Act
-            var result = await handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            result.Succeeded.Should().BeFalse();
-            userManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
-        }
-
-        private static ApplicationUser CreateExistingUser()
-        {
-            return new ApplicationUser
-            {
-                Id = UserId,
-                UserName = "anna",
-                Email = "anna@acme.com",
-                EmailConfirmed = true,
-                SecurityStamp = "stamp",
-                PasswordHash = "hash",
-                LockoutEnabled = true,
-                AccessFailedCount = 2,
-                TwoFactorEnabled = true,
-                UserType = "Customer",
-                StoreId = "store",
-                MemberId = "member",
-                PhoneNumber = "+15550001",
-                PhoneNumberConfirmed = true,
-                PhotoUrl = "https://acme.com/photo.png",
-                Roles = new List<Role>(),
-            };
-        }
-
-        private static Mock<UserManager<ApplicationUser>> CreateUserManager(ApplicationUser existingUser)
-        {
-            var userManager = new Mock<UserManager<ApplicationUser>>(Mock.Of<IUserStore<ApplicationUser>>(), null, null, null, null, null, null, null, null);
-
-            userManager
-                .Setup(x => x.FindByIdAsync(existingUser.Id))
-                .ReturnsAsync(existingUser);
-
-            userManager
-                .Setup(x => x.SetPhoneNumberAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
-                .ReturnsAsync(IdentityResult.Success);
-
-            userManager
+            _userManagerMock
                 .Setup(x => x.UpdateAsync(It.IsAny<ApplicationUser>()))
+                .Callback<ApplicationUser>(user => _savedUser = user)
                 .ReturnsAsync(IdentityResult.Success);
-
-            return userManager;
         }
 
-        private static UpdateUserCommandHandler CreateHandler(Mock<UserManager<ApplicationUser>> userManager)
+        [Fact]
+        public async Task Handle_WithoutSecurityPermission_KeepsStoredSecurityData()
         {
-            return new UpdateUserCommandHandler(() => userManager.Object, Options.Create(new AuthorizationOptions()));
+            // Arrange: a customer tries to change its own security data (VCST-6970)
+            var storedUser = SetupStoredUser();
+            var command = new UpdateUserCommand
+            {
+                ApplicationUser = new ApplicationUser
+                {
+                    Id = UserId,
+                    UserName = "attacker",
+                    Email = "new@example.com",
+                    PhoneNumber = "+31 000 000",
+                    PhotoUrl = "https://example.com/new.png",
+                    UserType = "Manager",
+                    IsAdministrator = true,
+                    Roles = new List<Role> { new() { Name = "Store manager" } },
+                    PasswordHash = "attacker-hash",
+                    SecurityStamp = "attacker-stamp",
+                    MemberId = "victim-contact",
+                    StoreId = "other-store",
+                    LockoutEnd = null,
+                    LockoutEnabled = false,
+                    AccessFailedCount = 0,
+                    TwoFactorEnabled = false,
+                },
+            };
+
+            // Act
+            var result = await CreateHandler().Handle(command, CancellationToken.None);
+
+            // Assert
+            result.Succeeded.Should().BeTrue();
+            _savedUser.Should().NotBeNull();
+
+            _savedUser.Email.Should().Be("new@example.com");
+            _savedUser.PhoneNumber.Should().Be("+31 000 000");
+            _savedUser.PhotoUrl.Should().Be("https://example.com/new.png");
+
+            _savedUser.UserName.Should().Be(storedUser.UserName);
+            _savedUser.UserType.Should().Be("Customer");
+            _savedUser.IsAdministrator.Should().BeFalse();
+            _savedUser.Roles.Should().BeNull("roles must not be synchronized from the request");
+            _savedUser.PasswordHash.Should().Be("stored-hash");
+            _savedUser.SecurityStamp.Should().Be("stored-stamp");
+            _savedUser.MemberId.Should().Be("contact-1");
+            _savedUser.StoreId.Should().Be("store-1");
+            _savedUser.LockoutEnd.Should().Be(storedUser.LockoutEnd);
+            _savedUser.LockoutEnabled.Should().BeTrue();
+            _savedUser.AccessFailedCount.Should().Be(3);
+            _savedUser.TwoFactorEnabled.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task Handle_WithoutSecurityPermission_DoesNotChangeCachedStoredUser()
+        {
+            // Arrange
+            var storedUser = SetupStoredUser();
+            var command = new UpdateUserCommand
+            {
+                ApplicationUser = new ApplicationUser { Id = UserId, UserName = "customer", Email = "new@example.com" },
+            };
+
+            // Act
+            await CreateHandler().Handle(command, CancellationToken.None);
+
+            // Assert
+            _savedUser.Should().NotBeSameAs(storedUser);
+            storedUser.Email.Should().Be("customer@example.com");
+        }
+
+        [Fact]
+        public async Task Handle_EmailChanged_ResetsEmailConfirmation()
+        {
+            // Arrange
+            SetupStoredUser();
+            var command = new UpdateUserCommand
+            {
+                ApplicationUser = new ApplicationUser { Id = UserId, UserName = "customer", Email = "new@example.com" },
+            };
+
+            // Act
+            await CreateHandler().Handle(command, CancellationToken.None);
+
+            // Assert
+            _savedUser.EmailConfirmed.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task Handle_EmailNotChanged_KeepsEmailConfirmation()
+        {
+            // Arrange
+            SetupStoredUser();
+            var command = new UpdateUserCommand
+            {
+                ApplicationUser = new ApplicationUser { Id = UserId, UserName = "customer", Email = "Customer@Example.com", PhoneNumber = "1" },
+            };
+
+            // Act
+            await CreateHandler().Handle(command, CancellationToken.None);
+
+            // Assert
+            _savedUser.EmailConfirmed.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task Handle_WithSecurityPermission_AppliesRequestedChanges()
+        {
+            // Arrange
+            SetupStoredUser();
+            var requestedUser = new ApplicationUser
+            {
+                Id = UserId,
+                UserName = "customer",
+                UserType = "Manager",
+                Roles = new List<Role> { new() { Name = "Store manager" } },
+            };
+            var command = new UpdateUserCommand { ApplicationUser = requestedUser, CanUpdateSecurityData = true };
+
+            // Act
+            var result = await CreateHandler().Handle(command, CancellationToken.None);
+
+            // Assert
+            result.Succeeded.Should().BeTrue();
+            _savedUser.Should().BeSameAs(requestedUser);
+        }
+
+        [Fact]
+        public async Task Handle_UserNotFound_Fails()
+        {
+            // Arrange
+            _userManagerMock.Setup(x => x.FindByIdAsync(UserId)).ReturnsAsync((ApplicationUser)null);
+            var command = new UpdateUserCommand { ApplicationUser = new ApplicationUser { Id = UserId, UserName = "customer" } };
+
+            // Act
+            var result = await CreateHandler().Handle(command, CancellationToken.None);
+
+            // Assert
+            result.Succeeded.Should().BeFalse();
+            _userManagerMock.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Handle_StoredUserIsNotEditable_Fails(bool canUpdateSecurityData)
+        {
+            // Arrange: the request sends an editable user name, but the id belongs to a non-editable user
+            _authorizationOptions.NonEditableUsers = ["admin"];
+            var storedUser = SetupStoredUser();
+            storedUser.UserName = "admin";
+            var command = new UpdateUserCommand
+            {
+                ApplicationUser = new ApplicationUser { Id = UserId, UserName = "customer" },
+                CanUpdateSecurityData = canUpdateSecurityData,
+            };
+
+            // Act
+            var result = await CreateHandler().Handle(command, CancellationToken.None);
+
+            // Assert
+            result.Succeeded.Should().BeFalse();
+            _userManagerMock.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+        }
+
+        private ApplicationUser SetupStoredUser()
+        {
+            var storedUser = new ApplicationUser
+            {
+                Id = UserId,
+                UserName = "customer",
+                Email = "customer@example.com",
+                EmailConfirmed = true,
+                PhoneNumber = "+31 111 111",
+                PhotoUrl = "https://example.com/old.png",
+                UserType = "Customer",
+                IsAdministrator = false,
+                Roles = new List<Role> { new() { Name = "Organization maintainer" } },
+                PasswordHash = "stored-hash",
+                SecurityStamp = "stored-stamp",
+                MemberId = "contact-1",
+                StoreId = "store-1",
+                LockoutEnabled = true,
+                LockoutEnd = new System.DateTimeOffset(2030, 1, 1, 0, 0, 0, System.TimeSpan.Zero),
+                AccessFailedCount = 3,
+                TwoFactorEnabled = true,
+            };
+
+            _userManagerMock.Setup(x => x.FindByIdAsync(UserId)).ReturnsAsync(storedUser);
+
+            return storedUser;
+        }
+
+        private UpdateUserCommandHandler CreateHandler()
+        {
+            return new UpdateUserCommandHandler(() => _userManagerMock.Object, Options.Create(_authorizationOptions));
         }
     }
 }

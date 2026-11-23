@@ -18,42 +18,49 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         public virtual async Task<IdentityResult> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
         {
-            using (var userManager = _userManagerFactory())
+            using var userManager = _userManagerFactory();
+
+            var storedUser = await userManager.FindByIdAsync(request.ApplicationUser.Id);
+            if (storedUser is null)
             {
-                var user = await userManager.FindByIdAsync(request.ApplicationUser.Id);
-                if (user == null)
-                {
-                    return IdentityResult.Failed();
-                }
-
-                if (!IsUserEditable(user.UserName))
-                {
-                    return IdentityResult.Failed(new IdentityError { Description = "It is forbidden to edit this user." });
-                }
-
-                return await UpdateUserAsync(userManager, user, request.ApplicationUser);
+                return IdentityResult.Failed(new IdentityError { Description = "User not found." });
             }
+
+            if (!IsUserEditable(storedUser.UserName) || !IsUserEditable(request.ApplicationUser.UserName))
+            {
+                return IdentityResult.Failed(new IdentityError { Description = "It is forbidden to edit this user." });
+            }
+
+            var userToSave = request.CanUpdateSecurityData
+                ? request.ApplicationUser
+                : GetUserWithProfileChangesOnly(storedUser, request.ApplicationUser);
+
+            return await userManager.UpdateAsync(userToSave);
         }
 
-        protected virtual async Task<IdentityResult> UpdateUserAsync(UserManager<ApplicationUser> userManager, ApplicationUser user, ApplicationUser changes)
+        /// <summary>
+        /// Takes the stored user and applies only the profile fields a user may change without security permissions.
+        /// Everything else (roles, user type, password hash, security stamp, member, store, lockout, 2FA) keeps its stored value.
+        /// </summary>
+        protected virtual ApplicationUser GetUserWithProfileChangesOnly(ApplicationUser storedUser, ApplicationUser requestedUser)
         {
-            var phoneNumber = changes.PhoneNumber.EmptyToNull();
-            var photoUrl = changes.PhotoUrl.EmptyToNull();
-            var isPhotoChanged = user.PhotoUrl.EmptyToNull() != photoUrl;
+            // The stored user can come from the user cache, so never change it in place
+            var result = storedUser.CloneTyped();
 
-            if (isPhotoChanged)
+            if (!result.Email.EqualsIgnoreCase(requestedUser.Email))
             {
-                user.PhotoUrl = photoUrl;
+                result.Email = requestedUser.Email;
+                result.EmailConfirmed = false;
             }
 
-            if (user.PhoneNumber.EmptyToNull() != phoneNumber)
-            {
-                return await userManager.SetPhoneNumberAsync(user, phoneNumber);
-            }
+            result.PhoneNumber = requestedUser.PhoneNumber;
+            result.PhotoUrl = requestedUser.PhotoUrl;
 
-            return isPhotoChanged
-                ? await userManager.UpdateAsync(user)
-                : IdentityResult.Success;
+            // null means "do not synchronize" in CustomUserManager.UpdateAsync
+            result.Roles = null;
+            result.Logins = null;
+
+            return result;
         }
     }
 }
