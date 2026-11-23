@@ -36,6 +36,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         {
             request.MemberType = nameof(Contact);
 
+            request.Organizations = null;
+            request.Groups = null;
+
             var contact = _mapper.ToContact(request);
 
             var contactAggregate = _memberAggregateFactory.Create<ContactAggregate>(contact);

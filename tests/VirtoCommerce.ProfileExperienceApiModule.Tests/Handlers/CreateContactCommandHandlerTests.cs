@@ -52,5 +52,41 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             dynamicPropertyUpdaterServiceMock.Verify(x => x.UpdateDynamicPropertyValues(It.Is<Contact>(x => x == contact),
                 It.Is<IList<DynamicPropertyValue>>(x => x == command.DynamicProperties)), Times.Once);
         }
+
+        [Fact]
+        public async Task Handle_MembershipInRequest_IsAlwaysIgnored()
+        {
+            // Arrange (VCST-6974): the storefront API never joins organizations or sets customer groups
+            var aggregateFactoryMock = new Mock<IMemberAggregateFactory>();
+            Contact createdContact = null;
+            aggregateFactoryMock
+                .Setup(x => x.Create<ContactAggregate>(It.IsAny<Contact>()))
+                .Callback<Member>(x => createdContact = (Contact)x)
+                .Returns<Member>(x => new ContactAggregate { Member = x });
+
+            var disabledOptions = new InputValidationOptions { NameValidationPattern = null, EnableNoHtmlTagsValidation = false };
+            var handler = new CreateContactCommandHandler(Mock.Of<IContactAggregateRepository>(),
+                aggregateFactoryMock.Object,
+                Mock.Of<IDynamicPropertyUpdaterService>(),
+                new ProfileExperienceApiModuleMapper(),
+                new NewContactValidator(Options.Create(disabledOptions)));
+
+            var command = new CreateContactCommand
+            {
+                FirstName = "John",
+                LastName = "Doe",
+                Name = "John Doe",
+                Organizations = ["victim-org"],
+                Groups = ["VIP"],
+            };
+
+            // Act
+            await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(createdContact);
+            Assert.True(createdContact.Organizations is null || createdContact.Organizations.Count == 0);
+            Assert.True(createdContact.Groups is null || createdContact.Groups.Count == 0);
+        }
     }
 }
