@@ -6,9 +6,11 @@ using Moq;
 using VirtoCommerce.CustomerModule.Core;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.Platform.Core;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Organization;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Authorization;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
 using Xunit;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Authorization
@@ -18,6 +20,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Authorization
         private const string UserId = "user-1";
         private const string ContactId = "contact-1";
         private const string OrgId = "org-1";
+        private const string OtherUserId = "user-2";
+        private const string OtherContactId = "contact-2";
 
         private readonly Mock<IMemberService> _memberServiceMock = new();
         private readonly Mock<IOrganizationMembershipSearchService> _membershipSearchServiceMock = new();
@@ -112,6 +116,137 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Authorization
                 Times.Never);
         }
 
+        [Fact]
+        public async Task UpdateUser_Self_Succeeds_WithoutSecurityData()
+        {
+            // Arrange
+            SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
+            var command = new UpdateUserCommand { ApplicationUser = new ApplicationUser { Id = UserId } };
+
+            // Act
+            var authContext = await HandleAsync(command);
+
+            // Assert
+            Assert.True(authContext.HasSucceeded);
+            Assert.False(command.CanUpdateSecurityData);
+        }
+
+        [Fact]
+        public async Task UpdateUser_SelfWithoutContact_Succeeds()
+        {
+            // Arrange
+            SetupCurrentContact(null);
+            var command = new UpdateUserCommand { ApplicationUser = new ApplicationUser { Id = UserId } };
+
+            // Act
+            var authContext = await HandleAsync(command);
+
+            // Assert
+            Assert.True(authContext.HasSucceeded);
+        }
+
+        [Fact]
+        public async Task UpdateUser_FlagFromRequest_IsOverwritten()
+        {
+            // Arrange
+            SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
+            var command = new UpdateUserCommand { ApplicationUser = new ApplicationUser { Id = UserId }, CanUpdateSecurityData = true };
+
+            // Act
+            await HandleAsync(command);
+
+            // Assert
+            Assert.False(command.CanUpdateSecurityData);
+        }
+
+        [Fact]
+        public async Task UpdateUser_OtherUserOfSameOrganization_WithoutPermission_Fails()
+        {
+            // Arrange: before VCST-6970 any organization member could rewrite colleagues (password hash, roles, user type)
+            SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
+            SetupOtherUserInOrganization();
+            var command = new UpdateUserCommand { ApplicationUser = new ApplicationUser { Id = OtherUserId } };
+
+            // Act
+            var authContext = await HandleAsync(command);
+
+            // Assert
+            Assert.False(authContext.HasSucceeded);
+        }
+
+        [Fact]
+        public async Task UpdateUser_OtherUserOfSameOrganization_WithSecurityUpdatePermission_Succeeds()
+        {
+            // Arrange
+            SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
+            SetupOtherUserInOrganization();
+            var command = new UpdateUserCommand { ApplicationUser = new ApplicationUser { Id = OtherUserId } };
+
+            // Act
+            var authContext = await HandleAsync(command, new Claim(PlatformConstants.Security.Claims.PermissionClaimType, PlatformConstants.Security.Permissions.SecurityUpdate));
+
+            // Assert
+            Assert.True(authContext.HasSucceeded);
+            Assert.True(command.CanUpdateSecurityData);
+        }
+
+        [Fact]
+        public async Task UpdateUser_UserIdEqualsOwnContactId_IsNotTreatedAsSelf()
+        {
+            // Arrange: the old check compared the target user id with the caller's contact id
+            SetupCurrentContact(new Contact { Id = ContactId, Organizations = [OrgId] });
+            var command = new UpdateUserCommand { ApplicationUser = new ApplicationUser { Id = ContactId } };
+
+            // Act
+            var authContext = await HandleAsync(command);
+
+            // Assert
+            Assert.False(authContext.HasSucceeded);
+        }
+
+        [Fact]
+        public async Task UpdateUser_Anonymous_Fails()
+        {
+            // Arrange
+            var command = new UpdateUserCommand { ApplicationUser = new ApplicationUser { Id = null } };
+            var handler = CreateHandler();
+            var authContext = new AuthorizationHandlerContext([new ProfileAuthorizationRequirement()], new ClaimsPrincipal(new ClaimsIdentity()), command);
+
+            // Act
+            await handler.HandleAsync(authContext);
+
+            // Assert
+            Assert.False(authContext.HasSucceeded);
+            Assert.False(command.CanUpdateSecurityData);
+        }
+
+        [Fact]
+        public async Task UpdateUser_Administrator_Succeeds_WithSecurityData()
+        {
+            // Arrange
+            var command = new UpdateUserCommand { ApplicationUser = new ApplicationUser { Id = OtherUserId } };
+
+            // Act
+            var authContext = await HandleAsync(command, new Claim(ClaimTypes.Role, PlatformConstants.Security.SystemRoles.Administrator));
+
+            // Assert
+            Assert.True(authContext.HasSucceeded);
+            Assert.True(command.CanUpdateSecurityData);
+        }
+
+        private void SetupOtherUserInOrganization()
+        {
+            _memberServiceMock
+                .Setup(x => x.GetByIdAsync(OtherUserId, MemberResponseGroup.Default.ToString()))
+                .ReturnsAsync((Member)null);
+            _userManagerMock
+                .Setup(x => x.FindByIdAsync(OtherUserId))
+                .ReturnsAsync(new ApplicationUser { Id = OtherUserId, MemberId = OtherContactId });
+            _memberServiceMock
+                .Setup(x => x.GetByIdAsync(OtherContactId, MemberResponseGroup.Default.ToString()))
+                .ReturnsAsync(new Contact { Id = OtherContactId, Organizations = [OrgId] });
+        }
+
         private void SetupCurrentContact(Contact contact)
         {
             _memberServiceMock
@@ -134,14 +269,16 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Authorization
         private static OrganizationAggregate BuildOrganizationResource() =>
             new() { Member = new Organization { Id = OrgId } };
 
-        private async Task<AuthorizationHandlerContext> HandleAsync(object resource)
-        {
-            var handler = new ProfileAuthorizationHandler(
-                _memberServiceMock.Object,
+        private ProfileAuthorizationHandler CreateHandler() =>
+            new(_memberServiceMock.Object,
                 _membershipSearchServiceMock.Object,
                 () => _userManagerMock.Object);
 
-            var principal = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, UserId)]));
+        private async Task<AuthorizationHandlerContext> HandleAsync(object resource, params Claim[] extraClaims)
+        {
+            var handler = CreateHandler();
+
+            var principal = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, UserId), .. extraClaims], "test"));
             var authContext = new AuthorizationHandlerContext([new ProfileAuthorizationRequirement()], principal, resource);
 
             await handler.HandleAsync(authContext);
