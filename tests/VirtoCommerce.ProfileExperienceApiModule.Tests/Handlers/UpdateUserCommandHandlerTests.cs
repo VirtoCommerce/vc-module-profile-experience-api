@@ -110,6 +110,63 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         }
 
         [Fact]
+        public async Task Handle_NewPhoneNumberAndPhoto_SavesBothInOneWrite()
+        {
+            // Arrange
+            var user = CreateExistingUser();
+            var userManager = CreateUserManager(user);
+            var handler = CreateHandler(userManager);
+            var command = new UpdateUserCommand
+            {
+                ApplicationUser = new ApplicationUser { Id = UserId, PhoneNumber = "+15550002", PhotoUrl = "https://acme.com/new-photo.png" },
+            };
+
+            // Act
+            var result = await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            result.Succeeded.Should().BeTrue();
+            userManager.Verify(x => x.SetPhoneNumberAsync(It.Is<ApplicationUser>(u => u == user && u.PhotoUrl == "https://acme.com/new-photo.png"), "+15550002"), Times.Once);
+            userManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Handle_MissingPhoneNumber_ClearsPhoneNumber()
+        {
+            // Arrange
+            var user = CreateExistingUser();
+            var userManager = CreateUserManager(user);
+            var handler = CreateHandler(userManager);
+            var command = new UpdateUserCommand { ApplicationUser = new ApplicationUser { Id = UserId, PhotoUrl = user.PhotoUrl } };
+
+            // Act
+            var result = await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            result.Succeeded.Should().BeTrue();
+            userManager.Verify(x => x.SetPhoneNumberAsync(user, null), Times.Once);
+        }
+
+        [Fact]
+        public async Task Handle_EmptyPhoneNumberForUserWithoutPhoneNumber_DoesNotUpdateUser()
+        {
+            // Arrange
+            var user = CreateExistingUser();
+            user.PhoneNumber = null;
+            var userManager = CreateUserManager(user);
+            var handler = CreateHandler(userManager);
+            var command = new UpdateUserCommand { ApplicationUser = new ApplicationUser { Id = UserId, PhoneNumber = string.Empty, PhotoUrl = user.PhotoUrl } };
+
+            // Act
+            var result = await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            result.Succeeded.Should().BeTrue();
+            userManager.Verify(x => x.SetPhoneNumberAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
+            userManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+        }
+
+        [Fact]
         public async Task Handle_NonEditableUser_RefusesRegardlessOfInputUserName()
         {
             // Arrange

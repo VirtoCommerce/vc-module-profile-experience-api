@@ -74,6 +74,42 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             userManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
         }
 
+        [Fact]
+        public async Task Handle_EmailInOtherCase_KeepsConfirmation()
+        {
+            // Arrange
+            var user = new ApplicationUser { Id = "user-1", UserName = "anna", Email = "Anna@acme.com", EmailConfirmed = true };
+            var userManager = CreateUserManager(user);
+            var handler = CreateHandler(userManager);
+
+            // Act
+            var result = await handler.Handle(CreateCommand("anna@acme.com"), CancellationToken.None);
+
+            // Assert
+            result.Succeeded.Should().BeTrue();
+            userManager.Verify(x => x.UpdateAsync(It.Is<ApplicationUser>(u => u == user && u.Email == "anna@acme.com" && u.EmailConfirmed)), Times.Once);
+            userManager.Verify(x => x.SetEmailAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Handle_RefusedEmail_ReturnsError()
+        {
+            // Arrange
+            var user = new ApplicationUser { Id = "user-1", UserName = "anna", Email = "anna@acme.com", EmailConfirmed = true };
+            var userManager = CreateUserManager(user);
+            userManager
+                .Setup(x => x.SetEmailAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
+                .ReturnsAsync(IdentityResult.Failed(new IdentityError { Code = "DuplicateEmail" }));
+            var handler = CreateHandler(userManager);
+
+            // Act
+            var result = await handler.Handle(CreateCommand("taken@acme.com"), CancellationToken.None);
+
+            // Assert
+            result.Succeeded.Should().BeFalse();
+            result.Errors.Should().ContainSingle(x => x.Code == "DuplicateEmail");
+        }
+
         private static Mock<UserManager<ApplicationUser>> CreateUserManager(ApplicationUser user)
         {
             var userManager = new Mock<UserManager<ApplicationUser>>(Mock.Of<IUserStore<ApplicationUser>>(), null, null, null, null, null, null, null, null);
@@ -84,6 +120,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
 
             userManager
                 .Setup(x => x.SetEmailAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
+                .ReturnsAsync(IdentityResult.Success);
+
+            userManager
+                .Setup(x => x.UpdateAsync(It.IsAny<ApplicationUser>()))
                 .ReturnsAsync(IdentityResult.Success);
 
             return userManager;

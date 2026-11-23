@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 
 namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
@@ -36,22 +37,23 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         protected virtual async Task<IdentityResult> UpdateUserAsync(UserManager<ApplicationUser> userManager, ApplicationUser user, ApplicationUser changes)
         {
-            if (user.PhoneNumber != changes.PhoneNumber)
+            var phoneNumber = changes.PhoneNumber.EmptyToNull();
+            var photoUrl = changes.PhotoUrl.EmptyToNull();
+            var isPhotoChanged = user.PhotoUrl.EmptyToNull() != photoUrl;
+
+            if (isPhotoChanged)
             {
-                var phoneResult = await userManager.SetPhoneNumberAsync(user, changes.PhoneNumber);
-                if (!phoneResult.Succeeded)
-                {
-                    return phoneResult;
-                }
+                user.PhotoUrl = photoUrl;
             }
 
-            if (user.PhotoUrl != changes.PhotoUrl)
+            if (user.PhoneNumber.EmptyToNull() != phoneNumber)
             {
-                user.PhotoUrl = changes.PhotoUrl;
-                return await userManager.UpdateAsync(user);
+                return await userManager.SetPhoneNumberAsync(user, phoneNumber);
             }
 
-            return IdentityResult.Success;
+            return isPhotoChanged
+                ? await userManager.UpdateAsync(user)
+                : IdentityResult.Success;
         }
     }
 }
