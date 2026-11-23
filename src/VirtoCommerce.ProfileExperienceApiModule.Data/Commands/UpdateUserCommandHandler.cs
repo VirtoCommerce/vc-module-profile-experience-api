@@ -17,13 +17,41 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         public virtual async Task<IdentityResult> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
         {
-            if (!IsUserEditable(request.ApplicationUser.UserName))
+            using (var userManager = _userManagerFactory())
             {
-                return IdentityResult.Failed(new IdentityError { Description = "It is forbidden to edit this user." });
+                var user = await userManager.FindByIdAsync(request.ApplicationUser.Id);
+                if (user == null)
+                {
+                    return IdentityResult.Failed();
+                }
+
+                if (!IsUserEditable(user.UserName))
+                {
+                    return IdentityResult.Failed(new IdentityError { Description = "It is forbidden to edit this user." });
+                }
+
+                return await UpdateUserAsync(userManager, user, request.ApplicationUser);
+            }
+        }
+
+        protected virtual async Task<IdentityResult> UpdateUserAsync(UserManager<ApplicationUser> userManager, ApplicationUser user, ApplicationUser changes)
+        {
+            if (user.PhoneNumber != changes.PhoneNumber)
+            {
+                var phoneResult = await userManager.SetPhoneNumberAsync(user, changes.PhoneNumber);
+                if (!phoneResult.Succeeded)
+                {
+                    return phoneResult;
+                }
             }
 
-            using (var userManager = _userManagerFactory())
-                return await userManager.UpdateAsync(request.ApplicationUser);
+            if (user.PhotoUrl != changes.PhotoUrl)
+            {
+                user.PhotoUrl = changes.PhotoUrl;
+                return await userManager.UpdateAsync(user);
+            }
+
+            return IdentityResult.Success;
         }
     }
 }
