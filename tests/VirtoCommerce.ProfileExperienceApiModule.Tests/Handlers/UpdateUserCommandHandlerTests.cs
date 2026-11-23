@@ -178,6 +178,25 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         }
 
         [Fact]
+        public async Task Handle_EmailInOtherCase_SavesNewCaseAndKeepsConfirmation()
+        {
+            // Arrange
+            SetupStoredUser();
+            var command = new UpdateUserCommand
+            {
+                ApplicationUser = new ApplicationUser { Id = UserId, UserName = "customer", Email = "Customer@Example.com" },
+            };
+
+            // Act
+            var result = await CreateHandler().Handle(command, CancellationToken.None);
+
+            // Assert
+            result.Succeeded.Should().BeTrue();
+            _savedUser.Email.Should().Be("Customer@Example.com");
+            _savedUser.EmailConfirmed.Should().BeTrue();
+        }
+
+        [Fact]
         public async Task Handle_EmailChangedWithSecurityPermission_SavesRequestedUser()
         {
             // Arrange

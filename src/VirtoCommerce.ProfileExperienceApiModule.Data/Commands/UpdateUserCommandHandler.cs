@@ -54,10 +54,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             if (!result.Email.EqualsIgnoreCase(requestedUser.Email))
             {
-                result.Email = requestedUser.Email;
                 result.EmailConfirmed = false;
             }
 
+            result.Email = requestedUser.Email;
             result.PhoneNumber = requestedUser.PhoneNumber;
             result.PhotoUrl = requestedUser.PhotoUrl;
 
