@@ -31,11 +31,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return IdentityResult.Failed(new IdentityError { Description = "It is forbidden to edit this user." });
             }
 
-            if (request.CanUpdateSecurityData)
-            {
-                return await userManager.UpdateAsync(request.ApplicationUser);
-            }
-
             var userToSave = GetUserWithProfileChangesOnly(storedUser, request.ApplicationUser);
 
             return storedUser.Email.EqualsIgnoreCase(userToSave.Email)

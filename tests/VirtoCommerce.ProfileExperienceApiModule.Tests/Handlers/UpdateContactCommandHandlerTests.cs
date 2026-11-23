@@ -60,5 +60,42 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             dynamicPropertyUpdaterServiceMock.Verify(x => x.UpdateDynamicPropertyValues(It.Is<Contact>(x => x == contact),
                 It.Is<IList<DynamicPropertyValue>>(x => x == command.DynamicProperties)), Times.Once);
         }
+
+        [Fact]
+        public async Task Handle_MembershipInRequest_IsAlwaysIgnored()
+        {
+            // Arrange (VCST-6974): the storefront API never changes a contact's organizations or customer groups
+            var contact = new Contact { Id = "contact-1", FirstName = "John", LastName = "Doe", Name = "John Doe", Organizations = ["own-org"], Groups = ["Regular"] };
+            var aggregateRepositoryMock = new Mock<IContactAggregateRepository>();
+            aggregateRepositoryMock
+                .Setup(x => x.GetMemberAggregateRootByIdAsync<ContactAggregate>("contact-1"))
+                .ReturnsAsync(new ContactAggregate { Member = contact });
+
+            var disabledOptions = new InputValidationOptions { NameValidationPattern = null, EnableNoHtmlTagsValidation = false };
+            var handler = new UpdateContactCommandHandler(
+                aggregateRepositoryMock.Object,
+                Mock.Of<IDynamicPropertyUpdaterService>(),
+                Mock.Of<ICustomerPreferenceService>(),
+                new NewContactValidator(Options.Create(disabledOptions)),
+                _mapper);
+
+            var command = new UpdateContactCommand
+            {
+                Id = "contact-1",
+                FirstName = "Johnny",
+                LastName = "Doe",
+                Name = "Johnny Doe",
+                Organizations = ["victim-org"],
+                Groups = ["VIP"],
+            };
+
+            // Act
+            await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.Equal("Johnny", contact.FirstName);
+            Assert.Equal(["own-org"], contact.Organizations);
+            Assert.Equal(["Regular"], contact.Groups);
+        }
     }
 }

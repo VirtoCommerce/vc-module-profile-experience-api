@@ -79,7 +79,7 @@ The module includes server-side input validation to prevent stored XSS attacks. 
 
 `updatePersonalData` changes the email of the current user with `UserManager.SetEmailAsync`, as the Backoffice does: the new email is not confirmed, and the security stamp changes. A change of letter case only is saved as is and keeps the confirmation. A new security stamp ends the Backoffice sessions of the user at their next validation (`Authorization:SecurityStampValidationInterval`) and the sign-ins waiting for a second factor; access and refresh tokens already issued stay valid until they expire.
 
-`updateUser` changes the email the same way when the caller has no `platform:security:update` permission and changes their own email. With that permission it saves the requested user as is.
+`updateUser` changes the email of the current user the same way.
 
 ## References
 
