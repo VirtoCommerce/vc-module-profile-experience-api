@@ -28,6 +28,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 .Setup(x => x.UpdateAsync(It.IsAny<ApplicationUser>()))
                 .Callback<ApplicationUser>(user => _savedUser = user)
                 .ReturnsAsync(IdentityResult.Success);
+
+            _userManagerMock
+                .Setup(x => x.SetEmailAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
+                .Callback<ApplicationUser, string>((user, _) => _savedUser = user)
+                .ReturnsAsync(IdentityResult.Success);
         }
 
         [Fact]
@@ -133,6 +138,59 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
 
             // Assert
             _savedUser.EmailConfirmed.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task Handle_EmailChanged_SetsEmailWithUserManager()
+        {
+            // Arrange
+            SetupStoredUser();
+            var command = new UpdateUserCommand
+            {
+                ApplicationUser = new ApplicationUser { Id = UserId, UserName = "customer", Email = "new@example.com", PhoneNumber = "+31 000 000" },
+            };
+
+            // Act
+            var result = await CreateHandler().Handle(command, CancellationToken.None);
+
+            // Assert
+            result.Succeeded.Should().BeTrue();
+            _userManagerMock.Verify(x => x.SetEmailAsync(It.Is<ApplicationUser>(u => u.PhoneNumber == "+31 000 000"), "new@example.com"), Times.Once);
+            _userManagerMock.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Handle_EmailNotChanged_DoesNotSetEmail()
+        {
+            // Arrange
+            SetupStoredUser();
+            var command = new UpdateUserCommand
+            {
+                ApplicationUser = new ApplicationUser { Id = UserId, UserName = "customer", Email = "Customer@Example.com", PhoneNumber = "+31 000 000" },
+            };
+
+            // Act
+            await CreateHandler().Handle(command, CancellationToken.None);
+
+            // Assert
+            _userManagerMock.Verify(x => x.SetEmailAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
+            _userManagerMock.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task Handle_EmailChangedWithSecurityPermission_SavesRequestedUser()
+        {
+            // Arrange
+            SetupStoredUser();
+            var requestedUser = new ApplicationUser { Id = UserId, UserName = "customer", Email = "new@example.com" };
+            var command = new UpdateUserCommand { ApplicationUser = requestedUser, CanUpdateSecurityData = true };
+
+            // Act
+            await CreateHandler().Handle(command, CancellationToken.None);
+
+            // Assert
+            _userManagerMock.Verify(x => x.UpdateAsync(requestedUser), Times.Once);
+            _userManagerMock.Verify(x => x.SetEmailAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
         }
 
         [Fact]
