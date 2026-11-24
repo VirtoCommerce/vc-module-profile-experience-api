@@ -1,4 +1,5 @@
 using FluentValidation;
+using VirtoCommerce.ProfileExperienceApiModule.Data;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
 using Xunit;
 
@@ -88,6 +89,32 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Validators
             _validator.RuleFor(x => x.Value).MatchesNamePattern(@"^[\p{L}\p{M}\s'\-\.]+$");
             var result = _validator.Validate(new TestModel { Value = value });
             Assert.False(result.IsValid);
+        }
+
+        // Each rule reports a code of its own: clients tell the rules apart (and translate them) by the code,
+        // and FluentValidation would otherwise give all three the same generic "PredicateValidator"
+        [Fact]
+        public void NoHtmlTags_HtmlInput_ReportsHtmlTagsNotAllowedCode()
+        {
+            _validator.RuleFor(x => x.Value).NoHtmlTags();
+            var result = _validator.Validate(new TestModel { Value = "<b>bold</b>" });
+            Assert.Equal(ModuleConstants.ValidationErrorCodes.HtmlTagsNotAllowed, Assert.Single(result.Errors).ErrorCode);
+        }
+
+        [Fact]
+        public void NoScriptInjection_MaliciousInput_ReportsUnsafeContentCode()
+        {
+            _validator.RuleFor(x => x.Value).NoScriptInjection();
+            var result = _validator.Validate(new TestModel { Value = "javascript:alert(1)" });
+            Assert.Equal(ModuleConstants.ValidationErrorCodes.UnsafeContent, Assert.Single(result.Errors).ErrorCode);
+        }
+
+        [Fact]
+        public void MatchesNamePattern_InvalidName_ReportsInvalidCharactersCode()
+        {
+            _validator.RuleFor(x => x.Value).MatchesNamePattern(@"^[\p{L}\p{M}\s'\-\.]+$");
+            var result = _validator.Validate(new TestModel { Value = "Tester2" });
+            Assert.Equal(ModuleConstants.ValidationErrorCodes.InvalidCharacters, Assert.Single(result.Errors).ErrorCode);
         }
 
         private class TestModel
