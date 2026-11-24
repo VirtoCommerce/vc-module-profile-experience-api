@@ -55,7 +55,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                         : x.Source.Roles?.SelectMany(r => r.Permissions?.Select(p => p.Name)).Distinct();
                 })
                 .Description("Account permissions");
-            Field(x => x.SecurityStamp);
+            Field<StringGraphType>("securityStamp")
+                .Resolve(_ => null)
+                .DeprecationReason("No longer exposed for security reasons; always returns null.");
             Field(x => x.StoreId, true);
             Field(x => x.TwoFactorEnabled);
             Field(x => x.UserName);

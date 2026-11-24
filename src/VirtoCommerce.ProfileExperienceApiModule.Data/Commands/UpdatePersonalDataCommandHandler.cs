@@ -49,6 +49,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 if (request.PersonalData?.Email != null && user.Email != request.PersonalData?.Email)
                 {
                     user.Email = request.PersonalData.Email;
+                    user.EmailConfirmed = false;
                     result = await userManager.UpdateAsync(user);
                 }
 
