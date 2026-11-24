@@ -36,6 +36,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         {
             request.MemberType = nameof(Contact);
 
+            // VCST-6974: the storefront API never sets a contact's organizations or groups from the request.
+            request.Organizations = null;
+            request.Groups = null;
+
             var contact = _mapper.Map<Contact>(request);
 
             var contactAggregate = _memberAggregateFactory.Create<ContactAggregate>(contact);
