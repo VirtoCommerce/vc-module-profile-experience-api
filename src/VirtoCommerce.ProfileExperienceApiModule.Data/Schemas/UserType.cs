@@ -37,7 +37,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             Field(x => x.PhotoUrl, true);
             Field<ListGraphType<RoleType>>("roles", resolve: x => x.Source.Roles);
             Field<ListGraphType<StringGraphType>>("permissions", resolve: x => x.Source.Roles?.SelectMany(r => r.Permissions?.Select(p => p.Name)).Distinct(), description: "Account permissions");
-            Field(x => x.SecurityStamp);
+            Field<StringGraphType>("securityStamp",
+                resolve: _ => null,
+                deprecationReason: "No longer exposed for security reasons; always returns null.");
             Field(x => x.StoreId, true);
             Field(x => x.TwoFactorEnabled);
             Field(x => x.UserName);
