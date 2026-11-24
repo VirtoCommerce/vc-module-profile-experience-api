@@ -1,5 +1,5 @@
-# v3.800.12
-# https://virtocommerce.atlassian.net/browse/VCST-2469
+# v3.1000.1
+# https://virtocommerce.atlassian.net/browse/VCST-5414
 name: Release hotfix
 
 on:
@@ -11,14 +11,18 @@ on:
         default: true
         type: boolean
 
+# Least-privilege default; jobs override below where they need more.
+permissions:
+  contents: read
+
 jobs:
   test:
-    uses: VirtoCommerce/.github/.github/workflows/test-and-sonar.yml@v3.800.12
+    uses: VirtoCommerce/.github/.github/workflows/test-and-sonar.yml@v3.1000.11
     secrets:
       sonarToken: ${{ secrets.SONAR_TOKEN }}
 
   build:
-    uses: VirtoCommerce/.github/.github/workflows/build.yml@v3.800.12    
+    uses: VirtoCommerce/.github/.github/workflows/build.yml@v3.1000.11
     with:
       uploadPackage: 'true'
       uploadDocker: 'false'
@@ -35,16 +39,21 @@ jobs:
       changelog: ${{ steps.changelog.outputs.changelog }}
     steps:
 
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 0
+        persist-credentials: false
 
     - name: Get Changelog
       id: changelog
-      uses: VirtoCommerce/vc-github-actions/changelog-generator@master
+      uses: VirtoCommerce/.github/actions/changelog-generator@v3.1000.1
 
-  # Trusted Publishing: the long-lived NUGET_KEY secret gets 403 from nuget.org after the GitHub
-  # release already exists. Mint the OIDC key and push in ONE job (a short-lived key cannot cross jobs).
+  # Trusted Publishing: mint the OIDC key and push in ONE job. A short-lived key can't cross
+  # job boundaries (GitHub redacts masked values from job outputs), and the push can't move
+  # into the cross-repo publish-github.yml (its job_workflow_ref wouldn't match this repo's
+  # policy — NuGet/login issues #6/#9). job_workflow_ref here is module-release-hotfix.yml, which matches.
+  # needs get-metadata too: a metadata failure must block the push, else the package publishes while
+  # publish-github-release (which needs get-metadata) is skipped — package with no GitHub release.
   publish-nuget:
     needs: [build, test, get-metadata]
     runs-on: ubuntu-24.04
@@ -95,13 +104,14 @@ jobs:
           NUGET_KEY: ${{ steps.nuget_login.outputs.NUGET_API_KEY }}
 
   # GitHub release only. forceNuget: false — the push is done by publish-nuget above.
+  # publish-github.yml creates the release + edits the PR via the passed GITHUB_TOKEN — grant write to both.
   publish-github-release:
     permissions:
       contents: write
       pull-requests: write
     needs:
       [build, test, get-metadata, publish-nuget]
-    uses: VirtoCommerce/.github/.github/workflows/publish-github.yml@v3.800.12
+    uses: VirtoCommerce/.github/.github/workflows/publish-github.yml@v3.1000.11
     with:
       fullKey: ${{ needs.build.outputs.packageFullKey }}
       changeLog: '${{ needs.get-metadata.outputs.changeLog }}'
@@ -119,13 +129,15 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
     - name: Install VirtoCommerce.GlobalTool
-      uses: VirtoCommerce/vc-github-actions/setup-vcbuild@master
+      uses: VirtoCommerce/.github/actions/setup-vcbuild@stable
 
     - name: Setup Git Credentials
-      uses: VirtoCommerce/vc-github-actions/setup-git-credentials-github@master
+      uses: VirtoCommerce/.github/actions/setup-git-credentials-github@v3.1000.1
       with:
         githubToken: ${{ secrets.REPO_TOKEN }}
 
