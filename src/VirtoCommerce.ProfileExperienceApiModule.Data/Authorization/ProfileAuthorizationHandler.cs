@@ -19,6 +19,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
 {
     public class ProfileAuthorizationHandler : AuthorizationHandler<ProfileAuthorizationRequirement>
     {
+        // Issued by Customer module 3.811+ (no constant before it); absent on older tokens.
+        internal const string OrganizationIdClaimType = "organization_id";
+
         private readonly IMemberService _memberService;
         private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
 
@@ -45,7 +48,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             var currentUserId = GetCurrentUserId(context);
             var currentMember = await GetCustomerAsync(currentUserId, userManager);
             var currentContact = currentMember as Contact;
-            var currentOrganizationId = context.User?.FindFirstValue("organization_id");
+            var currentOrganizationId = context.User?.FindFirstValue(OrganizationIdClaimType);
             var canManageOrganization = context.User.HasGlobalPermission(ProfilePermissions.MyOrganizationEdit);
 
             // PT-6083: reduce complexity

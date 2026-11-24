@@ -777,9 +777,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
 
                 var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
 
-                // The current organization and org-scoped permissions live only in the JWT, not in the
-                // DB-reconstructed principal; copy them so resource-based authorization can read them.
-                CopyOrganizationAndPermissionClaims(from: context.GetCurrentPrincipal(), to: userPrincipal);
+                // The current organization lives only in the JWT, not in the DB-reconstructed principal.
+                // Permissions are not copied: the DB principal already carries the current role permissions.
+                CopyOrganizationClaim(from: context.GetCurrentPrincipal(), to: userPrincipal);
 
                 if (!string.IsNullOrEmpty(permission) && PermissionRequired(user, resource))
                 {
@@ -827,16 +827,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             return true;
         }
 
-        private static void CopyOrganizationAndPermissionClaims(ClaimsPrincipal from, ClaimsPrincipal to)
+        private static void CopyOrganizationClaim(ClaimsPrincipal from, ClaimsPrincipal to)
         {
             if (from == null || to.Identity is not ClaimsIdentity identity)
             {
                 return;
             }
 
-            // Customer module before 3.811 has no claim constant (and issues no such claim)
-            CopyMissingClaims(from, identity, "organization_id");
-            CopyMissingClaims(from, identity, Platform.Core.PlatformConstants.Security.Claims.PermissionClaimType);
+            CopyMissingClaims(from, identity, ProfileAuthorizationHandler.OrganizationIdClaimType);
         }
 
         private static void CopyMissingClaims(ClaimsPrincipal from, ClaimsIdentity to, string claimType)
