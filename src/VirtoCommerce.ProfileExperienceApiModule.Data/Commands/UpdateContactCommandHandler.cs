@@ -24,6 +24,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
         public virtual async Task<ContactAggregate> Handle(UpdateContactCommand request, CancellationToken cancellationToken)
         {
+            // VCST-6974: membership changes go through invite / accept / remove flows, never through updateContact
+            request.Organizations = null;
+            request.Groups = null;
+
             var contactAggregate = await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(request.Id);
 
             _mapper.Map(request, contactAggregate.Contact);
