@@ -33,7 +33,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
 
             var userToSave = GetUserWithProfileChangesOnly(storedUser, request.ApplicationUser);
 
-            return await userManager.UpdateAsync(userToSave);
+            return await SaveUserAsync(userManager, userToSave, storedUser.Email);
         }
 
         /// <summary>
@@ -45,12 +45,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             // The stored user can come from the user cache, so never change it in place
             var result = storedUser.CloneTyped();
 
-            if (!result.Email.EqualsIgnoreCase(requestedUser.Email))
-            {
-                result.Email = requestedUser.Email;
-                result.EmailConfirmed = false;
-            }
-
+            result.Email = requestedUser.Email;
             result.PhoneNumber = requestedUser.PhoneNumber;
             result.PhotoUrl = requestedUser.PhotoUrl;
 

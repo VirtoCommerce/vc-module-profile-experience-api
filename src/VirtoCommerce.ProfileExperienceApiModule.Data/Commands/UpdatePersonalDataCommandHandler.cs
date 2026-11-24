@@ -47,11 +47,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 {
                     return IdentityResult.Failed(new IdentityError { Description = "It is forbidden to edit this user." });
                 }
-                if (request.PersonalData?.Email != null && user.Email != request.PersonalData?.Email)
+                var email = request.PersonalData?.Email;
+                if (email != null && user.Email != email)
                 {
-                    user.Email = request.PersonalData.Email;
-                    user.EmailConfirmed = false;
-                    result = await userManager.UpdateAsync(user);
+                    var storedEmail = user.Email;
+                    user.Email = email;
+                    result = await SaveUserAsync(userManager, user, storedEmail);
                 }
 
                 var contactAggregate = await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(user.MemberId);
