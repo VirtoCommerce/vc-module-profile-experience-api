@@ -24,10 +24,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return _securityOptions.NonEditableUsers?.FirstOrDefault(x => x.EqualsIgnoreCase(userName)) == null;
         }
 
-        /// <summary>
-        /// Saves the user. A new email goes through <see cref="UserManager{TUser}.SetEmailAsync"/>, which resets the confirmation and renews the security stamp.
-        /// A change of letter case only is saved as is and keeps both.
-        /// </summary>
         protected virtual Task<IdentityResult> SaveUserAsync(UserManager<ApplicationUser> userManager, ApplicationUser user, string storedEmail)
         {
             return storedEmail.EqualsIgnoreCase(user.Email)
