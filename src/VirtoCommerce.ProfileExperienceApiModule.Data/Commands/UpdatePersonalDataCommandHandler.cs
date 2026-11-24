@@ -5,7 +5,6 @@ using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
-using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Validators;
@@ -51,15 +50,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 var email = request.PersonalData?.Email;
                 if (email != null && user.Email != email)
                 {
-                    if (user.Email.EqualsIgnoreCase(email))
-                    {
-                        user.Email = email;
-                        result = await userManager.UpdateAsync(user);
-                    }
-                    else
-                    {
-                        result = await userManager.SetEmailAsync(user, email);
-                    }
+                    var storedEmail = user.Email;
+                    user.Email = email;
+                    result = await SaveUserAsync(userManager, user, storedEmail);
                 }
 
                 var contactAggregate = await _contactAggregateRepository.GetMemberAggregateRootByIdAsync<ContactAggregate>(user.MemberId);

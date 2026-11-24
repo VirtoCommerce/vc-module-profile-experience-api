@@ -75,11 +75,15 @@ The module includes server-side input validation to prevent stored XSS attacks. 
 * `errorCode` is the rule: `InvalidCharacters` (name patterns), `HtmlTagsNotAllowed`, `UnsafeContent`, `InvalidEmail` (email format), or a FluentValidation code such as `NotEmptyValidator` or `MaximumLengthValidator`.
 * `message` is in English. A client that shows the error to users should translate it by `errorCode`.
 
-### User accounts
+## User accounts
 
-`updatePersonalData` changes the email of the current user with `UserManager.SetEmailAsync`, as the Backoffice does: the new email is not confirmed, and the security stamp changes. A change of letter case only is saved as is and keeps the confirmation. A new security stamp ends the Backoffice sessions of the user at their next validation (`Authorization:SecurityStampValidationInterval`) and the sign-ins waiting for a second factor; access and refresh tokens already issued stay valid until they expire.
+`updatePersonalData` (the current user) and `updateUser` (the user's own account, or any account for an administrator) change the email with `UserManager.SetEmailAsync`: the new email is not confirmed, and the security stamp changes. A change of letter case only is saved as is and keeps the confirmation and the stamp. The Backoffice also resets the confirmation and ignores the letter case, but it keeps the old security stamp.
 
-`updateUser` changes the email of the current user the same way.
+A new security stamp:
+
+* ends the Backoffice sessions of the user at their next validation (`Authorization:SecurityStampValidationInterval`) and the sign-ins waiting for a second factor;
+* invalidates the password reset and email confirmation links sent before the change;
+* doesn't end storefront sessions: access tokens don't carry the stamp, and the refresh token grant doesn't check it, so a refresh token keeps the session going.
 
 ## References
 

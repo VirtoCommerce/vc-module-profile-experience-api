@@ -17,6 +17,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
 {
     public class UpdatePersonalDataCommandHandlerTests
     {
+        private const string UserId = "user-1";
+
         [Fact]
         public async Task Handle_InvalidPersonalData_NamesTheFailureByItsInputPath()
         {
@@ -29,7 +31,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 new PersonalDataValidator(Options.Create(new InputValidationOptions())));
             var command = new UpdatePersonalDataCommand
             {
-                UserId = "user-1",
+                UserId = UserId,
                 PersonalData = new PersonalData { FirstName = "Anna2", LastName = "Smith" },
             };
 
@@ -44,7 +46,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         public async Task Handle_NewEmail_SetsEmailWithUserManager()
         {
             // Arrange
-            var user = new ApplicationUser { Id = "user-1", UserName = "anna", Email = "anna@acme.com", EmailConfirmed = true };
+            var user = new ApplicationUser { Id = UserId, UserName = "anna", Email = "anna@acme.com", EmailConfirmed = true };
             var userManager = CreateUserManager(user);
             var handler = CreateHandler(userManager);
 
@@ -61,7 +63,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         public async Task Handle_SameEmail_LeavesEmailUnchanged()
         {
             // Arrange
-            var user = new ApplicationUser { Id = "user-1", UserName = "anna", Email = "anna@acme.com", EmailConfirmed = true };
+            var user = new ApplicationUser { Id = UserId, UserName = "anna", Email = "anna@acme.com", EmailConfirmed = true };
             var userManager = CreateUserManager(user);
             var handler = CreateHandler(userManager);
 
@@ -78,7 +80,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         public async Task Handle_EmailInOtherCase_KeepsConfirmation()
         {
             // Arrange
-            var user = new ApplicationUser { Id = "user-1", UserName = "anna", Email = "Anna@acme.com", EmailConfirmed = true };
+            var user = new ApplicationUser { Id = UserId, UserName = "anna", Email = "Anna@acme.com", EmailConfirmed = true };
             var userManager = CreateUserManager(user);
             var handler = CreateHandler(userManager);
 
@@ -95,7 +97,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         public async Task Handle_RefusedEmail_ReturnsError()
         {
             // Arrange
-            var user = new ApplicationUser { Id = "user-1", UserName = "anna", Email = "anna@acme.com", EmailConfirmed = true };
+            var user = new ApplicationUser { Id = UserId, UserName = "anna", Email = "anna@acme.com", EmailConfirmed = true };
             var userManager = CreateUserManager(user);
             userManager
                 .Setup(x => x.SetEmailAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
@@ -142,7 +144,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         {
             return new UpdatePersonalDataCommand
             {
-                UserId = "user-1",
+                UserId = UserId,
                 PersonalData = new PersonalData { FirstName = "Anna", LastName = "Smith", Email = email },
             };
         }

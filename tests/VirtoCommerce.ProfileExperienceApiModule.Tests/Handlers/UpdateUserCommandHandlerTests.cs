@@ -79,7 +79,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             _savedUser.IsAdministrator.Should().BeFalse();
             _savedUser.Roles.Should().BeNull("roles must not be synchronized from the request");
             _savedUser.PasswordHash.Should().Be("stored-hash");
-            _savedUser.SecurityStamp.Should().Be("stored-stamp");
+            _savedUser.SecurityStamp.Should().NotBe("attacker-stamp");
             _savedUser.MemberId.Should().Be("contact-1");
             _savedUser.StoreId.Should().Be("store-1");
             _savedUser.LockoutEnd.Should().Be(storedUser.LockoutEnd);
@@ -107,40 +107,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         }
 
         [Fact]
-        public async Task Handle_EmailChanged_ResetsEmailConfirmation()
-        {
-            // Arrange
-            SetupStoredUser();
-            var command = new UpdateUserCommand
-            {
-                ApplicationUser = new ApplicationUser { Id = UserId, UserName = "customer", Email = "new@example.com" },
-            };
-
-            // Act
-            await CreateHandler().Handle(command, CancellationToken.None);
-
-            // Assert
-            _savedUser.EmailConfirmed.Should().BeFalse();
-        }
-
-        [Fact]
-        public async Task Handle_EmailNotChanged_KeepsEmailConfirmation()
-        {
-            // Arrange
-            SetupStoredUser();
-            var command = new UpdateUserCommand
-            {
-                ApplicationUser = new ApplicationUser { Id = UserId, UserName = "customer", Email = "Customer@Example.com", PhoneNumber = "1" },
-            };
-
-            // Act
-            await CreateHandler().Handle(command, CancellationToken.None);
-
-            // Assert
-            _savedUser.EmailConfirmed.Should().BeTrue();
-        }
-
-        [Fact]
         public async Task Handle_EmailChanged_SetsEmailWithUserManager()
         {
             // Arrange
@@ -160,21 +126,23 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         }
 
         [Fact]
-        public async Task Handle_EmailNotChanged_DoesNotSetEmail()
+        public async Task Handle_EmailNotChanged_KeepsEmailConfirmation()
         {
             // Arrange
             SetupStoredUser();
             var command = new UpdateUserCommand
             {
-                ApplicationUser = new ApplicationUser { Id = UserId, UserName = "customer", Email = "Customer@Example.com", PhoneNumber = "+31 000 000" },
+                ApplicationUser = new ApplicationUser { Id = UserId, UserName = "customer", Email = "customer@example.com", PhoneNumber = "+31 000 000" },
             };
 
             // Act
             await CreateHandler().Handle(command, CancellationToken.None);
 
             // Assert
-            _userManagerMock.Verify(x => x.SetEmailAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
+            _savedUser.EmailConfirmed.Should().BeTrue();
+            _savedUser.PhoneNumber.Should().Be("+31 000 000");
             _userManagerMock.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Once);
+            _userManagerMock.Verify(x => x.SetEmailAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
         }
 
         [Fact]
@@ -194,9 +162,29 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             result.Succeeded.Should().BeTrue();
             _savedUser.Email.Should().Be("Customer@Example.com");
             _savedUser.EmailConfirmed.Should().BeTrue();
+            _userManagerMock.Verify(x => x.SetEmailAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
         }
 
+        [Fact]
+        public async Task Handle_RefusedEmail_ReturnsError()
+        {
+            // Arrange
+            SetupStoredUser();
+            _userManagerMock
+                .Setup(x => x.SetEmailAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
+                .ReturnsAsync(IdentityResult.Failed(new IdentityError { Code = "DuplicateEmail" }));
+            var command = new UpdateUserCommand
+            {
+                ApplicationUser = new ApplicationUser { Id = UserId, UserName = "customer", Email = "taken@example.com" },
+            };
 
+            // Act
+            var result = await CreateHandler().Handle(command, CancellationToken.None);
+
+            // Assert
+            result.Succeeded.Should().BeFalse();
+            result.Errors.Should().ContainSingle(x => x.Code == "DuplicateEmail");
+        }
 
         [Fact]
         public async Task Handle_UserNotFound_Fails()
