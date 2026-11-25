@@ -12,6 +12,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data
 
                 public static string[] AllPermissions { get; } = { MyOrganizationEdit, MyOrganizationUserInvite, MyOrganizationOrderView };
             }
+
+            public static string[] DefaultMembershipRolesWhitelist { get; } = ["Organization employee", "Purchasing agent", "Organization maintainer"];
         }
 
         public static class ContactStatuses

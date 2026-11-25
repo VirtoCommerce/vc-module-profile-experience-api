@@ -10,6 +10,7 @@ using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Commands;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Configuration;
 using VirtoCommerce.Xapi.Tests.Helpers;
 using Xunit;
 
@@ -21,6 +22,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
         private readonly Mock<IOrganizationMembershipService> _membershipServiceMock = new();
         private readonly Mock<UserManager<ApplicationUser>> _userManagerMock;
         private readonly Mock<RoleManager<Role>> _roleManagerMock;
+        private readonly FrontendSecurityOptions _frontendSecurityOptions = new() { MembershipRolesWhitelist = ["role-1"] };
 
         public ChangeOrganizationContactRoleCommandHandlerTests()
         {
@@ -149,6 +151,40 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 Times.Once);
         }
 
+        [Fact]
+        public async Task Handle_RoleNotInWhitelist_ReturnsRoleNotAllowedError()
+        {
+            // Arrange
+            const string securityUserId = "user-1";
+
+            SetupContactAggregate(securityUserId);
+
+            _userManagerMock
+                .Setup(x => x.FindByIdAsync(securityUserId))
+                .ReturnsAsync(new ApplicationUser { Id = securityUserId, UserName = "test@test.com" });
+
+            _roleManagerMock
+                .Setup(x => x.FindByIdAsync("store-manager"))
+                .ReturnsAsync(new Role { Id = "store-manager", Name = "Store manager", NormalizedName = "STORE MANAGER" });
+
+            var command = new ChangeOrganizationContactRoleCommand
+            {
+                MemberId = "contact-1",
+                OrganizationId = "org-1",
+                RoleIds = ["store-manager"]
+            };
+
+            var handler = BuildHandler();
+
+            // Act
+            var result = await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.False(result.Succeeded);
+            Assert.Contains(result.Errors, e => e.Code == "RoleNotAllowed" && e.Parameter == "store-manager");
+            _membershipServiceMock.Verify(x => x.SaveChangesAsync(It.IsAny<IList<OrganizationMembership>>()), Times.Never);
+        }
+
         private void SetupContactAggregate(string securityUserId)
         {
             var contact = new Contact
@@ -170,7 +206,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
                 () => roleManager,
                 _membershipServiceMock.Object,
                 _contactRepoMock.Object,
-                Options.Create(new AuthorizationOptions()));
+                Options.Create(new AuthorizationOptions()),
+                Options.Create(_frontendSecurityOptions));
         }
     }
 }
