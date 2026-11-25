@@ -13,6 +13,22 @@ Just like other xAPI modules, X-Profile module resides on a website's or applica
 * [Module Documentation](https://docs.virtocommerce.org/modules/profile-experience-api/)
 * [View on GitHub](docs/index.md)
 
+## Configuration
+
+### Company Member Roles
+
+`inviteUser` and `changeOrganizationContactRole` assign only the roles listed in `FrontendSecurity:MembershipRolesWhitelist`. A role matches by ID or by name, ignoring case:
+
+```json
+{
+  "FrontendSecurity": {
+    "MembershipRolesWhitelist": [ "Organization employee", "Purchasing agent", "Organization maintainer" ]
+  }
+}
+```
+
+When the setting is not configured, the three roles above are allowed.
+
 ## References
 * Deployment: https://docs.virtocommerce.org/developer-guide/deploy-module-from-source-code/
 * Installation: https://docs.virtocommerce.org/user-guide/modules/
