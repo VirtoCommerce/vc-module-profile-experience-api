@@ -10,6 +10,8 @@ using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Aggregates.Contact;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Configuration;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
 
@@ -20,18 +22,21 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly Func<RoleManager<Role>> _roleManagerFactory;
         private readonly IOrganizationMembershipService _organizationMembershipService;
         private readonly IContactAggregateRepository _contactAggregateRepository;
+        private readonly IOptions<FrontendSecurityOptions> _frontendSecurityOptions;
 
         public ChangeOrganizationContactRoleCommandHandler(
             Func<UserManager<ApplicationUser>> userManager,
             Func<RoleManager<Role>> roleManagerFactory,
             IOrganizationMembershipService organizationMembershipService,
             IContactAggregateRepository contactAggregateRepository,
-            IOptions<AuthorizationOptions> securityOptions)
+            IOptions<AuthorizationOptions> securityOptions,
+            IOptions<FrontendSecurityOptions> frontendSecurityOptions)
             : base(userManager, securityOptions)
         {
             _roleManagerFactory = roleManagerFactory;
             _organizationMembershipService = organizationMembershipService;
             _contactAggregateRepository = contactAggregateRepository;
+            _frontendSecurityOptions = frontendSecurityOptions;
         }
 
         public async Task<IdentityResultResponse> Handle(ChangeOrganizationContactRoleCommand request, CancellationToken cancellationToken)
@@ -71,13 +76,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             foreach (var roleId in request.RoleIds ?? [])
             {
                 var role = await roleManager.FindByIdAsync(roleId) ?? await roleManager.FindByNameAsync(roleId);
-                if (role != null)
+                if (role == null)
                 {
-                    roles.Add(role);
+                    result.Errors.Add(new IdentityErrorInfo { Code = "Role not found", Description = $"Role '{roleId}' not found", Parameter = roleId });
+                }
+                else if (!_frontendSecurityOptions.Value.IsRoleAllowed(role))
+                {
+                    result.Errors.Add(new IdentityErrorInfo { Code = "RoleNotAllowed", Description = $"Role '{roleId}' is not allowed for company members", Parameter = roleId });
                 }
                 else
                 {
-                    result.Errors.Add(new IdentityErrorInfo { Code = "Role not found", Description = $"Role '{roleId}' not found", Parameter = roleId });
+                    roles.Add(role);
                 }
             }
 
