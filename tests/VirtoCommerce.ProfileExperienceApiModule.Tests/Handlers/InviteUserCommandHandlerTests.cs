@@ -67,6 +67,33 @@ public class InviteUserCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_InviteWithoutOrganizationWithRoleNotInWhitelist_ReturnsRoleNotAllowedWithoutCreatingAccount()
+    {
+        // Arrange
+        _roleManagerMock
+            .Setup(x => x.FindByIdAsync("store-manager"))
+            .ReturnsAsync(new Role { Id = "store-manager", Name = "Store manager" });
+
+        var command = new InviteUserCommand
+        {
+            StoreId = "store-1",
+            Emails = ["new@example.com"],
+            RoleIds = ["store-manager"],
+        };
+
+        var handler = BuildHandler();
+
+        // Act
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Errors, e => e.Code == "RoleNotAllowed" && e.Parameter == "store-manager");
+        _memberServiceMock.Verify(x => x.SaveChangesAsync(It.IsAny<Member[]>()), Times.Never);
+        _userManagerMock.Verify(x => x.CreateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Handle_OrganizationInviteWithDefaultWhitelistedRole_CreatesAccount()
     {
         // Arrange

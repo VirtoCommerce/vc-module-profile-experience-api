@@ -69,13 +69,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 Succeeded = false,
             };
 
-            if (!string.IsNullOrEmpty(request.OrganizationId))
+            result.Errors.AddRange(await ValidateMembershipRoles(request.RoleIds));
+            if (result.Errors.Count > 0)
             {
-                result.Errors.AddRange(await ValidateMembershipRoles(request.RoleIds));
-                if (result.Errors.Count > 0)
-                {
-                    return result;
-                }
+                return result;
             }
 
             // PT-6083: reduce complexity

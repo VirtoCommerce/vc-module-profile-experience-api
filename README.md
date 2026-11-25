@@ -50,7 +50,7 @@ The module includes server-side input validation to prevent stored XSS attacks. 
 
 ### Company Member Roles
 
-`inviteUser` with an organization and `changeOrganizationContactRole` assign only the roles listed in `FrontendSecurity:MembershipRolesWhitelist`. A role matches by ID or by name, ignoring case:
+`inviteUser` and `changeOrganizationContactRole` assign only the roles listed in `FrontendSecurity:MembershipRolesWhitelist`. A role matches by ID or by name, ignoring case:
 
 ```json
 {
