@@ -20,6 +20,22 @@ Just like other xAPI modules, xProfile module resides on a website's or applicat
 * [How to extend](https://docs.virtocommerce.org/platform/developer-guide/GraphQL-Storefront-API-Reference-xAPI/x-api-extensions/)
 * [Virto Commerce Frontend architecture](https://docs.virtocommerce.org/storefront/developer-guide/architecture/)
 
+## Configuration
+
+### Company Member Roles
+
+`inviteUser` and `changeOrganizationContactRole` assign only the roles listed in `FrontendSecurity:MembershipRolesWhitelist`. A role matches by ID or by name, ignoring case:
+
+```json
+{
+  "FrontendSecurity": {
+    "MembershipRolesWhitelist": [ "Organization employee", "Purchasing agent", "Organization maintainer" ]
+  }
+}
+```
+
+When the setting is not configured, the three roles above are allowed.
+
 ## References
 
 * [Deployment](https://docs.virtocommerce.org/platform/developer-guide/Tutorials-and-How-tos/Tutorials/deploy-module-from-source-code/)

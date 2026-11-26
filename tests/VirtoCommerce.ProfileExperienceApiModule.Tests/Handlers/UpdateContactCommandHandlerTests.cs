@@ -61,5 +61,35 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             dynamicPropertyUpdaterServiceMock.Verify(x => x.UpdateDynamicPropertyValues(It.Is<Contact>(x => x == contact),
                 It.Is<IList<DynamicPropertyValue>>(x => x == command.DynamicProperties)), Times.Once);
         }
+
+        [Fact]
+        public async Task Handle_OrganizationsAndGroupsInRequest_KeepsStoredMembership()
+        {
+            // Arrange: membership changes go through invite / accept / remove flows (VCST-6974)
+            var aggregateRepositoryMock = new Mock<IContactAggregateRepository>();
+
+            var contact = _fixture.Create<Contact>();
+            contact.Organizations = new List<string> { "org-1" };
+            contact.Groups = new List<string> { "group-1" };
+
+            aggregateRepositoryMock
+                .Setup(x => x.GetMemberAggregateRootByIdAsync<ContactAggregate>(It.IsAny<string>()))
+                .ReturnsAsync(new ContactAggregate { Member = contact });
+
+            var handler = new UpdateContactCommandHandler(aggregateRepositoryMock.Object,
+                new Mock<IDynamicPropertyUpdaterService>().Object,
+                _mapper);
+
+            var command = _fixture.Create<UpdateContactCommand>();
+            command.Organizations = new List<string> { "foreign-org" };
+            command.Groups = new List<string> { "vip" };
+
+            // Act
+            await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.Equal(new[] { "org-1" }, contact.Organizations);
+            Assert.Equal(new[] { "group-1" }, contact.Groups);
+        }
     }
 }

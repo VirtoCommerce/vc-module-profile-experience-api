@@ -8,6 +8,7 @@ using MediatR;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.NotificationsModule.Core.Extensions;
@@ -15,6 +16,7 @@ using VirtoCommerce.NotificationsModule.Core.Services;
 using VirtoCommerce.NotificationsModule.Core.Types;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
+using VirtoCommerce.ProfileExperienceApiModule.Data.Configuration;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Extensions;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Models;
 using VirtoCommerce.ProfileExperienceApiModule.Data.Queries;
@@ -34,12 +36,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
         private readonly INotificationSearchService _notificationSearchService;
         private readonly INotificationSender _notificationSender;
         private readonly IStoreService _storeService;
+        private readonly IOptions<FrontendSecurityOptions> _frontendSecurityOptions;
 
         public InviteUserCommandHandler(
             IWebHostEnvironment environment,
             Func<UserManager<ApplicationUser>> userManager, IMemberService memberService,
             INotificationSearchService notificationSearchService, INotificationSender notificationSender,
-            IStoreService storeService, Func<RoleManager<Role>> roleManagerFactory)
+            IStoreService storeService, Func<RoleManager<Role>> roleManagerFactory,
+            IOptions<FrontendSecurityOptions> frontendSecurityOptions)
         {
             _environment = environment;
             _userManagerFactory = userManager;
@@ -48,6 +52,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             _notificationSender = notificationSender;
             _storeService = storeService;
             _roleManagerFactory = roleManagerFactory;
+            _frontendSecurityOptions = frontendSecurityOptions;
         }
 
         public virtual async Task<IdentityResultResponse> Handle(InviteUserCommand request, CancellationToken cancellationToken)
@@ -57,6 +62,12 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 Errors = new List<IdentityErrorInfo>(),
                 Succeeded = false,
             };
+
+            result.Errors.AddRange(await ValidateMembershipRoles(request.RoleIds));
+            if (result.Errors.Count > 0)
+            {
+                return result;
+            }
 
             // PT-6083: reduce complexity
             foreach (var email in request.Emails.Distinct())
@@ -108,6 +119,29 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             }
 
             return result;
+        }
+
+        protected virtual async Task<List<IdentityErrorInfo>> ValidateMembershipRoles(string[] roleIds)
+        {
+            var errors = new List<IdentityErrorInfo>();
+
+            if (roleIds.IsNullOrEmpty())
+            {
+                return errors;
+            }
+
+            using var roleManager = _roleManagerFactory();
+
+            foreach (var roleId in roleIds)
+            {
+                var role = await roleManager.FindByIdAsync(roleId) ?? await roleManager.FindByNameAsync(roleId);
+                if (role != null && !_frontendSecurityOptions.Value.IsRoleAllowed(role))
+                {
+                    errors.Add(new IdentityErrorInfo { Code = "RoleNotAllowed", Description = $"Role '{roleId}' is not allowed for company members", Parameter = roleId });
+                }
+            }
+
+            return errors;
         }
 
         protected virtual Contact CreateContact(InviteUserCommand request, string email)
