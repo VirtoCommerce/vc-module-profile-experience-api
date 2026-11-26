@@ -556,6 +556,9 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 Type = GraphTypeExtensionHelper.GetActualType<RoleType>(),
                 Resolver = new FuncFieldResolver<object>(async context =>
                 {
+                    // Require the security read permission before loading the role, so role existence is not disclosed.
+                    await CheckAuthAsync(context, new Role(), PlatformPermissions.SecurityQuery);
+
                     var result = await _mediator.Send(new GetRoleQuery(context.GetArgument<string>("roleName")));
 
                     return result;
@@ -791,6 +794,10 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
                 // Why do we create a new principal???
                 var userPrincipal = await signInManager.CreateUserPrincipalAsync(user);
 
+                // The current organization lives only in the JWT, not in the DB-reconstructed principal.
+                // Permissions are not copied: the DB principal already carries the current role permissions.
+                CopyOrganizationClaim(from: context.GetCurrentPrincipal(), to: userPrincipal);
+
                 if (!string.IsNullOrEmpty(permission) && PermissionRequired(user, resource))
                 {
                     if (user.Logins is null)
@@ -835,6 +842,30 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Schemas
             }
 
             return true;
+        }
+
+        private static void CopyOrganizationClaim(ClaimsPrincipal from, ClaimsPrincipal to)
+        {
+            if (from == null || to.Identity is not ClaimsIdentity identity)
+            {
+                return;
+            }
+
+            CopyMissingClaims(from, identity, ProfileAuthorizationHandler.OrganizationIdClaimType);
+        }
+
+        private static void CopyMissingClaims(ClaimsPrincipal from, ClaimsIdentity to, string claimType)
+        {
+            var existing = to.FindAll(claimType).Select(x => x.Value).ToHashSet(System.StringComparer.OrdinalIgnoreCase);
+            var missing = from.FindAll(claimType)
+                .Select(x => x.Value)
+                .Where(value => !existing.Contains(value))
+                .Distinct(System.StringComparer.OrdinalIgnoreCase);
+
+            foreach (var value in missing)
+            {
+                to.AddClaim(new Claim(claimType, value));
+            }
         }
 
         private async Task<string> GetUserEmailAsync(string userId)

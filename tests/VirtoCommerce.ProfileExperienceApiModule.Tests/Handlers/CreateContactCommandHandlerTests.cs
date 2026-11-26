@@ -52,5 +52,42 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Handlers
             dynamicPropertyUpdaterServiceMock.Verify(x => x.UpdateDynamicPropertyValues(It.Is<Contact>(x => x == contact),
                 It.Is<IList<DynamicPropertyValue>>(x => x == command.DynamicProperties)), Times.Once);
         }
+
+        [Fact]
+        public async Task Handle_OrganizationsAndGroupsInRequest_AreNotMapped()
+        {
+            // Arrange: the storefront API never sets a contact's organizations or groups (VCST-6974)
+            var aggregateFactoryMock = new Mock<IMemberAggregateFactory>();
+            var mapperMock = new Mock<IMapper>();
+
+            var contact = _fixture.Create<Contact>();
+            aggregateFactoryMock
+                .Setup(x => x.Create<ContactAggregate>(It.IsAny<Contact>()))
+                .Returns(new ContactAggregate { Member = contact });
+
+            CreateContactCommand mappedRequest = null;
+            mapperMock
+                .Setup(x => x.Map<Contact>(It.IsAny<object>()))
+                .Callback<object>(source => mappedRequest = (CreateContactCommand)source)
+                .Returns(contact);
+
+            var handler = new CreateContactCommandHandler(new Mock<IContactAggregateRepository>().Object,
+                aggregateFactoryMock.Object,
+                new Mock<IDynamicPropertyUpdaterService>().Object,
+                mapperMock.Object,
+                new NewContactValidator(Options.Create(new InputValidationOptions { NameValidationPattern = null, EnableNoHtmlTagsValidation = false })));
+
+            var command = _fixture.Create<CreateContactCommand>();
+            command.Organizations = new List<string> { "foreign-org" };
+            command.Groups = new List<string> { "vip" };
+
+            // Act
+            await handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(mappedRequest);
+            Assert.Null(mappedRequest.Organizations);
+            Assert.Null(mappedRequest.Groups);
+        }
     }
 }

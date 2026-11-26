@@ -4,6 +4,8 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Configuration
     {
         public string OrganizationMaintainerRole { get; set; }
 
+        public string[] MembershipRolesWhitelist { get; set; }
+
         public InputValidationOptions InputValidation { get; set; } = new();
     }
 }

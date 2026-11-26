@@ -48,6 +48,20 @@ The module includes server-side input validation to prevent stored XSS attacks. 
 
 > MaxLength constraints are always enforced regardless of configuration.
 
+### Company Member Roles
+
+`inviteUser` and `changeOrganizationContactRole` assign only the roles listed in `FrontendSecurity:MembershipRolesWhitelist`. A role matches by ID or by name, ignoring case:
+
+```json
+{
+  "FrontendSecurity": {
+    "MembershipRolesWhitelist": [ "Organization employee", "Purchasing agent", "Organization maintainer" ]
+  }
+}
+```
+
+When the setting is not configured, the three roles above are allowed.
+
 ## References
 
 * [Deployment](https://docs.virtocommerce.org/platform/developer-guide/Tutorials-and-How-tos/Tutorials/deploy-module-from-source-code/)
