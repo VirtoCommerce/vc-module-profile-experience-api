@@ -143,14 +143,14 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Authorization
             Assert.True((await HandleAsync(command, OrgClaim(OrgId))).HasSucceeded);
         }
 
-        // Customer module before 3.811 issues no organization_id claim: "current organization" = any organization of the caller.
+        // No organization_id claim: no current organization, so organization-scoped commands fail closed.
         [Fact]
-        public async Task UpdateContact_NoOrgClaim_ColleagueWithPermissionInSharedOrg_Succeeds()
+        public async Task UpdateContact_NoOrgClaim_ColleagueWithPermissionInSharedOrg_Fails()
         {
             SetupCurrentContact([OrgId]);
             SetupContact(OtherContactId, [OrgId]);
             var command = new UpdateContactCommand { Id = OtherContactId };
-            Assert.True((await HandleAsync(command, OrgEditClaim())).HasSucceeded);
+            Assert.False((await HandleAsync(command, OrgEditClaim())).HasSucceeded);
         }
 
         [Fact]
@@ -172,11 +172,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Tests.Authorization
         }
 
         [Fact]
-        public async Task UpdateOrganization_NoOrgClaim_OwnOrgWithPermission_Succeeds()
+        public async Task UpdateOrganization_NoOrgClaim_OwnOrgWithPermission_Fails()
         {
             SetupCurrentContact([OrgId]);
             var command = new UpdateOrganizationCommand { Id = OrgId };
-            Assert.True((await HandleAsync(command, OrgEditClaim())).HasSucceeded);
+            Assert.False((await HandleAsync(command, OrgEditClaim())).HasSucceeded);
         }
 
         [Fact]

@@ -19,7 +19,6 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
 {
     public class ProfileAuthorizationHandler : AuthorizationHandler<ProfileAuthorizationRequirement>
     {
-        // Issued by Customer module 3.811+ (no constant before it); absent on older tokens.
         internal const string OrganizationIdClaimType = "organization_id";
 
         private readonly IMemberService _memberService;
@@ -56,11 +55,11 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
             {
                 case ContactAggregate contactAggregate when currentContact != null:
                     result = currentContact.Id == contactAggregate.Contact.Id;
-                    result = result || await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, contactAggregate.Contact.Id, userManager);
+                    result = result || await IsInOrganizationAsync(currentContact, currentOrganizationId, contactAggregate.Contact.Id, userManager);
                     break;
                 case ApplicationUser applicationUser:
                     result = currentUserId == applicationUser.Id;
-                    result = result || await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, applicationUser.Id, userManager);
+                    result = result || await IsInOrganizationAsync(currentContact, currentOrganizationId, applicationUser.Id, userManager);
                     break;
                 case OrganizationAggregate organizationAggregate when currentContact != null:
                     result = currentContact.Organizations.Contains(organizationAggregate.Organization.Id);
@@ -89,7 +88,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     result = true;
                     break;
                 case DeleteContactCommand deleteContactCommand when currentContact != null:
-                    result = await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, deleteContactCommand.ContactId, userManager);
+                    result = await IsInOrganizationAsync(currentContact, currentOrganizationId, deleteContactCommand.ContactId, userManager);
                     break;
                 case DeleteUserCommand deleteUserCommand when currentContact != null:
                     var allowDelete = true;
@@ -98,7 +97,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                         if (allowDelete)
                         {
                             var user = await userManager.FindByNameAsync(userName);
-                            allowDelete = await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, user?.MemberId, userManager);
+                            allowDelete = await IsInOrganizationAsync(currentContact, currentOrganizationId, user?.MemberId, userManager);
                         }
                     }
                     result = allowDelete;
@@ -108,10 +107,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     break;
                 case UpdateContactCommand updateContactCommand when currentContact != null:
                     result = updateContactCommand.Id == currentContact.Id;
-                    result = result || (canManageOrganization && await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, updateContactCommand.Id, userManager));
+                    result = result || (canManageOrganization && await IsInOrganizationAsync(currentContact, currentOrganizationId, updateContactCommand.Id, userManager));
                     break;
                 case UpdateOrganizationCommand updateOrganizationCommand when currentContact != null:
-                    result = canManageOrganization && IsCurrentOrganization(currentContact, currentOrganizationId, updateOrganizationCommand.Id);
+                    result = canManageOrganization
+                        && !string.IsNullOrEmpty(currentOrganizationId)
+                        && updateOrganizationCommand.Id.EqualsIgnoreCase(currentOrganizationId)
+                        && currentContact.Organizations.Any(x => x.EqualsIgnoreCase(currentOrganizationId));
                     break;
                 case UpdateMemberDynamicPropertiesCommand:
                     //Can be checked only with platform permission
@@ -138,13 +140,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                     }
                     break;
                 case LockOrganizationContactCommand lockOrganizationContact:
-                    result = canManageOrganization && await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, lockOrganizationContact.UserId, userManager);
+                    result = canManageOrganization && await IsInOrganizationAsync(currentContact, currentOrganizationId, lockOrganizationContact.UserId, userManager);
                     break;
                 case UnlockOrganizationContactCommand unlockOrganizationContact:
-                    result = canManageOrganization && await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, unlockOrganizationContact.UserId, userManager);
+                    result = canManageOrganization && await IsInOrganizationAsync(currentContact, currentOrganizationId, unlockOrganizationContact.UserId, userManager);
                     break;
                 case ChangeOrganizationContactRoleCommand changeOrganizationContactRoleCommand:
-                    result = canManageOrganization && await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, changeOrganizationContactRoleCommand.UserId, userManager);
+                    result = canManageOrganization && await IsInOrganizationAsync(currentContact, currentOrganizationId, changeOrganizationContactRoleCommand.UserId, userManager);
                     break;
                 case RemoveMemberFromOrganizationCommand removeMemberFromOrganizationCommand:
                     result = await IsInOrganizationAsync(currentContact, removeMemberFromOrganizationCommand.OrganizationId, removeMemberFromOrganizationCommand.ContactId, userManager);
@@ -190,48 +192,17 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Authorization
                 if (member.MemberType.EqualsIgnoreCase("Organization"))
                 {
                     // The member is an organization: it must be the caller's current organization.
-                    result = IsCurrentOrganization(currentContact, currentOrganizationId, member.Id);
+                    result = !string.IsNullOrEmpty(currentOrganizationId)
+                        && member.Id.EqualsIgnoreCase(currentOrganizationId)
+                        && currentContact.Organizations.Any(x => x.EqualsIgnoreCase(currentOrganizationId));
                 }
                 else
                 {
-                    result = await IsInCurrentOrganizationAsync(currentContact, currentOrganizationId, memberId, userManager);
+                    result = await IsInOrganizationAsync(currentContact, currentOrganizationId, memberId, userManager);
                 }
             }
 
             return result;
-        }
-
-        // Customer module before 3.811 issues no organization_id claim, so "current organization"
-        // falls back to any organization the caller belongs to.
-        private static bool IsCurrentOrganization(Contact currentContact, string currentOrganizationId, string organizationId)
-        {
-            if (currentContact?.Organizations is null || string.IsNullOrEmpty(organizationId))
-            {
-                return false;
-            }
-
-            if (!string.IsNullOrEmpty(currentOrganizationId) && !organizationId.EqualsIgnoreCase(currentOrganizationId))
-            {
-                return false;
-            }
-
-            return currentContact.Organizations.Any(x => x.EqualsIgnoreCase(organizationId));
-        }
-
-        private async Task<bool> IsInCurrentOrganizationAsync(Contact currentContact, string currentOrganizationId, string contactId, UserManager<ApplicationUser> userManager)
-        {
-            if (!string.IsNullOrEmpty(currentOrganizationId))
-            {
-                return await IsInOrganizationAsync(currentContact, currentOrganizationId, contactId, userManager);
-            }
-
-            if (currentContact?.Organizations is null)
-            {
-                return false;
-            }
-
-            var contact = await GetCustomerAsync(contactId, userManager) as Contact;
-            return currentContact.Organizations.Any(x => contact?.Organizations?.Any(y => y.EqualsIgnoreCase(x)) == true);
         }
 
         /// <summary>Whether both the caller and the target contact are members of the organization.</summary>
