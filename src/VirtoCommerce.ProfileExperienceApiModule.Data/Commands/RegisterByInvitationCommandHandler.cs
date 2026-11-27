@@ -86,7 +86,7 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
                 return SetResponse(IdentityResult.Failed(errors));
             }
 
-            if (!await IsInvitationPendingAsync(userManager, user, contact))
+            if (!await IsInvitationPendingAsync(user, contact))
             {
                 var errors = _environment.IsDevelopment() ? new[] { new IdentityError { Code = "InvitationNotPending", Description = "Invitation not pending" } } : null;
                 return SetResponse(IdentityResult.Failed(errors));
@@ -134,11 +134,13 @@ namespace VirtoCommerce.ProfileExperienceApiModule.Data.Commands
             return SetResponse(identityResult);
         }
 
-        protected virtual async Task<bool> IsInvitationPendingAsync(UserManager<ApplicationUser> userManager, ApplicationUser user, Contact contact)
+        protected virtual Task<bool> IsInvitationPendingAsync(ApplicationUser user, Contact contact)
         {
-            return contact.Status == ModuleConstants.ContactStatuses.Invited &&
-                   user.PasswordHash == null &&
-                   (await userManager.GetLoginsAsync(user)).Count == 0;
+            var isInvitationPending = contact.Status == ModuleConstants.ContactStatuses.Invited &&
+                                      user.PasswordHash == null &&
+                                      user.Logins.IsNullOrEmpty();
+
+            return Task.FromResult(isInvitationPending);
         }
 
         protected virtual async Task ApproveInvitedMembershipsAsync(string userId, string organizationId, IList<string> contactOrganizationIds)

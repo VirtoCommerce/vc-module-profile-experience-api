@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,8 +35,8 @@ public class RegisterByInvitationCommandHandlerSecurityTests
     {
         // Arrange
         var contact = CreateContact(contactStatus);
-        var user = CreateUser(contact.Id, hasPassword);
-        var userManagerMock = CreateUserManagerMock(user, hasExternalLogin);
+        var user = CreateUser(contact.Id, hasPassword, hasExternalLogin);
+        var userManagerMock = CreateUserManagerMock(user);
         var memberServiceMock = CreateMemberServiceMock(contact);
         var command = CreateCommand();
         var handler = CreateHandler(userManagerMock, memberServiceMock);
@@ -69,32 +68,27 @@ public class RegisterByInvitationCommandHandlerSecurityTests
         };
     }
 
-    private static ApplicationUser CreateUser(string memberId, bool hasPassword)
+    private static ApplicationUser CreateUser(string memberId, bool hasPassword, bool hasExternalLogin)
     {
         return new ApplicationUser
         {
             Id = _userId,
             MemberId = memberId,
             PasswordHash = hasPassword ? "password-hash" : null,
+            Logins = hasExternalLogin
+                ? [new ApplicationUserLogin { LoginProvider = "Google", ProviderKey = "google-key" }]
+                : [],
         };
     }
 
-    private static Mock<UserManager<ApplicationUser>> CreateUserManagerMock(ApplicationUser user, bool hasExternalLogin)
+    private static Mock<UserManager<ApplicationUser>> CreateUserManagerMock(ApplicationUser user)
     {
-        IList<UserLoginInfo> logins = hasExternalLogin
-            ? [new UserLoginInfo("Google", "google-key", "Google")]
-            : [];
-
         var userManagerMock = new Mock<UserManager<ApplicationUser>>(
             args: [Mock.Of<IUserStore<ApplicationUser>>(), null, null, null, null, null, null, null, null]);
 
         userManagerMock
             .Setup(x => x.FindByIdAsync(_userId))
             .ReturnsAsync(user);
-
-        userManagerMock
-            .Setup(x => x.GetLoginsAsync(user))
-            .ReturnsAsync(logins);
 
         userManagerMock
             .Setup(x => x.ResetPasswordAsync(user, It.IsAny<string>(), It.IsAny<string>()))
